@@ -8,7 +8,8 @@ print ('Радиус сферы k0 =', k0)
 
 #Точность расчетов берется в два раза больше чем значение k0
 #Функция ceil() определяет, какая из границ интервала наибольшая и записывает её в результат округления.
-toch = math.ceil(k0*2)
+#toch = math.ceil(k0*2)
+toch = 50
 print ('Точность расчетов toch =', toch)
 
 #Параметры материала Линзы
@@ -242,40 +243,42 @@ mH = [0 * n for i in range(toch)]
 mHpr = [0 * n for i in range(toch)]
 
 ####################################
-# Функция Ханкеоя второго рода как функцию Hfunc(i, j1, j2)
-# где: i -- порядок, j1&j2 -- координаты коэффициента k в массиве k[j1][j2]
+# Функция Ханкеоя второго рода как функцию Hfunc(i)
+# где: i -- порядок
 ####################################
 
-def Hfunc(i, j1, j2):
+def Hfunc(i):
 
   nu = i + 1
-  H = (scipy.special.hankel1(nu + 0.5,k[j1][j2])) * (math.sqrt(k[j1][j2] * math.pi/2))
+  H = (scipy.special.hankel1(nu + 0.5,k0)) * (math.sqrt(k0 * math.pi/2))
   return H
 
 ####################################
-# Производная функции Ханкеоя второго рода как функцию Hprfunc(i, j1, j2)
-# где: i -- порядок, j1&j2 -- координаты коэффициента k в массиве k[j1][j2]
+# Производная функции Ханкеоя второго рода как функцию Hprfunc(i)
+# где: i -- порядок
 ####################################
 
-def Hprfunc(i, j1, j2):
+def Hprfunc(i):
   nu = i + 1
-  Hpr = ((nu / (2 * nu + 1)) * (((scipy.special.hankel1(nu - 0.5,k[j1][j2])) * (cmath.sqrt(k[j1][j2] * math.pi/2))) / k[j1][j2])) * k[j1][j2] - \
-  (((nu + 1) / (2 * nu + 1)) * ((scipy.special.hankel1(nu + 1.5,k[j1][j2])) * (cmath.sqrt(k[j1][j2] * math.pi/2))) / k[j1][j2]) * k[j1][j2] + \
-  ((scipy.special.hankel1(nu + 0.5,k[j1][j2])) * (cmath.sqrt(k[j1][j2] * math.pi/2))) / k[j1][j2]
+  Hpr = ((nu / (2 * nu + 1)) * (((scipy.special.hankel1(nu - 0.5,k0) * (cmath.sqrt(k0 * math.pi/2))) / k0)) * k0 - \
+  (((nu + 1) / (2 * nu + 1)) * ((scipy.special.hankel1(nu + 1.5,k0)) * (cmath.sqrt(k0 * math.pi/2))) / k0) * k0 + \
+  ((scipy.special.hankel1(nu + 0.5,k0)) * (cmath.sqrt(k0 * math.pi/2))) / k0)
   return Hpr
 
 ####################################
 # Заполняем массивы mJ, mJpr, mH, mHpr
 ####################################
 
+k1 = k0
+k00 = k[0][0]
+k[0][0] = k0
 for i in range(toch):
-  k1 = k[0][0]
-  k[0][0] = k0
   mJ[i] = Jfunc(i, 0, 0)
-  mJpr[i] = Jprfunc(i, 0, 0, False)
-  mH[i] = Hfunc(i, 0, 0)
-  mHpr[i] = Hprfunc(i, 0, 0)
-  k0 = k1
+  mJpr[i] = Jprfunc(i, 0, 0, True)
+  mH[i] = Hfunc(i)
+  mHpr[i] = Hprfunc(i)
+k0 = k1
+k[0][0] = k00
 
 print('mJ:', mJ)
 print('mJpr:', mJpr)
@@ -295,7 +298,6 @@ Nn = [0 * n for i in range(toch)]
 
 for i in range(toch):
   nu = i + 1
-  print('Mn:', Z[i][h])
   Mn[i] = (Z[i][h] * mJ[i] - mJpr[i]) / (Z[i][h] * mH[i] - mHpr[i])
   Mn[i] = Mn[i].real - Mn[i].imag * 1j
   Nn[i] = (Y[i][h] * mJ[i] - mJpr[i]) / (Y[i][h] * mH[i] - mHpr[i])
