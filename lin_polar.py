@@ -3,7 +3,7 @@ import cmath
 import scipy.special
 
 #Задаем радиус Линзы
-k0 = 8 * (math.pi)
+k0 = 6 * (math.pi)
 print ('Радиус сферы k0 =', k0)
 
 #Точность расчетов берется в два раза больше чем значение k0
