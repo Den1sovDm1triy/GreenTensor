@@ -3,6 +3,7 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "lumache"
+name = "green-tensor"
+version = "0.0.1"
 authors = [{name = "Graziella", email = "graziella@lumache"}]
 dynamic = ["version", "description"]
