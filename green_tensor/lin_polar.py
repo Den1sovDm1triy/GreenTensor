@@ -1,30 +1,34 @@
 import math
 import cmath
-import scipy.special
+#import scipy.special
+import scipy
+from traitlets.traitlets import ForwardDeclaredInstance
+import matplotlib.pyplot as plt
 
 #Задаем радиус Линзы
 k0 = 6 * (math.pi)
 print ('Радиус сферы k0 =', k0)
 
 #Точность расчетов берется в два раза больше чем значение k0
-#Функция ceil() определяет, какая из границ интервала наибольшая и записывает её в результат округления.
-#toch = math.ceil(k0*2)
-toch = 50
+toch = math.ceil(k0*2)
 print ('Точность расчетов toch =', toch)
 
 #Параметры материала Линзы
 #Для этого примера не допускаются параметры с реактивной (внимной) частью параметров следы eps / miy
-#так как из формулы расчета etta был исключен первый множитель (экспонента)
-#возникала ошибка can't convert complex to float (нужно решить чуть позднее)
-#a - нормированные радиусы слоев
+#Нормированные радиусы слоев
 a = [0.53, 0.75, 0.93, 1]
-#a = [0.34, 0.49, 0.59, 0.69, 0.77, 0.84, 0.91, 0.97]
-#eps - диэлектрическая проницаемость материала
+#Диэлектрическая проницаемость материала
 eps = [1.86, 1.57, 1.28, 1]
-#eps = [1, 1, 1, 1, 1, 1, 1, 1]
-#miy = [1.94, 1.82, 1.71, 1.59, 1.47, 1.35, 1.24, 1.12]
+#Магнитная проницаемость материала
 miy = [1, 1, 1, 1]
-#miy - магнитная проницаемость материала
+
+'''
+#a = [0.34, 0.49, 0.59, 0.69, 0.77, 0.84, 0.91, 0.97]
+#eps = [1.94, 1.82, 1.71, 1.59, 1.47, 1.35, 1.24, 1.12]
+miy = [1, 1, 1, 1, 1, 1, 1, 1]
+'''
+
+#Параметры материалов
 print ('\n a =', a, '\n eps =', eps,'\n miy =', miy)
 
 #Расчет коэффициентов k, которые связывают слои
@@ -36,7 +40,6 @@ alfa = [0 * n for i in range(n)]
 beta = [0 * n for i in range(n)]
 etta = [0 * n for i in range(n)]
 k= [[0] * n for i in range(n)]
-
 
 #Расчет переменных, входящих в коэффициенты k
 print('Расчет переменных, входящих в коэффициенты k')
@@ -66,7 +69,6 @@ print ('k:', k)
 
 print('###-###-###')
 
-from traitlets.traitlets import ForwardDeclaredInstance
 ####################################
 # Определяем переменные для функции Бесселя, Неймана, их производных, C, S, их производных
 ####################################
@@ -108,7 +110,6 @@ def Jprfunc(i, j1, j2, tie):
     (((nu + 1) / (2 * nu + 1)) * ((scipy.special.jv(nu + 1.5,k[j1][j2])) * (math.sqrt(k[j1][j2] * math.pi/2))) / k[j1][j2]) * k[j1][j2] + \
     ((scipy.special.jv(nu + 0.5,k[j1][j2])) * (math.sqrt(k[j1][j2] * math.pi/2))) / k[j1][j2]
   return Jpr
-
 
 ####################################
 # Определеям модифицированную фунцию Бесселя второго рода (функцию Неймана) как функцию Nfunc(i, j1, j2)
@@ -153,12 +154,10 @@ for i in range(toch):
 ####################################
 # Вычисляем массивы значений функций C, S и их производных (Cpr и Spr)
 # в Npr и Jpr учитываем связь между слоями (tie == True)
-#
 # C = J * Npr - N * Jpr
 # Cpr(n) = Jpr * Npr - Npr * Jpr
 # S(n) = N * J - J * N
 # Spr(n) = Npr * J - Jpr * N
-#
 ####################################
 
 for i in range(toch-1):
@@ -432,26 +431,18 @@ for i in range(toch - 1):
 print(Zlay)
 print(Ylay)
 
-import matplotlib.pyplot as plt
-
 plt.plot(tetay,DN_NORM,color='blue', linestyle='-', linewidth=2, label='Sphere Scatterplot')
 
-
-
-# Показать сетку
+#Показать сетку
 plt.grid(True)
 
-plt.show()
-
-# Создайте поларный график
-fig = plt.figure(figsize=(6, 6))  # Размеры фигуры
-ax = fig.add_subplot(111, projection='polar')  # Создание полярной системы координат
-
-# Polar Plot
+#Polar Plot
+fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
 ax.plot(teta, DN_NORM, color='blue', linestyle='-', linewidth=2, label='Sphere Scatterplot')
-
-# Legend
+#Legend
 ax.legend(loc='upper right')
-
+#Title
 plt.title('Polar Scatterplot')
+
+#Print
 plt.show()
