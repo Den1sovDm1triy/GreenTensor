@@ -5,5 +5,8 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "green-tensor"
 version = "0.0.1"
-authors = [{name = "Graziella", email = "graziella@lumache"}]
-dynamic = ["version", "description"]
+authors = [{name = "Denisov", email = "denisov.dv55@gmail.com"}]
+
+[project.dynamic]
+version = "0.0.1"
+description = "Green Tensor Electromagnetic Library"
