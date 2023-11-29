@@ -1,6 +1,5 @@
 import math
 import cmath
-#import scipy.special
 import scipy
 from traitlets.traitlets import ForwardDeclaredInstance
 import matplotlib.pyplot as plt
@@ -12,6 +11,11 @@ print ('Радиус сферы k0 =', k0)
 #Точность расчетов берется в два раза больше чем значение k0
 toch = math.ceil(k0*2)
 print ('Точность расчетов toch =', toch)
+
+#Диапазон расчетных углов
+teta_start = 0.01
+teta_stop = 360
+step = math.pi/360
 
 #Параметры материала Линзы
 #Для этого примера не допускаются параметры с реактивной (внимной) частью параметров следы eps / miy
@@ -308,10 +312,7 @@ print('Nn:', Nn)
 #teta=0.01:pi/180:2*pi; %диапазон изменения углов для декартовой системы координат
 
 i = [1, 2, 3]
-teta_start = 0.01
-teta_stop = 360
 teta_diap = abs(teta_stop)-abs(teta_start)
-step = math.pi/360
 steps = int(((teta_diap)*(math.pi/180)) / step)
 teta = [0 * n for i in range(steps)]
 cos_teta = [0 * n for i in range(steps)]
@@ -430,6 +431,9 @@ for i in range(toch - 1):
 
 print(Zlay)
 print(Ylay)
+
+#Visualisation
+#def visualization(tetay,DN_NORM):
 
 plt.plot(tetay,DN_NORM,color='blue', linestyle='-', linewidth=2, label='Sphere Scatterplot')
 
