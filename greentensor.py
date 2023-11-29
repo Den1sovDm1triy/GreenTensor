@@ -1,5 +1,5 @@
 """
-Lumache - Python library for cooks and food lovers.
+Green Tensor - library of electrodynamic analysis based on tensor Green's functions
 """
 
 __version__ = "0.1.0"

@@ -32,3 +32,11 @@ For example:
 >>> lumache.get_random_ingredients()
 ['shells', 'gorgonzola', 'parsley']
 
+Electromagnetic Calculation
+------------
+
+To diffraction EM calculation, use lin_polar:
+
+.. code-block:: console
+
+   (.venv) $ lin_polar.py
