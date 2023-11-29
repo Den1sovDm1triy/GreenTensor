@@ -2,9 +2,9 @@
 
 # -- Project information
 
-project = 'Lumache'
-copyright = '2021, Graziella'
-author = 'Graziella'
+project = 'GreenTensor'
+copyright = '2021, Denisov'
+author = 'Denisov, Skumatenko, Fadeev, Shesterov'
 
 release = '0.1'
 version = '0.1.0'
