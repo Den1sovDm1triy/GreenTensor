@@ -40,3 +40,8 @@ To diffraction EM calculation, use lin_polar:
 .. code-block:: console
 
    (.venv) $ lin_polar.py
+
+EM Setup
+------------
+
+to calculate tun script
