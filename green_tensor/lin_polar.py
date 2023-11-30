@@ -26,13 +26,15 @@ eps = [1.86, 1.57, 1.28, 1]
 #Магнитная проницаемость материала
 miy = [1, 1, 1, 1]
 
+#9-ти слойная оптимизированная модель ЛЛ
 '''
-#a = [0.34, 0.49, 0.59, 0.69, 0.77, 0.84, 0.91, 0.97]
-#eps = [1.94, 1.82, 1.71, 1.59, 1.47, 1.35, 1.24, 1.12]
-miy = [1, 1, 1, 1, 1, 1, 1, 1]
+#a = [0.34, 0.49, 0.59, 0.69, 0.77, 0.84, 0.91, 0.97, 1]
+#eps = [1.94, 1.82, 1.71, 1.59, 1.47, 1.35, 1.24, 1.12, 1]
+miy = [1, 1, 1, 1, 1, 1, 1, 1, 1]
 '''
 
 #Параметры материалов
+print ('Параметры материалов')
 print ('\n a =', a, '\n eps =', eps,'\n miy =', miy)
 
 #Расчет коэффициентов k, которые связывают слои
@@ -46,21 +48,17 @@ etta = [0 * n for i in range(n)]
 k= [[0] * n for i in range(n)]
 
 #Расчет переменных, входящих в коэффициенты k
-print('Расчет переменных, входящих в коэффициенты k')
-
 for i in range(n):
   alfa[i] = math.atan((eps[i]).imag / (eps[i]).real)
   beta[i] = math.atan((miy[i]).imag / (miy[i]).real)
   etta[i] = math.sqrt(math.fabs(eps[i]) * math.fabs(miy[i]))
 
+#Conrol Point
+#print ('alfa:', alfa)
+#print ('beta:', beta)
+#print ('etta:', etta)
 
-print ('alfa:', alfa)
-print ('beta:', beta)
-print ('etta:', etta)
-print('###-###-###')
-
-#Расчет коэффициентов k
-print('Расчет переменных, входящих в коэффициенты k')
+#Расчет коэффициентов среды k
 
 j = 0; #Индекс для рассчета коэффициентов k
 
@@ -69,9 +67,9 @@ for i in range (n):
   if j < n - 1:
     j = j + 1
     k[i][j] = k0 * a[i] * etta[j]
-print ('k:', k)
 
-print('###-###-###')
+#Conrol Point
+#print ('k:', k)
 
 ####################################
 # Определяем переменные для функции Бесселя, Неймана, их производных, C, S, их производных
@@ -173,14 +171,15 @@ for i in range(toch-1):
 
 ####################################
 
-print('N:', N)
-print('Npr:', Npr)
-print('J:', J)
-print('Jpr:', Jpr)
-print('C:', C)
-print('Cpr:', Cpr)
-print('S:', S)
-print('Spr:', Spr)
+#Conrol Point
+#print('N:', N)
+#print('Npr:', Npr)
+#print('J:', J)
+#print('Jpr:', Jpr)
+#print('C:', C)
+#print('Cpr:', Cpr)
+#print('S:', S)
+#print('Spr:', Spr)
 
 ####################################
 # Добавляем в конец массива alfa элемент со значением 0
@@ -191,8 +190,9 @@ if eps[len(eps)-1] != (len(eps)-1):
     alfa.append(0)
     eps.append(len(eps))
 
-print('alfa[', len(alfa)-1,']:', alfa[len(alfa)-1])
-print('eps[', len(eps)-1,']:', eps[len(eps)-1])
+#Conrol Point
+#print('alfa[', len(alfa)-1,']:', alfa[len(alfa)-1])
+#print('eps[', len(eps)-1,']:', eps[len(eps)-1])
 
 ####################################
 # Определяем импедансы (Z) и адмитансы (Y)
@@ -205,7 +205,7 @@ for i in range(toch - 1):
   for h in range(len(a)):
 
 ####################################
-# Задаем импедансы (Z) и адмитансы (Y) для первого слоя
+#Задаем импедансы (Z) и адмитансы (Y) для первого слоя
 ####################################
 
     if h == 0:
@@ -213,7 +213,7 @@ for i in range(toch - 1):
      Y[i][h] = (cmath.sqrt((cmath.exp(alfa[0] * 1j) * abs(eps[0])) / ((cmath.exp(alfa[1] * 1j) * abs(eps[1]))))) * ((Jpr[i])/(J[i]))
 
 ####################################
-# Задаем импедансы (Z) и адмитансы (Y) для последнего слоя
+#Задаем импедансы (Z) и адмитансы (Y) для последнего слоя
 ####################################
 
     else:
@@ -224,7 +224,7 @@ for i in range(toch - 1):
                  (Cpr[i][h-1] + Y[i][h-1] * Spr[i][h-1]) / (C[i][h-1] + Y[i][h-1] * S[i][h-1]) * 2
 
 ####################################
-# Задаем импедансы (Z) и адмитансы (Y) для промежуточных слоёв
+#Задаем импедансы (Z) и адмитансы (Y) для промежуточных слоёв
 ####################################
 
       else:
@@ -233,8 +233,9 @@ for i in range(toch - 1):
          Y[i][h] = (cmath.sqrt((cmath.exp(alfa[h] * 1j) * abs(eps[h])) / ((cmath.exp(alfa[h+1] * 1j) * abs(eps[h+1]))))) * \
                  (Cpr[i][h-1] + Y[i][h-1] * Spr[i][h-1]) / (C[i][h-1] + Y[i][h-1] * S[i][h-1])
 
-print('Z:', Z)
-print('Y:', Y)
+#Conrol Point
+#print('Z:', Z)
+#print('Y:', Y)
 
 ####################################
 # Определяем массивы для mJ, mJpr, mH, mHpr
@@ -246,8 +247,8 @@ mH = [0 * n for i in range(toch)]
 mHpr = [0 * n for i in range(toch)]
 
 ####################################
-# Функция Ханкеоя второго рода как функцию Hfunc(i)
-# где: i -- порядок
+#Функция Ханкеоя второго рода как функцию Hfunc(i)
+#где: i -- порядок
 ####################################
 
 def Hfunc(i):
@@ -257,8 +258,8 @@ def Hfunc(i):
   return H
 
 ####################################
-# Производная функции Ханкеоя второго рода как функцию Hprfunc(i)
-# где: i -- порядок
+#Производная функции Ханкеоя второго рода как функцию Hprfunc(i)
+#где: i -- порядок
 ####################################
 
 def Hprfunc(i):
@@ -269,7 +270,7 @@ def Hprfunc(i):
   return Hpr
 
 ####################################
-# Заполняем массивы mJ, mJpr, mH, mHpr
+#Заполняем массивы mJ, mJpr, mH, mHpr
 ####################################
 
 k1 = k0
@@ -283,10 +284,11 @@ for i in range(toch):
 k0 = k1
 k[0][0] = k00
 
-print('mJ:', mJ)
-print('mJpr:', mJpr)
-print('mH:', mH)
-print('mHpr:', mHpr)
+#Conrol Point
+#print('mJ:', mJ)
+#print('mJpr:', mJpr)
+#print('mH:', mH)
+#print('mHpr:', mHpr)
 
 ####################################
 # Определяем массивы для Mn и Nn
@@ -306,27 +308,33 @@ for i in range(toch):
   Nn[i] = (Y[i][h] * mJ[i] - mJpr[i]) / (Y[i][h] * mH[i] - mHpr[i])
   Nn[i] = Nn[i].real - Nn[i].imag * 1j
 
-print('Mn:', Mn)
-print('Nn:', Nn)
-
-#teta=0.01:pi/180:2*pi; %диапазон изменения углов для декартовой системы координат
+#Conrol Point
+#print('Mn:', Mn)
+#print('Nn:', Nn)
 
 i = [1, 2, 3]
 teta_diap = abs(teta_stop)-abs(teta_start)
 steps = int(((teta_diap)*(math.pi/180)) / step)
 teta = [0 * n for i in range(steps)]
 cos_teta = [0 * n for i in range(steps)]
-print(step, steps, math.pi)
+
+#Conrol Point
+#print(step, steps, math.pi)
+
 for i in range(steps):
   if i == 0:
     teta[i] = (teta_start)*(math.pi/180)
   else:
     teta[i] = teta[i-1] + step
-print(teta)
+
+#Conrol Point
+#print(teta)
 
 for i in range(steps):
   cos_teta[i] = math.cos(teta[i])
-print(cos_teta)
+
+#Conrol Point
+#print(cos_teta)
 
 M = [0 * n for i in range(steps)]
 Lm0=[0 * n for i in range(steps)]
@@ -377,11 +385,14 @@ for z in range(len(teta)):
   for p in range(toch):
     P_teta[0][z]=abs(P_teta[0][z])
 
-
-#print('P_teta:', P_teta)
+#Conrol Point
+'''
+print('P_teta:', P_teta)
 for z in range((toch)):
     print('E_teta:', E_teta[z][180])
+'''
 
+#Normalize E diagram
 tetay = [0 * n for i in range(steps)]
 DN_NORM = [0 * n for i in range(len(teta))]
 
@@ -390,56 +401,28 @@ P_teta_max = 0
 for i in range(len(teta)):
   if P_teta[0][i] > P_teta_max:
     P_teta_max = P_teta[0][i]
-print(P_teta_max)
+
+#Conrol Point
+#print(P_teta_max)
 
 for i in range(len(teta)):
   tetay[i] = teta[i]*(steps/math.pi)
 
 tetay.reverse()
-print(tetay)
+
+#Conrol Point
+#print(tetay)
 
 for i in range(len(teta)):
   DN_NORM[i] = 20*math.log10(P_teta[0][i]/P_teta_max)
 
-print(DN_NORM)
-
-Zlay = [0 * n for i in range(len(a))]
-Ylay = [0 * n for i in range(len(a))]
-Mlay = [[0] * (len(a)) for i in range(toch)]
-Nlay = [[0] * (len(a)) for i in range(toch)]
-Mnlay = [0 * n for i in range(len(a))]
-Nnlay = [0 * n for i in range(len(a))]
-
-for i in range(toch):
-  for h in range(len(a)):
-    Zlay[h] = (Zlay[h] + (Z[i][h]))
-    Ylay[h] = (Ylay[h] + (Y[i][h]))
-
-for i in range(toch):
-  for h in range(len(a)):
-      nu = i + 1
-      Mlay[i][h] = (Z[i][2] * mJ[i] - mJpr[i]) / (Z[i][2] * mH[i] - mHpr[i])
-      Mlay[i][h] = Mn[i].real - Mn[i].imag * 1j
-      Nlay[i][h] = (Y[i][h] * mJ[i] - mJpr[i]) / (Y[i][h] * mH[i] - mHpr[i])
-      Nlay[i][h] = Nn[i].real - Nn[i].imag * 1j
-      #print(mJ[i], mJpr[i], Z[i][h], Y[i][h], Mlay[i][h], Nlay[i][h])
-
-for i in range(toch - 1):
-  for h in range(len(a)):
-     Mnlay[h] = (Mnlay[h] + Mlay[i][h])
-     Nnlay[h] = abs(Nnlay[h] + Mn[i])
-
-print(Zlay)
-print(Ylay)
+#Conrol Point
+#print(DN_NORM)
 
 #Visualisation
-#def visualization(tetay,DN_NORM):
-
 plt.plot(tetay,DN_NORM,color='blue', linestyle='-', linewidth=2, label='Sphere Scatterplot')
-
-#Показать сетку
+#Show grid
 plt.grid(True)
-
 #Polar Plot
 fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'projection': 'polar'})
 ax.plot(teta, DN_NORM, color='blue', linestyle='-', linewidth=2, label='Sphere Scatterplot')
@@ -447,6 +430,5 @@ ax.plot(teta, DN_NORM, color='blue', linestyle='-', linewidth=2, label='Sphere S
 ax.legend(loc='upper right')
 #Title
 plt.title('Polar Scatterplot')
-
 #Print
 plt.show()
