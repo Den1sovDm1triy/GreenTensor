@@ -45,17 +45,17 @@ As a validation of the accuracy of the obtained results, we present a comparison
 Let's calculate the diffraction of an electromagnetic wave on a conducting sphere and compare it with the results obtained in classical literature [4]. Figures 2a and 2b show the radiation patterns of the scattered field on a sphere with electrical size ka = 3 and ka = 5, respectively, excited by a plane wave, taken from [4]. In the right part of Figure 2c and 2d, the diagrams are calculated using the library.
 
 .. figure:: img/intro/intro_2.png
-   :scale: 50 %
+   :width: 33 %
    :align: center
    :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere (a)
 
 .. figure:: img/intro/intro_3.png
-   :scale: 50 %
+   :width: 33 %
    :align: center
    :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere (b)
 
 .. figure:: img/intro/intro_4.png
-   :scale: 100 %
+   :width: 33 %
    :align: center
    :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere (c and d)
 
@@ -63,6 +63,16 @@ Let's calculate the diffraction of an electromagnetic wave on a conducting spher
 Fig. 2. Diagrams of the scattered field on a metallic sphere
 
 Similarly, let's present the results of the diffraction calculation on a four-layer Luneburg lens. For simplicity, the layer parameters correspond to an equidistant approximation of the Luneburg law. In this problem setup, the incident electromagnetic wave has a frequency of 10 GHz, and the radius of the lens is 9 cm (ka ~ 19). Figure 3 provides a comparison of the scattering diagrams obtained in the Ansys Electronics Desktop software package (HFSS Design) and the Python library.
+
+.. figure:: img/intro/intro_5.png
+   :width: 50 %
+   :align: center
+   :alt: Fig. 3. Scattering on the Luneburg lens (a) and problem setup in HFSS Design (b)
+
+.. figure:: img/intro/intro_6.png
+   :width: 50 %
+   :align: center
+   :alt: Fig. 3. Scattering on the Luneburg lens (a) and problem setup in HFSS Design (b)
 
 a)                                                       b)
 Fig. 3. Scattering on the Luneburg lens (a) and problem setup in HFSS Design (b)	
