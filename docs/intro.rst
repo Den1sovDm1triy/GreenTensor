@@ -1,14 +1,12 @@
-INTRO
+Intro
 =====
 
 Open Source Library for Solving Scattering Problems on Multilayer Spherical Bodies
 ------------
 
-D.V. Denisov – Candidate of Technical Sciences, Associate Professor at the Department of Information Technologies and Control Systems, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: dv.denisov@urfu.ru
-
-V.Ya. Noskov – Doctor of Technical Sciences, Professor at the Department of Radio Electronics and Telecommunications, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: v.y.noskov@urfu.ru
-
-I.O. Skumatenko – Software Developer, Ph.D. student at the Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: ilya.skumatenko@urfu.ru
+| D.V. Denisov - Candidate of Technical Sciences, Associate Professor at the Department of Information Technologies and Control Systems, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: dv.denisov@urfu.ru
+| V.Ya. Noskov - Doctor of Technical Sciences, Professor at the Department of Radio Electronics and Telecommunications, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: v.y.noskov@urfu.ru
+| I.O. Skumatenko - Software Developer, Ph.D. student at the Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: ilya.skumatenko@urfu.ru
 
 Introduction
 ------------
@@ -33,7 +31,7 @@ Comparison of Methods and Previously Obtained Results
 
 As a validation of the accuracy of the obtained results, we present a comparison of solutions for some typical problems. The general geometry of the electromagnetic wave scattering problem on a multilayered spherical structure is illustrated in Figure 1.
 
-.. figure:: img\intro\intro_1.png
+.. figure:: img/intro/intro_1.png
    :scale: 100 %
    :align: center
    :alt: Fig. 1. Model of EM wave diffraction on a multilayered sphere
@@ -57,6 +55,6 @@ The software implementation exhibits significant computational efficiency and ca
 The work is based on:
 ------------
 
-Panchenko, B. A. (2013). Scattering and Absorption of Electromagnetic Waves by Inhomogeneous Spherical Bodies. Moscow: Radiotekhnika.
-Denisov, D. V. (2015). Antenna and Diffraction Characteristics of Luneburg Lenses under Circular Polarization Field Illumination: Thesis for the Degree of Candidate of Technical Sciences. Nizhny Novgorod: Nizhny Novgorod State Technical University named after R. E. Alekseev – NNGTU.
-Markov, G. T., & Chaplin, A. F. (1983). Excitation of Electromagnetic Waves. Moscow: Radio i Svyaz, 296 p.
+| Panchenko, B. A. (2013). Scattering and Absorption of Electromagnetic Waves by Inhomogeneous Spherical Bodies. Moscow: Radiotekhnika.
+| Denisov, D. V. (2015). Antenna and Diffraction Characteristics of Luneburg Lenses under Circular Polarization Field Illumination: Thesis for the Degree of Candidate of Technical Sciences. Nizhny Novgorod: Nizhny Novgorod State Technical University named after R. E. Alekseev – NNGTU.
+| Markov, G. T., & Chaplin, A. F. (1983). Excitation of Electromagnetic Waves. Moscow: Radio i Svyaz, 296 p.
