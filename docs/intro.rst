@@ -4,9 +4,9 @@ Intro
 Open Source Library for Solving Scattering Problems on Multilayer Spherical Bodies
 ------------
 
-|* D.V. Denisov - Candidate of Technical Sciences, Associate Professor at the Department of Information Technologies and Control Systems, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: dv.denisov@urfu.ru
-|* V.Ya. Noskov - Doctor of Technical Sciences, Professor at the Department of Radio Electronics and Telecommunications, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: v.y.noskov@urfu.ru
-|* I.O. Skumatenko - Software Developer, Ph.D. student at the Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: ilya.skumatenko@urfu.ru
+| * D.V. Denisov - Candidate of Technical Sciences, Associate Professor at the Department of Information Technologies and Control Systems, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: dv.denisov@urfu.ru
+| * V.Ya. Noskov - Doctor of Technical Sciences, Professor at the Department of Radio Electronics and Telecommunications, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: v.y.noskov@urfu.ru
+| * I.O. Skumatenko - Software Developer, Ph.D. student at the Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: ilya.skumatenko@urfu.ru
 
 Introduction
 ------------
