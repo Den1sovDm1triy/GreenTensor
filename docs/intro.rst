@@ -29,7 +29,9 @@ The usage instructions, licensing information, and details about input and outpu
 Comparison of Methods and Previously Obtained Results
 ------------
 
-As a validation of the accuracy of the obtained results, we present a comparison of solutions for some typical problems. The general geometry of the electromagnetic wave scattering problem on a multilayered spherical structure is illustrated in Figure 1.
+As a validation of the accuracy of the obtained results, we present a comparison of solutions for some typical problems. The general geometry of the electromagnetic wave scattering problem on a multilayered spherical structure is illustrated in :ref:`fig1`: Figure 1.
+
+.. _fig1:
 
 .. figure:: img/intro/intro_1.png
    :scale: 100 %
