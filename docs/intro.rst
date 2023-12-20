@@ -1,5 +1,5 @@
 INTRO
-===
+=====
 
 Open Source Library for Solving Scattering Problems on Multilayer Spherical Bodies
 ------------
@@ -33,7 +33,7 @@ Comparison of Methods and Previously Obtained Results
 
 As a validation of the accuracy of the obtained results, we present a comparison of solutions for some typical problems. The general geometry of the electromagnetic wave scattering problem on a multilayered spherical structure is illustrated in Figure 1.
 
-.. figure:: docs/img/intro/intro_1.png
+.. figure:: img\intro\intro_1.png
    :scale: 100 %
    :align: center
    :alt: Fig. 1. Model of EM wave diffraction on a multilayered sphere
