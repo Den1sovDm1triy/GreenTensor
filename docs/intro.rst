@@ -42,7 +42,6 @@ Comparison of Methods and Previously Obtained Results
 As a validation of the accuracy of the obtained results, we present a comparison of solutions for some typical problems. The general geometry of the electromagnetic wave scattering problem on a multilayered spherical structure is illustrated in Figure 1.
 
 .. figure:: img/intro/intro_1.png
-   :scale: 100 %
    :class: align-center
    :alt: Fig. 1. Model of EM wave diffraction on a multilayered sphere
 
@@ -60,7 +59,6 @@ Fig. 2. Diagrams of the scattered field on a metallic sphere
 Similarly, let's present the results of the diffraction calculation on a four-layer Luneburg lens. For simplicity, the layer parameters correspond to an equidistant approximation of the Luneburg law. In this problem setup, the incident electromagnetic wave has a frequency of 10 GHz, and the radius of the lens is 9 cm (ka ~ 19). Figure 3 provides a comparison of the scattering diagrams obtained in the Ansys Electronics Desktop software package (HFSS Design) and the Python library.
 
 .. figure:: img/intro/intro_3(3).png
-   :width: 100 %
    :align: center
    :alt: Fig. 3. Scattering on the Luneburg lens (a) and problem setup in HFSS Design (b)
 
