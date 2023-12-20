@@ -44,22 +44,12 @@ As a validation of the accuracy of the obtained results, we present a comparison
 
 Let's calculate the diffraction of an electromagnetic wave on a conducting sphere and compare it with the results obtained in classical literature [4]. Figures 2a and 2b show the radiation patterns of the scattered field on a sphere with electrical size ka = 3 and ka = 5, respectively, excited by a plane wave, taken from [4]. In the right part of Figure 2c and 2d, the diagrams are calculated using the library.
 
-.. figure:: img/intro/intro_2.png
-   :width: 33 %
+.. figure:: img/intro/intro_2(2).png
+   :width: 100 %
    :align: center
-   :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere (a)
+   :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere
 
-.. figure:: img/intro/intro_3.png
-   :width: 33 %
-   :align: center
-   :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere (b)
-
-.. figure:: img/intro/intro_4.png
-   :width: 33 %
-   :align: center
-   :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere (c and d)
-
-                         a)                     b)                                c)                           d)
+	a)                     b)                                c)                           d)
 Fig. 2. Diagrams of the scattered field on a metallic sphere
 
 Similarly, let's present the results of the diffraction calculation on a four-layer Luneburg lens. For simplicity, the layer parameters correspond to an equidistant approximation of the Luneburg law. In this problem setup, the incident electromagnetic wave has a frequency of 10 GHz, and the radius of the lens is 9 cm (ka ~ 19). Figure 3 provides a comparison of the scattering diagrams obtained in the Ansys Electronics Desktop software package (HFSS Design) and the Python library.
