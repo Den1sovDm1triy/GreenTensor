@@ -66,4 +66,5 @@ The work is based on:
 
 #. Panchenko, B. A. (2013). Scattering and Absorption of Electromagnetic Waves by Inhomogeneous Spherical Bodies. Moscow: Radiotekhnika.
 #. Denisov, D. V. (2015). Antenna and Diffraction Characteristics of Luneburg Lenses under Circular Polarization Field Illumination: Thesis for the Degree of Candidate of Technical Sciences. Nizhny Novgorod: Nizhny Novgorod State Technical University named after R. E. Alekseev - NNGTU.
+#. D.V. Denisov's GreenTensor Repository: GitHub. 2023. URL: https://github.com/Den1sovDm1triy/GreenTensor
 #. Markov, G. T., & Chaplin, A. F. (1983). Excitation of Electromagnetic Waves. Moscow: Radio i Svyaz, 296 p.
