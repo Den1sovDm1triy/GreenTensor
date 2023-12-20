@@ -46,7 +46,7 @@ Let's calculate the diffraction of an electromagnetic wave on a conducting spher
    :align: center
    :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere
 
-Fig. 2. Diagrams of the scattered field on a metallic sphere
+   Fig. 2. Diagrams of the scattered field on a metallic sphere
 
 Similarly, let's present the results of the diffraction calculation on a four-layer Luneburg lens. For simplicity, the layer parameters correspond to an equidistant approximation of the Luneburg law. In this problem setup, the incident electromagnetic wave has a frequency of 10 GHz, and the radius of the lens is 9 cm (ka ~ 19). Figure 3 provides a comparison of the scattering diagrams obtained in the Ansys Electronics Desktop software package (HFSS Design) and the Python library.
 
@@ -54,7 +54,7 @@ Similarly, let's present the results of the diffraction calculation on a four-la
    :align: center
    :alt: Fig. 3. Scattering on the Luneburg lens (a) and problem setup in HFSS Design (b)
 
-Fig. 3. Scattering on the Luneburg lens (a) and problem setup in HFSS Design (b)	
+   Fig. 3. Scattering on the Luneburg lens (a) and problem setup in HFSS Design (b)	
 
 Conclusions
 ------------
