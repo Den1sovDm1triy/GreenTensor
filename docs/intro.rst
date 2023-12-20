@@ -4,9 +4,11 @@ Intro
 Open Source Library for Solving Scattering Problems on Multilayer Spherical Bodies
 ------------
 
-| D.V. Denisov - Candidate of Technical Sciences, Associate Professor at the Department of Information Technologies and Control Systems, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: dv.denisov@urfu.ru
-| V.Ya. Noskov - Doctor of Technical Sciences, Professor at the Department of Radio Electronics and Telecommunications, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: v.y.noskov@urfu.ru
-| I.O. Skumatenko - Software Developer, Ph.D. student at the Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: ilya.skumatenko@urfu.ru
+* D.V. Denisov - Candidate of Technical Sciences, Associate Professor at the Department of Information Technologies and Control Systems, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: dv.denisov@urfu.ru
+
+* V.Ya. Noskov - Doctor of Technical Sciences, Professor at the Department of Radio Electronics and Telecommunications, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: v.y.noskov@urfu.ru
+
+* I.O. Skumatenko - Software Developer, Ph.D. student at the Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: ilya.skumatenko@urfu.ru
 
 Introduction
 ------------
@@ -42,8 +44,24 @@ As a validation of the accuracy of the obtained results, we present a comparison
 
 Let's calculate the diffraction of an electromagnetic wave on a conducting sphere and compare it with the results obtained in classical literature [4]. Figures 2a and 2b show the radiation patterns of the scattered field on a sphere with electrical size ka = 3 and ka = 5, respectively, excited by a plane wave, taken from [4]. In the right part of Figure 2c and 2d, the diagrams are calculated using the library.
 
+.. figure:: img/intro/intro_2.png
+   :scale: 50 %
+   :align: center
+   :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere (a)
+
+.. figure:: img/intro/intro_3.png
+   :scale: 50 %
+   :align: center
+   :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere (b)
+
+.. figure:: img/intro/intro_4.png
+   :scale: 100 %
+   :align: center
+   :alt: Fig. 2. Diagrams of the scattered field on a metallic sphere (c and d)
+
                          a)                     b)                                c)                           d)
 Fig. 2. Diagrams of the scattered field on a metallic sphere
+
 Similarly, let's present the results of the diffraction calculation on a four-layer Luneburg lens. For simplicity, the layer parameters correspond to an equidistant approximation of the Luneburg law. In this problem setup, the incident electromagnetic wave has a frequency of 10 GHz, and the radius of the lens is 9 cm (ka ~ 19). Figure 3 provides a comparison of the scattering diagrams obtained in the Ansys Electronics Desktop software package (HFSS Design) and the Python library.
 
 a)                                                       b)
@@ -57,6 +75,6 @@ The software implementation exhibits significant computational efficiency and ca
 The work is based on:
 ------------
 
-| Panchenko, B. A. (2013). Scattering and Absorption of Electromagnetic Waves by Inhomogeneous Spherical Bodies. Moscow: Radiotekhnika.
-| Denisov, D. V. (2015). Antenna and Diffraction Characteristics of Luneburg Lenses under Circular Polarization Field Illumination: Thesis for the Degree of Candidate of Technical Sciences. Nizhny Novgorod: Nizhny Novgorod State Technical University named after R. E. Alekseev – NNGTU.
-| Markov, G. T., & Chaplin, A. F. (1983). Excitation of Electromagnetic Waves. Moscow: Radio i Svyaz, 296 p.
+#. Panchenko, B. A. (2013). Scattering and Absorption of Electromagnetic Waves by Inhomogeneous Spherical Bodies. Moscow: Radiotekhnika.
+#. Denisov, D. V. (2015). Antenna and Diffraction Characteristics of Luneburg Lenses under Circular Polarization Field Illumination: Thesis for the Degree of Candidate of Technical Sciences. Nizhny Novgorod: Nizhny Novgorod State Technical University named after R. E. Alekseev – NNGTU.
+#. Markov, G. T., & Chaplin, A. F. (1983). Excitation of Electromagnetic Waves. Moscow: Radio i Svyaz, 296 p.
