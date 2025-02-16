@@ -1,19 +1,30 @@
-Данная библеотека Библиотека позволяет решать задачи возбуждения неоднородных сферических структур
-методом тензорных функций Грина.
-Основной файл расчета lin_polar.py
-Библиотека состоит из функций для вычислений функций Бесселя, Неймана, их производных, импедансов и адмитансов (Y и Z)
-для связанных слоев, функции Ханкеля, ее производной, коэффициентов Mn и Nn слоев.
+GreenTensor
+===========
 
-Необходимые данные для расчёта на входе:
-Радиус линзы (k0), точность расчетов берется в два раза больше чем значение k0.
+**GreenTensor** is a Python library developed for the analysis of electromagnetic field scattering on heterogeneous spherical structures. The library aims to provide efficient tools for solving problems in electromagnetic wave propagation and scattering, using advanced mathematical models.
 
-Параметры материала Линзы:
-Для этого примера не допускаются параметры с реактивной (внимной) частью параметров следы eps / miy
-#a - нормированные радиусы слоев (a = [])
-#eps - диэлектрическая проницаемость материала (eps = [])
-#miy - магнитная проницаемость материала (miy = [])
+The library is described in detail in the following research articles:
+- [GreenTensor: Efficient Electromagnetic Scattering Analysis on Heterogeneous Spherical Structures](https://ieeexplore.ieee.org/document/10615009)
+- [GreenTensor: A Python Library for Electromagnetic Wave Propagation Analysis](https://ieeexplore.ieee.org/document/10584060)
 
-Результирующим значением будет диаграммы рассеянного поля в полярных координатах,
-нормированные относиттельно максимального значения E
+Features
+--------
+- Efficient computation of electromagnetic field scattering in heterogeneous media.
+- Support for complex spherical geometries.
+- Advanced numerical methods for wave propagation analysis.
+- Built-in visualization tools for analyzing results.
 
-Документацию к библиотеке можно найти по ссылке https://greentensor.readthedocs.io/
+Installation
+------------
+To install **GreenTensor**, you can use `pip`:
+
+```bash
+pip install GreenTensor
+
+Dependencies
+------------
+- numpy
+- scipy
+- matplotlib
+- sympy
+- h5py
