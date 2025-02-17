@@ -6,7 +6,7 @@
 
 **Greenwood и Jin (1999) — "A Novel Efficient Algorithm for Scattering from a Complex BOR Using Mixed Finite Elements and Cylindrical PML"**.
 
-Запустить файл на исполнение можно в [google colab]([url](https://colab.research.google.com/drive/1VpbKq_aoC2bgZgofIQjYkxPGVQFmxZxb#scrollTo=N1dG3kkVsizi)).
+Запустить файл на исполнение можно в [Google Colab](https://colab.research.google.com/drive/1VpbKq_aoC2bgZgofIQjYkxPGVQFmxZxb#scrollTo=N1dG3kkVsizi).
 
 ## Полученные результаты
 
