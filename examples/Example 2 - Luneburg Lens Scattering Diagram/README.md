@@ -20,10 +20,14 @@
   - Построение диаграмм в полярной системе координат.
 
 ### 🔹 Графики (результаты расчетов)
-- **GreenTensor_compareHFSS_LL4layer_Ephi=0.png** – сравнение GreenTensor и HFSS для φ=0°.
-- **GreenTensor_compareHFSS_LL4layer_Ephi=90.png** – сравнение GreenTensor и HFSS для φ=90°.
-- **GreenTensor_result_LL4layer.png** – результаты расчета в GreenTensor.
-- **HFSS_result_LL4layer.png** – результаты расчета в HFSS.
+
+![Результаты расчета в HFSS](HFSS_result_LL4layer.png)
+
+![Результаты расчета в GreenTensor](GreenTensor_result_LL4layer.png)
+
+![Сравнение GreenTensor и HFSS для φ=0°](GreenTensor_compareHFSS_LL4layer_Ephi=0.png)
+
+![Сравнение GreenTensor и HFSS для φ=90°](GreenTensor_compareHFSS_LL4layer_Ephi=90.png)
 
 ---
 
@@ -31,9 +35,10 @@
 
 ### 1️⃣ Установка зависимостей
 Для работы скриптов требуется **Python 3.8+** и библиотеки:
-
-```bash
-pip install numpy matplotlib pandas scipy
+- numpy
+- matplotlib
+- pandas
+- scipy
 
 ### Запустить файл на исполнение
 Для корректного построения диаграмм сравнения с HFSS потребуется загрузка файлов Ephi=0_from_HFSS.csv и Ephi=90_from_HFSS.csv во временное окружение google colab.
