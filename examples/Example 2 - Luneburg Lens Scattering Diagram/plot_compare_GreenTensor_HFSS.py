@@ -3,6 +3,7 @@
 
 import pandas as pd
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 
 # Загружаем данные из файла (HFSS)
@@ -10,8 +11,8 @@ file_path = "/content/Ephi=90_from_HFSS.csv"
 print(os.path.exists(file_path))  # Проверяем, существует ли файл
 
 # Извлекаем необходимые данные
-theta_deg = df["Theta [deg]"]
-r_db = df["dB20normalize(rETotal) []"]
+theta_deg = pd.df["Theta [deg]"]
+r_db = pd.df["dB20normalize(rETotal) []"]
 
 # Преобразуем углы в радианы
 theta_rad = np.radians(theta_deg)
