@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.ticker as ticker
 
 class RCSCalculator:
-    def __init__(self, k0=0.5, toch=15, n=3, phi=0, a=None, eps=None, miy=None):
+    def __init__(self, k0=0.5, toch=10, n=3, phi=math.pi/2, a=None, eps=None, miy=None):
         """
         Инициализация калькулятора RCS
         
@@ -44,7 +44,7 @@ class RCSCalculator:
         # Переменные среды
         self.alfa = np.zeros(self.n, dtype=complex)
         self.beta = np.zeros(self.n, dtype=complex)
-        self.etta = np.zeros(self.n, dtype=complex)
+        self.sigma = np.zeros(self.n, dtype=complex)
         self.k = np.zeros((self.n, self.n), dtype=complex)
         
         # Функции Бесселя, Неймана и др.
@@ -52,10 +52,10 @@ class RCSCalculator:
         self.Jpr = np.zeros(self.toch, dtype=complex)
         self.N = np.zeros(self.toch, dtype=complex)
         self.Npr = np.zeros(self.toch, dtype=complex)
-        self.C = np.zeros((self.toch, len(self.etta)-1), dtype=complex)
-        self.Cpr = np.zeros((self.toch, len(self.etta)-1), dtype=complex)
-        self.S = np.zeros((self.toch, len(self.etta)-1), dtype=complex)
-        self.Spr = np.zeros((self.toch, len(self.etta)-1), dtype=complex)
+        self.C = np.zeros((self.toch, len(self.sigma)-1), dtype=complex)
+        self.Cpr = np.zeros((self.toch, len(self.sigma)-1), dtype=complex)
+        self.S = np.zeros((self.toch, len(self.sigma)-1), dtype=complex)
+        self.Spr = np.zeros((self.toch, len(self.sigma)-1), dtype=complex)
         
         # Импедансы и адмитансы
         self.Z = np.zeros((self.toch, len(self.a)), dtype=complex)
@@ -84,16 +84,16 @@ class RCSCalculator:
         for i in range(self.n):
             self.alfa[i] = cmath.atan(self.eps[i].imag / self.eps[i].real) if self.eps[i].real != 0 else cmath.pi/2
             self.beta[i] = math.atan(self.miy[i].imag / self.miy[i].real)
-            self.etta[i] = cmath.sqrt(abs(self.eps[i]) * abs(self.miy[i]))
+            self.sigma[i] = cmath.sqrt(abs(self.eps[i]) * abs(self.miy[i]))
     
     def calculate_k_coefficients(self):
         """Расчет коэффициентов k"""
         j = 0
         for i in range(self.n):
-            self.k[i][j] = self.k0 * self.a[i] * self.etta[j]
+            self.k[i][j] = self.k0 * self.a[i] * self.sigma[j]
             if j < self.n - 1:
                 j += 1
-                self.k[i][j] = self.k0 * self.a[i] * self.etta[j]
+                self.k[i][j] = self.k0 * self.a[i] * self.sigma[j]
     
     def Jfunc(self, i, j1, j2):
         """Функция Бесселя первого рода"""
@@ -148,7 +148,7 @@ class RCSCalculator:
     def calculate_CS_functions(self):
         """Расчет функций C, S и их производных"""
         for i in range(self.toch-1):
-            for j in range(len(self.etta)-1):
+            for j in range(len(self.sigma)-1):
                 self.C[i][j] = (self.Jfunc(i, j+1, j+1) * self.Nprfunc(i, j, j+1, True) - 
                                self.Nfunc(i, j+1, j+1) * self.Jprfunc(i, j, j+1, True))
                 self.Cpr[i][j] = (self.Jprfunc(i, j+1, j+1, True) * self.Nprfunc(i, j, j+1, True) - 
@@ -239,10 +239,8 @@ class RCSCalculator:
             nu = i + 1
             self.Mn[i] = (self.Z[i][self.n-2] * self.mJ[i] - self.mJpr[i]) / (self.Z[i][self.n-2] * self.mH[i] - self.mHpr[i])
             self.Mn[i] = self.Mn[i].real - self.Mn[i].imag * 1j
-            print(self.Z[i])
             self.Nn[i] = (self.Y[i][self.n-2] * self.mJ[i] - self.mJpr[i]) / (self.Y[i][self.n-2] * self.mH[i] - self.mHpr[i])
             self.Nn[i] = self.Nn[i].real - self.Nn[i].imag * 1j
-            print(self.Y[i])
     
     def calculate_angles(self):
         """Расчет углов для диаграммы направленности"""
@@ -346,9 +344,9 @@ class RCSCalculator:
         fig1, ax1 = plt.subplots(figsize=(6, 6))
         ax1.set(xlim=(-180, 180))
         
-        ax1.plot(self.tetay, self.DN_NORM_lin_k0a_phi, color='red', linestyle='-', linewidth=1, label='lin op')
-        ax1.plot(self.tetay, self.DN_NORM_lin_k0a_teta, color='green', linestyle='-', linewidth=1, label='lin kp')
-        
+        ax1.plot(self.tetay, self.DN_NORM_lin_dB_phi, color='red', linestyle='-', linewidth=1, label=r'$E_{\phi}$, dB')
+        ax1.plot(self.tetay, self.DN_NORM_lin_dB_teta, color='green', linestyle='-', linewidth=1, label=r'$E_{\theta}$, dB')
+        ax1.set_ylim(-60, 0)
         ax1.xaxis.set_major_locator(ticker.MaxNLocator(5))
         
         def format_degrees(x, pos):
@@ -365,12 +363,12 @@ class RCSCalculator:
         fig2, axs = plt.subplots(1, 2, figsize=(10, 5), subplot_kw={'projection': 'polar'})
         
         axs[0].plot(self.teta, self.DN_NORM_lin_dB_phi, color='black', linestyle='-', linewidth=1, label='GreenTensor')
-        axs[0].set_title(r'$E_{\theta}$, dB | Bistatic RCS', pad=30)
+        axs[0].set_title(r'$E_{\phi}$, dB', pad=30)
         axs[0].legend(loc='best')
         axs[0].set_ylim(-60, 0)
         
-        axs[1].plot(self.teta, self.DN_NORM_lin_dB_teta, color='blue', linestyle='-', linewidth=1, label='GreenTensor | Bistatic RCS')
-        axs[1].set_title("dB HH-pol", pad=30)
+        axs[1].plot(self.teta, self.DN_NORM_lin_dB_teta, color='blue', linestyle='-', linewidth=1, label='GreenTensor')
+        axs[1].set_title(r'$E_{\theta}$, dB', pad=30)
         axs[1].legend(loc='best')
         axs[1].set_ylim(-60, 0)
         
@@ -379,8 +377,8 @@ class RCSCalculator:
     
     def run_calculation(self):
         """Выполнение полного расчета"""
-        print('Параметры материалов:')
-        print(f'\na = {self.a}\neps = {self.eps}\nmiy = {self.miy}')
+        #print('Параметры материалов:')
+        #print(f'\na = {self.a}\neps = {self.eps}\nmiy = {self.miy}')
         
         
         self.calculate_medium_parameters()
@@ -401,14 +399,126 @@ class RCSCalculator:
         self.calculate_circular_polarization()
         self.calculate_linear_polarization()
         self.normalize_results()
-        self.plot_results()
+        #self.plot_results()
 
 
-# Пример использования
-if __name__ == "__main__":
-    # Создаем экземпляр калькулятора с параметрами по умолчанию
-    rcs_calculator = RCSCalculator()
+
+class ScatteringCalculator:
+    def __init__(self, toch=10, k0a_start=0.25, k0a_stop=5.0, k0a_step=0.05):
+        """
+        Параметры:
+            toch: количество членов в разложении
+            k0a_start: начальное значение k0a
+            k0a_stop: конечное значение k0a
+            k0a_step: шаг изменения k0a
+        """
+        self.toch = toch
+        self.k0a_start = k0a_start
+        self.k0a_stop = k0a_stop
+        self.k0a_step = k0a_step
+        
+        # Инициализация массивов коэффициентов
+        self.i_arr = np.arange(1, self.toch + 1)  # начинаем с 1 до toch включительно
+        self.coeffs_1 = 2 * self.i_arr + 1       # (2n + 1)
+        self.coeffs_2 = 2 * (self.i_arr**2) - 1  # (2n² - 1)
+        self.coeffs_3 = self.i_arr * (self.i_arr + 1)  # n(n+1)
+        self.minus_1_pow = (-1)**self.i_arr
+        
+        # Создаем экземпляр RCSCalculator
+        self.rcs_calculator = RCSCalculator()
     
-    # Запускаем расчет
+    def calculate(self):
+        """Основной метод расчета"""
+        # Генерация массива k0a
+        self.k0a = np.arange(self.k0a_start, self.k0a_stop + self.k0a_step/2, self.k0a_step)
+        k0a_steps = len(self.k0a)
+        
+        # Инициализация результирующих массивов
+        self.sigma_s = np.zeros(k0a_steps)
+        self.sigma_theta = np.zeros(k0a_steps)  
+        self.sigma_phi = np.zeros(k0a_steps)
+        self.sigma_r = np.zeros(k0a_steps)
+        self.sigma_p = np.zeros(k0a_steps)
+        
+        for k, current_k0a in enumerate(self.k0a):
+            self._calculate_for_k(k, current_k0a)
+        
+        return self.k0a, self.sigma_s, self.sigma_r, self.sigma_p, self.sigma_theta, self.sigma_phi
+    
+    def _calculate_for_k(self, k, current_k0a):
+        """Вычисления для конкретного значения k0a"""
+        self.rcs_calculator.k0 = current_k0a
+        self.rcs_calculator.run_calculation()
+        
+        Mn = self.rcs_calculator.Mn
+        Nn = self.rcs_calculator.Nn
+        
+        # Векторизованные вычисления
+        abs_Mn_sq = np.abs(Mn)**2
+        abs_Nn_sq = np.abs(Nn)**2
+        
+        # Вычисление сумм
+        sum_sigma_1 = np.sum(self.coeffs_1 * (abs_Mn_sq + abs_Nn_sq))
+        sum_sigma_2 = np.sum(self.coeffs_1 * self.minus_1_pow * (Mn - Nn))
+        sum_sigma_3 = np.sum(self.coeffs_1 * (Mn + Nn))
+        sum_sigma_4 = np.sum((self.coeffs_1/self.coeffs_3)*(self.coeffs_2 * abs_Mn_sq + self.coeffs_1 * abs_Nn_sq))
+        sum_sigma_5 = np.sum((self.coeffs_1/self.coeffs_3) * (self.coeffs_2 * abs_Nn_sq + self.coeffs_1 * abs_Mn_sq))
+        
+        # Сохранение результатов
+        k0a_sq = current_k0a**2
+        self.sigma_s[k] = (2 / k0a_sq) * sum_sigma_1
+        self.sigma_r[k] = (1 / k0a_sq) * np.abs(sum_sigma_2)**2
+        self.sigma_p[k] = (1 / k0a_sq) * np.abs(sum_sigma_3)**2
+        self.sigma_theta[k] = (1 / k0a_sq) * sum_sigma_4
+        self.sigma_phi[k] = (1 / k0a_sq) * sum_sigma_5
+    #  r'$E_{\theta}$'
+    def plot_results(self):
+        """Визуализация результатов в трех отдельных графиках"""
+        plt.figure(figsize=(12, 10))
+    
+        # Первый график - σ_s и компоненты
+        plt.subplot(3, 1, 1)
+        plt.plot(self.k0a, self.sigma_s, 'b-', label= r'${\sigma}_{s}$')
+        plt.plot(self.k0a, self.sigma_theta, 'r--', label= r'${\sigma}_{\theta}$')
+        plt.plot(self.k0a, self.sigma_phi, 'g--', label= r'${\sigma}_{\phi}$')
+        plt.title('Полный коэффициент рассеяния')
+        plt.xlabel('k0a')
+        plt.ylabel(r'${\sigma}$')
+        plt.grid(True)
+        plt.legend()
+        
+        # Второй график - σ_r
+        plt.subplot(3, 1, 2)
+        plt.plot(self.k0a, self.sigma_r, 'm-', label= r'${\sigma}_{r}$')
+        plt.title('Радиолокационный коэффициент рассеяния')
+        plt.xlabel('k0a')
+        plt.grid(True)
+        plt.legend()
+        
+        # Третий график - σ_p
+        plt.subplot(3, 1, 3)
+        plt.plot(self.k0a, self.sigma_p, 'c-', label= r'${\sigma}_{p}$')
+        plt.title('Коэффициент рассеяния в попутном направлении')
+        plt.xlabel('k0a')
+        plt.grid(True)
+        plt.legend()
+        
+        plt.tight_layout()
+        plt.show()
 
-    rcs_calculator.run_calculation()
+
+if __name__ == "__main__":
+    # Создание экземпляров
+    scattering_calc = ScatteringCalculator()
+    rcs_calc = RCSCalculator()
+    
+    # Выполнение расчетов
+    results = scattering_calc.calculate()
+    
+    # Визуализация результатов
+    scattering_calc.plot_results()
+    
+    # Выполнение расчетов для RCSCalculator
+    rcs_calc.run_calculation()
+    if hasattr(rcs_calc, 'plot_results'):
+        rcs_calc.plot_results()
