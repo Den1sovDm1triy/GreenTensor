@@ -4,5 +4,49 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "greentensor"
-authors = [{name = "Graziella", email = "graziella@lumache"}]
-dynamic = ["version", "description"]
+description = "Open-source Python library for electromagnetic scattering analysis on multilayer spherical structures via Tensor Green's Functions"
+authors = [
+    {name = "Dmitriy V. Denisov", email = "dv.denisov@urfu.ru"},
+    {name = "Vladislav Ya. Noskov", email = "v.y.noskov@urfu.ru"},
+    {name = "Ilia O. Skumatenko", email = "ilya.skumatenko@urfu.ru"},
+]
+readme = "README.rst"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+keywords = [
+    "electromagnetics",
+    "scattering",
+    "luneburg-lens",
+    "green-functions",
+    "spherical-bessel",
+    "tensor-green-function",
+    "multilayer-sphere",
+    "rcs",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.5",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/Den1sovDm1triy/GreenTensor"
+Documentation = "https://greentensor.readthedocs.io"
+Repository = "https://github.com/Den1sovDm1triy/GreenTensor"
+Issues = "https://github.com/Den1sovDm1triy/GreenTensor/issues"
+
+[project.optional-dependencies]
+docs = ["sphinx>=5.0", "sphinx-rtd-theme>=1.2"]
+dev = ["pytest>=7.0", "ruff>=0.1"]

@@ -159,56 +159,40 @@ class RCSCalculator:
                                  self.Jprfunc(i, j+1, j+1, True) * self.Nfunc(i, j, j+1))
     
     def calculate_impedances(self):
-        """Расчет импедансов и адмитансов на границах раздела сред.
+        """Расчет импедансов и адмитансов на внутренних границах раздела сред.
 
-        Z[i][h] и Y[i][h] определены для h = 0..len(a)-1, что соответствует
-        пропагации импеданса от внутренней границы r=a[0] до внешней r=a[-1].
-        Последняя итерация h = len(a)-1 — пропагация через внешний вакуумный
-        слой (от a[-2] до a[-1] = 1), необходимая для корректного матчинга
-        с выходящей сферической волной в calculate_scattering_coefficients,
-        который теперь читает Z[i][len(a)-1] (а не Z[i][n-2], как раньше).
+        Z[i][h] и Y[i][h] определены для h = 0..len(a)-2 (т.е. на len(a)-1
+        внутренних границах). Последняя ячейка Z[i][len(a)-1] не используется
+        ниже по конвейеру: calculate_scattering_coefficients() читает Z[i][n-2]
+        и Y[i][n-2] на внешней границе диэлектрика.
 
-        Хронология исправлений 2026-05-05:
-        - этап 1 (off-by-one): удалены мусорные множители /2 и *2 из бывшей
-          elif h==len(a)-1 ветки, плюс убран хак-паддинг alfa/eps в
-          run_calculation();
-        - этап 2 (multilayer): восстановлена последняя итерация со штатной
-          Möbius-формулой пропагации; eps[h+1]/alfa[h+1] для последнего
-          шага берутся как eps[h]/alfa[h] (вакуум-вакуум, sqrt_part = 1).
+        Исправление 2026-05-05: цикл по h раньше шёл до len(self.a) включительно,
+        что вызывало IndexError по eps[h+1] при h = len(a)-1 либо использовало
+        мусорное значение, добавленное хак-паддингом в run_calculation().
+        Цикл теперь корректно заканчивается на последней реальной границе.
         """
-        n_a = len(self.a)
         for i in range(self.toch - 1):
-            for h in range(n_a):
+            for h in range(len(self.a) - 1):
                 if h == 0:
                     numerator = cmath.exp(self.alfa[1] * 1j) * abs(self.eps[1])
                     denominator = cmath.exp(self.alfa[0] * 1j) * abs(self.eps[0])
                     self.Z[i][h] = cmath.sqrt(numerator / denominator) * (self.Jpr[i] / self.J[i])
-
+                
                     numerator = cmath.exp(self.alfa[0] * 1j) * abs(self.eps[0])
                     denominator = cmath.exp(self.alfa[1] * 1j) * abs(self.eps[1])
                     self.Y[i][h] = cmath.sqrt(numerator / denominator) * (self.Jpr[i] / self.J[i])
-
+                
                 else:
-                    # Внешняя для h-й границы среда: при h+1 < n_a — из массивов,
-                    # иначе берём текущий слой (последний слой = вакуум, по
-                    # соглашению API), что даёт sqrt_part = 1 (без скачка).
-                    if h + 1 < n_a:
-                        eps_out = self.eps[h + 1]
-                        alfa_out = self.alfa[h + 1]
-                    else:
-                        eps_out = self.eps[h]
-                        alfa_out = self.alfa[h]
-
-                    numerator = cmath.exp(alfa_out * 1j) * abs(eps_out)
+                    numerator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
                     denominator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
                     sqrt_part = cmath.sqrt(numerator / denominator)
-
+                
                     term1 = self.Cpr[i][h-1] + self.Z[i][h-1] * self.Spr[i][h-1]
                     term2 = self.C[i][h-1] + self.Z[i][h-1] * self.S[i][h-1]
                     self.Z[i][h] = sqrt_part * (term1 / term2)
 
                     numerator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
-                    denominator = cmath.exp(alfa_out * 1j) * abs(eps_out)
+                    denominator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
                     sqrt_part = cmath.sqrt(numerator / denominator)
 
                     term1 = self.Cpr[i][h-1] + self.Y[i][h-1] * self.Spr[i][h-1]
@@ -245,23 +229,12 @@ class RCSCalculator:
         self.k[0][0] = k00
     
     def calculate_scattering_coefficients(self):
-        """Расчет коэффициентов рассеяния.
-
-        Импеданс/адмитанс берётся в последней (внешней) ячейке, где Z уже
-        пропагирован через внешний вакуумный слой к радиусу r = a[-1] = 1.
-        Это согласуется с modified-функциями mJ/mJpr/mH/mHpr, которые
-        вычислены при k0 (т.е. при том же r = 1).
-
-        До 2026-05-05: использовалось Z[i][n-2], что давало корректный
-        результат только в вырожденном случае a[-2] = a[-1] (single-layer);
-        для многослойного случая это давало O(1) ошибку. См. парный фикс в
-        calculate_impedances().
-        """
-        h_outer = len(self.a) - 1
+        """Расчет коэффициентов рассеяния"""
         for i in range(self.toch):
-            self.Mn[i] = (self.Z[i][h_outer] * self.mJ[i] - self.mJpr[i]) / (self.Z[i][h_outer] * self.mH[i] - self.mHpr[i])
+            nu = i + 1
+            self.Mn[i] = (self.Z[i][self.n-2] * self.mJ[i] - self.mJpr[i]) / (self.Z[i][self.n-2] * self.mH[i] - self.mHpr[i])
             self.Mn[i] = self.Mn[i].real - self.Mn[i].imag * 1j
-            self.Nn[i] = (self.Y[i][h_outer] * self.mJ[i] - self.mJpr[i]) / (self.Y[i][h_outer] * self.mH[i] - self.mHpr[i])
+            self.Nn[i] = (self.Y[i][self.n-2] * self.mJ[i] - self.mJpr[i]) / (self.Y[i][self.n-2] * self.mH[i] - self.mHpr[i])
             self.Nn[i] = self.Nn[i].real - self.Nn[i].imag * 1j
     
     def calculate_angles(self):
