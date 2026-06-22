@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GreenTensor · Рассеяние на многослойной сфере</title>
+<link rel="stylesheet" href="style.css">
+<script src="vendor/plotly.min.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <span class="brand-mark">GT</span>
+    <div>
+      <h1>GreenTensor <span class="thin">·</span> многослойная сфера</h1>
+      <p class="sub">Эталонное ядро <code>mie_core</code> — оригинальные формулы с верифицированными
+      фиксами сходимости · сверено с аналитическим рядом Ми</p>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <aside class="panel" aria-label="Параметры расчёта">
+    <section>
+      <h2 class="sec">Пресеты</h2>
+      <div class="preset-row" id="presets"></div>
+    </section>
+
+    <section>
+      <h2 class="sec">Возбуждение</h2>
+      <div class="grid2">
+        <label><span>k<sub>0</sub>·R</span> <input id="k0" type="number" step="any" value="10"></label>
+        <label><span>Гармоник toch</span> <input id="toch" type="number" min="1" max="150" placeholder="авто"></label>
+        <label><span>Доп. срез φ, °</span> <input id="phi" type="number" step="any" value="45"
+               title="Главные плоскости φ=0° и φ=90° строятся всегда; здесь — дополнительный срез (в нём E_φ ≠ 0)"></label>
+        <label class="chk"><input id="problemAntenna" type="checkbox"> Задача «антенна»</label>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="sec">Слои <span class="hint">радиусы нормируются к внешнему</span></h2>
+      <div class="layers-head"><span>r</span><span>ε′</span><span>ε″</span><span>μ′</span><span></span></div>
+      <div id="layers"></div>
+      <button class="ghost" id="addLayer" type="button">+ слой</button>
+    </section>
+
+    <section>
+      <h2 class="sec">Свип сечений по k₀</h2>
+      <div class="grid2">
+        <label class="chk"><input id="sweepOn" type="checkbox" checked> Включить</label>
+        <label>Точек <input id="sweepN" type="number" min="8" max="400" value="160"></label>
+        <label>k₀ мин <input id="sweepMin" type="number" step="any" value="0.25"></label>
+        <label>k₀ макс <input id="sweepMax" type="number" step="any" value="20"></label>
+      </div>
+    </section>
+
+    <button class="primary" id="run" type="button">Рассчитать</button>
+    <p id="status" class="status" role="status"></p>
+  </aside>
+
+  <main id="results" class="results" hidden>
+
+    <section class="row-summary">
+      <div class="card geometry-card">
+        <h3 class="sec">Геометрия</h3>
+        <svg id="geom" viewBox="-1.45 -1.18 2.9 2.36" role="img" aria-label="Сечение слоёв сферы"></svg>
+      </div>
+      <div class="cards" id="csCards"></div>
+    </section>
+
+    <div class="tabs" id="tabs" hidden>
+      <button class="tab active" data-problem="diffraction" type="button">Дифракция</button>
+      <button class="tab" data-problem="antenna" type="button">Антенна</button>
+    </div>
+
+    <section>
+      <h2 class="sec rule">Линейная поляризация — главные плоскости (φ=0°, 90°) и срез φ, дБ</h2>
+      <div class="plots2">
+        <div class="plot-card"><div id="plotLinPolar" class="plot polar"></div></div>
+        <div class="plot-card"><div id="plotLinRect" class="plot"></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="sec rule">Круговая поляризация — основная и кросс-компоненты, дБ</h2>
+      <div class="plots2">
+        <div class="plot-card"><div id="plotCirPolar" class="plot polar"></div></div>
+        <div class="plot-card"><div id="plotCirRect" class="plot"></div></div>
+      </div>
+    </section>
+
+    <section id="sweepSection">
+      <h2 class="sec rule">Сечения рассеяния — зависимость от k₀ (дифракция)</h2>
+      <div class="plot-card wide"><div id="plotSweep" class="plot tall"></div></div>
+    </section>
+
+    <section>
+      <h2 class="sec rule">Коэффициенты ряда |M<sub>n</sub>|, |N<sub>n</sub>|</h2>
+      <div class="plot-card wide"><div id="plotCoeffs" class="plot"></div></div>
+    </section>
+
+    <section class="export">
+      <h2 class="sec rule">Экспорт</h2>
+      <button class="ghost" id="dlJson" type="button">Данные · JSON</button>
+      <button class="ghost" id="dlCsv" type="button">Диаграммы · CSV</button>
+      <span class="hint">PNG каждого графика — через камеру в его панели инструментов</span>
+    </section>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

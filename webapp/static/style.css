@@ -1,0 +1,238 @@
+/* GreenTensor web — научно-издательский стиль (Swiss/editorial).
+   Единая система токенов: бумага + чернила, два семантических акцента:
+   индиго = θ / основная (co) компонента, янтарь = φ / кросс-компонента. */
+
+:root {
+  --paper: #f6f4ee;
+  --surface: #fffdf8;
+  --ink: #1a1d27;
+  --muted: #6f7380;
+  --line: #e2ded2;
+  --line-strong: #c9c4b4;
+
+  --accent: #3a4fd0;      /* индиго: E_theta, co-pol, Q_sca */
+  --accent-2: #d97d00;    /* янтарь: E_phi, cross-pol, Q_ext */
+  --teal: #0e9488;        /* Q_abs */
+  --rose: #c2403f;        /* Q_back */
+
+  --font: -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  --space: clamp(1rem, 0.8rem + 1vw, 2rem);
+  --radius: 6px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgba(58, 79, 208, 0.05), transparent 60%),
+    var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+code { font-family: var(--mono); font-size: 0.92em; }
+
+/* ---------------------------------------------------------------- header */
+.site-header {
+  border-bottom: 1px solid var(--line-strong);
+  padding: calc(var(--space) * 0.9) var(--space);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.brand { display: flex; gap: 14px; align-items: center; max-width: 1480px; margin: 0 auto; }
+
+.brand-mark {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: var(--radius);
+  padding: 9px 10px;
+}
+
+.site-header h1 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -0.01em; }
+.site-header .thin { color: var(--muted); font-weight: 300; }
+.site-header .sub { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+
+/* ---------------------------------------------------------------- layout */
+.layout {
+  display: grid;
+  grid-template-columns: 348px minmax(0, 1fr);
+  gap: var(--space);
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: var(--space);
+  align-items: start;
+}
+
+@media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+
+/* секционные заголовки — единый стиль */
+.sec {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.sec.rule {
+  display: flex; align-items: center; gap: 12px; margin-top: 4px;
+}
+.sec.rule::after { content: ""; flex: 1; height: 1px; background: var(--line-strong); }
+
+.hint { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); font-size: 12px; }
+
+/* ---------------------------------------------------------------- panel */
+.panel {
+  position: sticky; top: var(--space);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  padding: calc(var(--space) * 0.9);
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+.preset-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.preset-row button {
+  font: 500 12px var(--font);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.preset-row button:hover { border-color: var(--accent); color: var(--accent); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 12px; }
+
+label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
+label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); padding-top: 16px; }
+
+input[type="number"], input[type="text"] {
+  font: 500 13.5px var(--mono);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  width: 100%;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(58,79,208,.13); }
+input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+
+/* строки слоёв */
+.layers-head, .layer-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 26px;
+  gap: 6px;
+  align-items: center;
+}
+.layers-head { font-size: 11px; color: var(--muted); padding: 0 2px 4px; font-family: var(--mono); }
+.layer-row { margin-bottom: 6px; }
+.layer-row input { padding: 6px 7px; font-size: 12.5px; }
+
+.layer-row .del {
+  border: none; background: none; color: var(--muted);
+  font-size: 15px; cursor: pointer; padding: 2px; line-height: 1;
+}
+.layer-row .del:hover { color: var(--rose); }
+
+button.ghost {
+  font: 500 12.5px var(--font);
+  color: var(--ink);
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  cursor: pointer;
+}
+button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+button.primary {
+  font: 650 14.5px var(--font);
+  letter-spacing: 0.02em;
+  color: var(--paper);
+  background: var(--ink);
+  border: none;
+  border-radius: calc(var(--radius) + 2px);
+  padding: 12px;
+  cursor: pointer;
+  transition: background .15s, transform .06s;
+}
+button.primary:hover { background: var(--accent); }
+button.primary:active { transform: translateY(1px); }
+button.primary[disabled] { opacity: .55; cursor: wait; }
+
+.status { min-height: 1.2em; margin: 0; font-size: 12.5px; color: var(--muted); }
+.status.err { color: var(--rose); }
+
+/* ---------------------------------------------------------------- results */
+.results { display: flex; flex-direction: column; gap: calc(var(--space) * 1.1); }
+
+.row-summary {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: var(--space);
+  align-items: stretch;
+}
+@media (max-width: 1180px) { .row-summary { grid-template-columns: 1fr; } }
+
+.card, .plot-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  padding: 14px;
+}
+
+.geometry-card svg { width: 100%; height: auto; display: block; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+
+.stat { display: flex; flex-direction: column; justify-content: center; gap: 4px; border-left: 3px solid var(--line-strong); }
+.stat .v { font: 600 24px/1.1 var(--mono); letter-spacing: -0.02em; }
+.stat .k { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat .u { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.stat[data-c="sca"]  { border-color: var(--accent); }
+.stat[data-c="ext"]  { border-color: var(--accent-2); }
+.stat[data-c="abs"]  { border-color: var(--teal); }
+.stat[data-c="back"] { border-color: var(--rose); }
+
+/* вкладки задач */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line-strong); }
+.tab {
+  font: 600 13.5px var(--font);
+  color: var(--muted);
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* сетка графиков */
+.plots2 { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: var(--space); }
+@media (max-width: 1180px) { .plots2 { grid-template-columns: 1fr; } }
+
+.plot { width: 100%; height: 380px; }
+.plot.polar { height: 420px; }
+.plot.tall { height: 420px; }
+.plot-card.wide { padding: 14px 18px; }
+
+.export { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.export .sec { width: 100%; }

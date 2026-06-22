@@ -1,0 +1,107 @@
+"""Единый раннер тестов GreenTensor без зависимости от pytest.
+
+    python3 tests/run_all.py
+
+Если установлен pytest, эквивалентно: pytest tests/.
+"""
+from __future__ import annotations
+
+import os
+import sys
+import traceback
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import analytic_mie  # noqa: E402
+import test_sphere_mie  # noqa: E402
+import test_sphere_multilayer as ml  # noqa: E402
+import test_sphere_complex as cx  # noqa: E402
+import test_mie_core as core  # noqa: E402
+import test_tmatrix as tmx  # noqa: E402
+import test_vswf as vsw  # noqa: E402
+import test_gmm as gmt  # noqa: E402
+import test_ellipsoid as ell  # noqa: E402
+import test_decompose as dct  # noqa: E402
+import test_spheroid as spt  # noqa: E402
+import test_cylinder as cyt  # noqa: E402
+import test_cone as cnt  # noqa: E402
+
+
+def main() -> int:
+    suite = [
+        ("analytic_mie self-check (Rayleigh)", lambda: _run_module_main(analytic_mie)),
+        ("sphere Q_sca vs Mie", test_sphere_mie.test_sphere_qsca_matches_analytic_mie),
+        ("subdivision invariance", ml.test_subdivision_invariance),
+        ("vacuum shell = core", ml.test_vacuum_shell_equals_core),
+        ("backscatter vs Mie", ml.test_backscatter_matches_mie),
+        ("absorption Q_sca/Q_abs vs Mie", cx.test_absorption_matches_mie),
+        ("absorption sign (Im eps)", cx.test_absorption_sign),
+        ("real metal vs Mie", cx.test_real_metal_matches_mie),
+        ("PEC limit finite & correct", cx.test_pec_limit_is_finite_and_correct),
+        ("metal shell shields -> PEC", cx.test_metal_shell_shields_to_pec),
+        ("mie_core cross-sections vs Mie", core.test_cross_sections_vs_mie),
+        ("mie_core coeffs vs RCSCalculator", core.test_coefficients_match_rcs),
+        ("mie_core linear E_θ/E_φ vs RCS", core.test_linear_matches_rcs),
+        ("mie_core circular vs analytic helicity", core.test_circular_vs_analytic_helicity),
+        ("mie_core circular integral+physics", core.test_circular_integral_and_physics),
+        ("mie_core polarization/problem", core.test_polarization_and_problem_params),
+        ("mie_core param validation", core.test_invalid_params),
+        ("T-matrix sphere vs analytic", tmx.test_sphere_tmatrix_cross_sections_vs_analytic),
+        ("T-matrix optical theorem", tmx.test_from_ab_optical_theorem),
+        ("T-matrix adapter consistency", tmx.test_adapter_matches_direct_construction),
+        ("T-matrix param validation", tmx.test_tmatrix_validation),
+        ("vswf Wigner-3j", vsw.test_wigner3j_known),
+        ("vswf Gaunt vs quadrature", vsw.test_gaunt_vs_quadrature),
+        ("vswf Y_nm orthonormal", vsw.test_ynm_orthonormal),
+        ("vswf scalar addition theorem", vsw.test_scalar_addition_theorem),
+        ("vswf zero-translation identity", vsw.test_zero_translation_identity),
+        ("vswf vector M,N curl relations", vsw.test_vsw_curl_relations),
+        ("vswf vector translation A,B", vsw.test_vector_translation),
+        ("gmm decoupling limit", gmt.test_decoupling_limit),
+        ("gmm coupling is active", gmt.test_coupling_is_active),
+        ("gmm solver residual", gmt.test_solver_residual),
+        ("ellipsoid depol sum/sphere", ell.test_depolarization_sum_and_sphere),
+        ("ellipsoid spheroid closed-form", ell.test_spheroid_closed_form),
+        ("ellipsoid Rayleigh vs analytic", ell.test_sphere_rayleigh_vs_analytic),
+        ("ellipsoid dipole-T vs Mie", ell.test_dipole_t_vs_mie),
+        ("ellipsoid coated->homogeneous", ell.test_coated_reduces_to_homogeneous),
+        ("decompose non-overlap/inside", dct.test_non_overlap_and_inside),
+        ("decompose coverage/refinement", dct.test_coverage_and_refinement),
+        ("decompose box/cylinder", dct.test_box_and_cylinder),
+        ("decompose feeds GMM", dct.test_decompose_feeds_gmm),
+        ("spheroid closed-form vs numerical", spt.test_closed_form_vs_numerical),
+        ("spheroid sphere limit", spt.test_sphere_limit),
+        ("spheroid near-sphere dipole vs Mie", spt.test_near_sphere_dipole_vs_mie),
+        ("spheroid full-wave not-impl", spt.test_full_wave_not_implemented),
+        ("cylinder energy conservation", cyt.test_energy_conservation_lossless),
+        ("cylinder absorption sign", cyt.test_absorption_sign),
+        ("cylinder small-x behavior", cyt.test_small_x_positive_decreasing),
+        ("cylinder finite not-impl", cyt.test_finite_not_implemented),
+        ("cone indicator", cnt.test_cone_indicator),
+        ("cone decompose+GMM", cnt.test_decompose_cone_and_gmm),
+        ("cone full-wave not-impl", cnt.test_full_wave_not_implemented),
+    ]
+    failures = 0
+    for name, fn in suite:
+        try:
+            fn()
+            print(f"  ✅ {name}")
+        except Exception:  # noqa: BLE001
+            failures += 1
+            print(f"  ❌ {name}")
+            traceback.print_exc()
+    print(f"\n{'ВСЕ ТЕСТЫ ПРОЙДЕНЫ' if not failures else f'ПРОВАЛОВ: {failures}'}")
+    return 1 if failures else 0
+
+
+def _run_module_main(mod):
+    # analytic_mie выполняет самопроверку в своём __main__; повторим ассерты тут
+    m = 1.5
+    for x in (0.01, 0.02, 0.05):
+        exact = mod.q_sca(m, x, nmax=4)
+        ray = mod.q_sca_rayleigh(m, x)
+        assert abs(exact - ray) / ray < 0.03
+
+
+if __name__ == "__main__":
+    sys.exit(main())

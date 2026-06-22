@@ -1,0 +1,32 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "greentensor"
+authors = [
+    {name = "D.V. Denisov", email = "dv.denisov@urfu.ru"},
+    {name = "V.Ya. Noskov", email = "v.y.noskov@urfu.ru"},
+    {name = "I.O. Skumatenko", email = "ilya.skumatenko@urfu.ru"},
+]
+readme = "README.rst"
+requires-python = ">=3.9"
+keywords = ["electromagnetics", "scattering", "green-tensor", "mie", "luneburg-lens", "rcs"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "matplotlib>=3.8",
+]
+dynamic = ["version", "description"]
+
+[project.optional-dependencies]
+vie = ["numba>=0.59", "scikit-image>=0.22", "tqdm>=4.66"]
+examples = ["pandas>=2.0"]
+
+[project.urls]
+Homepage = "https://github.com/Den1sovDm1triy/GreenTensor"
+Documentation = "https://greentensor.readthedocs.io"
