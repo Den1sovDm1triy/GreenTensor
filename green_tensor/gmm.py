@@ -12,6 +12,8 @@
 """
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 
 import vswf
@@ -40,6 +42,28 @@ def plane_wave_coeffs(k: float, khat, pol, center, nmax: int) -> np.ndarray:
     return np.concatenate([dM, dN])
 
 
+def _check_applicability(positions, k: float, nmax: int) -> float:
+    """Предупредить, если k·(мин. разнос) < nmax — зона деградации проекц. трансляции.
+
+    Возвращает минимальный разнос. Проекционная трансляция out→Rg требует радиус сферы
+    проекции R<разноса и R≳nmax/k для представления nmax мод, т.е. k·разнос ≳ nmax.
+    Для плотных упаковок нужны замкнутые коэффициенты Cruzan (см. GreenTensor_Theory.tex).
+    """
+    P = len(positions)
+    sep = np.inf
+    for i in range(P):
+        for j in range(i + 1, P):
+            sep = min(sep, float(np.linalg.norm(positions[i] - positions[j])))
+    if P > 1 and k * sep < nmax:
+        warnings.warn(
+            f"GMM: k·min_sep={k*sep:.2f} < nmax={nmax}: проекционная трансляция теряет "
+            f"точность для плотной упаковки. Используйте больший разнос/меньше-крупнее "
+            f"примитивов или замкнутые коэффициенты Cruzan.",
+            stacklevel=2,
+        )
+    return sep
+
+
 def solve_cluster(scatterers, k: float, khat, pol, nmax: int):
     """Решить кластер: вернуть (a, c, d) формы (P, 2K) — возбуждающие, рассеянные, падающие."""
     P = len(scatterers)
@@ -48,6 +72,7 @@ def solve_cluster(scatterers, k: float, khat, pol, nmax: int):
     tvecs = [np.asarray(s.t_vector(k, nmax)) for s in scatterers]
     pos = [np.asarray(s.position, dtype=float) for s in scatterers]
 
+    _check_applicability(pos, k, nmax)
     d = np.concatenate([plane_wave_coeffs(k, khat, pol, pos[p], nmax) for p in range(P)])
     Mfull = np.eye(P * blk, dtype=complex)
     for p in range(P):
@@ -106,7 +131,13 @@ def _forward_amplitude(scatterers, c, k: float, khat, kR: float):
 
 def extinction_cross_section(scatterers, c, k: float, khat, pol,
                              kR=(4000.0, 8000.0)) -> float:
-    """C_ext кластера (оптическая теорема) с экстраполяцией ближнего поля по 1/(kR)."""
+    """C_ext кластера (оптическая теорема) с экстраполяцией ближнего поля по 1/(kR).
+
+    Используется ФИЗИЧЕСКАЯ амплитуда рассеяния S (E_sca→S·e^{ikr}/r): C_ext=(4π/k)·Im[ê*·S]
+    (theory eq:optical-theorem). Это эквивалентно гармонической форме (4π/k²)·Re[ê*·F] из
+    eq:tm-Cext, где F=k·S — амплитуда в гармоническом базисе; _forward_amplitude возвращает
+    именно S=lim R·e^{−ikR}·E_sca. Проверено энергобалансом (lossless ⇒ C_abs≈0).
+    """
     x1, x2 = 1.0 / kR[0], 1.0 / kR[1]
     F1 = _forward_amplitude(scatterers, c, k, khat, kR[0])
     F2 = _forward_amplitude(scatterers, c, k, khat, kR[1])

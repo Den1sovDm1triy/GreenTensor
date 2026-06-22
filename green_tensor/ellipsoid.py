@@ -11,6 +11,8 @@
 """
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 from scipy import integrate
 
@@ -21,7 +23,9 @@ def depolarization_factors(a: float, b: float, c: float):
 
     def Li(ai):
         f = lambda q: 1.0 / ((ai**2 + q) * np.sqrt((a**2 + q) * (b**2 + q) * (c**2 + q)))
-        val, _ = integrate.quad(f, 0.0, np.inf)
+        with warnings.catch_warnings():  # подынтегральная ~s^{-5/2}; результат точен (Σ=1)
+            warnings.simplefilter("ignore", integrate.IntegrationWarning)
+            val, _ = integrate.quad(f, 0.0, np.inf)
         return 0.5 * abc * val
 
     return Li(a), Li(b), Li(c)
@@ -82,3 +86,10 @@ def rayleigh_cross_sections(alpha_eff: complex, k: float) -> dict:
 def dipole_t_scalar(alpha: complex, k: float) -> complex:
     """Электрич.-дипольный элемент T_N(n=1) из скалярной поляризуемости (рэлеевский предел)."""
     return 1j * k**3 * alpha / (6.0 * np.pi)
+
+
+def orientation_average_cross_sections(a, b, c, eps, k, eps_m: complex = 1.0) -> dict:
+    """Средние по случайной ориентации сечения: ⟨C⟩ = (1/3) Σ_j C_j (theory eq:orientation-average)."""
+    alpha = polarizability_homogeneous(a, b, c, eps, eps_m)
+    per_axis = [rayleigh_cross_sections(al, k) for al in alpha]
+    return {key: sum(p[key] for p in per_axis) / 3.0 for key in ("c_sca", "c_abs", "c_ext")}

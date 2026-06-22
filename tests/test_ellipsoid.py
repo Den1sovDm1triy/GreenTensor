@@ -95,9 +95,25 @@ def test_coated_reduces_to_homogeneous():
     assert d < 1e-6
 
 
+def test_orientation_average():
+    """⟨C⟩ = (1/3)Σ_j C_j; для сферы все оси равны ⇒ среднее = осевое значение."""
+    print("\n[6] ориентационное среднее сечений:")
+    k = 0.1
+    avg_sph = el.orientation_average_cross_sections(1.0, 1.0, 1.0, 2.25, k)
+    a0 = el.polarizability_homogeneous(1.0, 1.0, 1.0, 2.25)[0]
+    cs0 = el.rayleigh_cross_sections(a0, k)
+    assert abs(avg_sph["c_sca"] - cs0["c_sca"]) / cs0["c_sca"] < 1e-9
+    # эллипсоид: среднее = (1/3) суммы по осям
+    avg = el.orientation_average_cross_sections(2.0, 1.5, 1.0, 3.0 + 0.1j, k)
+    alpha = el.polarizability_homogeneous(2.0, 1.5, 1.0, 3.0 + 0.1j)
+    man = sum(el.rayleigh_cross_sections(a, k)["c_ext"] for a in alpha) / 3.0
+    print(f"    сфера: среднее=осевое (ок); эллипсоид ⟨C_ext⟩={avg['c_ext']:.3e}")
+    assert abs(avg["c_ext"] - man) < 1e-12
+
+
 _TESTS = [test_depolarization_sum_and_sphere, test_spheroid_closed_form,
           test_sphere_rayleigh_vs_analytic, test_dipole_t_vs_mie,
-          test_coated_reduces_to_homogeneous]
+          test_coated_reduces_to_homogeneous, test_orientation_average]
 
 if __name__ == "__main__":
     ok = True

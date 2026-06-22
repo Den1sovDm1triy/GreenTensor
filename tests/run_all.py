@@ -67,6 +67,7 @@ def main() -> int:
         ("ellipsoid Rayleigh vs analytic", ell.test_sphere_rayleigh_vs_analytic),
         ("ellipsoid dipole-T vs Mie", ell.test_dipole_t_vs_mie),
         ("ellipsoid coated->homogeneous", ell.test_coated_reduces_to_homogeneous),
+        ("ellipsoid orientation average", ell.test_orientation_average),
         ("decompose non-overlap/inside", dct.test_non_overlap_and_inside),
         ("decompose coverage/refinement", dct.test_coverage_and_refinement),
         ("decompose box/cylinder", dct.test_box_and_cylinder),

@@ -90,11 +90,17 @@ def from_ab(n, a, b, x: float) -> DiagonalTMatrix:
 
 
 def from_mie_coeffs(Mn, Nn, x: float) -> DiagonalTMatrix:
-    """Построить T-матрицу из коэффициентов ядра mie_core (Mn↔a_n, Nn↔b_n)."""
+    """Построить T-матрицу из коэффициентов ядра mie_core.
+
+    ВНИМАНИЕ по именованию (footgun для GMM): в mie_core ``Mn`` получается из импеданса Z
+    и физически является ЭЛЕКТРИЧЕСКИМ коэффициентом a_n (TM), а ``Nn`` — из адмитанса Y и
+    является МАГНИТНЫМ b_n (TE) (см. теорию §«Слоистая сфера», eq:Mn-Nn). Поэтому
+    электрический блок t_N = −Mn (= −a_n), магнитный блок t_M = −Nn (= −b_n).
+    """
     Mn = np.asarray(Mn, dtype=complex)
     Nn = np.asarray(Nn, dtype=complex)
     n = np.arange(1, len(Mn) + 1)
-    return DiagonalTMatrix(n=n, t_M=-Nn, t_N=-Mn, x=float(x))
+    return DiagonalTMatrix(n=n, t_M=-Nn, t_N=-Mn, x=float(x))   # t_M=−b_n(магн), t_N=−a_n(электр)
 
 
 def sphere_tmatrix(mie) -> DiagonalTMatrix:
