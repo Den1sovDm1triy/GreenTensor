@@ -60,6 +60,8 @@ def main() -> int:
         ("gmm decoupling limit", gmt.test_decoupling_limit),
         ("gmm coupling is active", gmt.test_coupling_is_active),
         ("gmm solver residual", gmt.test_solver_residual),
+        ("gmm single-sphere cross-sections", gmt.test_single_sphere_cross_sections),
+        ("gmm cluster energy conservation", gmt.test_energy_conservation_lossless_cluster),
         ("ellipsoid depol sum/sphere", ell.test_depolarization_sum_and_sphere),
         ("ellipsoid spheroid closed-form", ell.test_spheroid_closed_form),
         ("ellipsoid Rayleigh vs analytic", ell.test_sphere_rayleigh_vs_analytic),

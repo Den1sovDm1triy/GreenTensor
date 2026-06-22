@@ -62,6 +62,67 @@ def solve_cluster(scatterers, k: float, khat, pol, nmax: int):
     return a, c, d.reshape(P, blk)
 
 
+def _nmax_from_modes(nmodes: int) -> int:
+    """Восстановить nmax из числа мод K=nmax(nmax+2)."""
+    nmax = 1
+    while nmax * (nmax + 2) < nmodes:
+        nmax += 1
+    return nmax
+
+
+def scattered_field(scatterers, c, k: float, pts) -> np.ndarray:
+    """Полное рассеянное поле кластера E_sca(r) (исходящие ВСВФ всех тел) в точках pts."""
+    nmodes = len(c[0]) // 2
+    nmax = _nmax_from_modes(nmodes)
+    modes = vswf.mode_list(nmax)
+    pts = np.asarray(pts, float)
+    E = np.zeros((pts.shape[0], 3), dtype=complex)
+    for p, s in enumerate(scatterers):
+        shifted = pts - np.asarray(s.position, float)
+        cp = c[p]
+        for i, (n, m) in enumerate(modes):
+            Mg, Ng = vswf.mn_grid(n, m, k, shifted, "out")
+            E += cp[i] * Mg + cp[nmodes + i] * Ng
+    return E
+
+
+def scattering_cross_section(scatterers, c, k: float, pol, kR_far: float = 300.0) -> float:
+    """C_sca кластера интегралом дальнего поля: ∮|E_sca|²R² dΩ / |E_inc|²."""
+    nmax = _nmax_from_modes(len(c[0]) // 2)
+    R = kR_far / k
+    pts, W = vswf._sphere_quad_cart(R, 2 * nmax + 12, 2 * nmax + 12)
+    E = scattered_field(scatterers, c, k, pts)
+    flux = np.sum(W * np.sum(np.abs(E) ** 2, axis=1)) * R**2
+    return float(flux / np.sum(np.abs(np.asarray(pol)) ** 2))
+
+
+def _forward_amplitude(scatterers, c, k: float, khat, kR: float):
+    """Амплитуда рассеяния F вперёд: F = lim R·e^{−ikR}·E_sca(R·k̂)."""
+    R = kR / k
+    pt = (R * np.asarray(khat, dtype=float)).reshape(1, 3)
+    E = scattered_field(scatterers, c, k, pt)[0]
+    return R * np.exp(-1j * k * R) * E
+
+
+def extinction_cross_section(scatterers, c, k: float, khat, pol,
+                             kR=(4000.0, 8000.0)) -> float:
+    """C_ext кластера (оптическая теорема) с экстраполяцией ближнего поля по 1/(kR)."""
+    x1, x2 = 1.0 / kR[0], 1.0 / kR[1]
+    F1 = _forward_amplitude(scatterers, c, k, khat, kR[0])
+    F2 = _forward_amplitude(scatterers, c, k, khat, kR[1])
+    Finf = (F1 * x2 - F2 * x1) / (x2 - x1)          # Ричардсон: убираем O(1/kR)
+    pol = np.asarray(pol, dtype=complex)
+    return float((4.0 * np.pi / k) * np.imag(np.vdot(pol, Finf))
+                 / np.sum(np.abs(pol) ** 2))
+
+
+def cross_sections(scatterers, c, k: float, khat, pol) -> dict:
+    """Сечения кластера: C_sca (дальнее поле), C_ext (опт. теорема), C_abs=C_ext−C_sca."""
+    c_sca = scattering_cross_section(scatterers, c, k, pol)
+    c_ext = extinction_cross_section(scatterers, c, k, khat, pol)
+    return {"c_sca": c_sca, "c_ext": c_ext, "c_abs": c_ext - c_sca}
+
+
 def isolated_scattered(scatterer, k: float, khat, pol, nmax: int) -> np.ndarray:
     """Рассеянные коэффициенты ОДИНОЧНОГО тела (c = T·d) — для предела расцепления."""
     d = plane_wave_coeffs(k, khat, pol, scatterer.position, nmax)

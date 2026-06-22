@@ -71,7 +71,40 @@ def test_solver_residual():
     assert res < 1e-10
 
 
-_TESTS = [test_decoupling_limit, test_coupling_is_active, test_solver_residual]
+def test_single_sphere_cross_sections():
+    """Сечения через gmm (дальнее поле + опт.теорема) == аналитика B&H для одной сферы."""
+    import math
+    import cmath
+    from analytic_mie import q_sca, q_ext
+    print("\n[5] сечения кластера (одна сфера) vs B&H:")
+    for rad, eps in [(0.5, 2.25), (1.0, 2.25), (0.5, 3.0 + 0.1j)]:
+        nmax = max(6, int(K_BG * rad + 4 * (K_BG * rad) ** (1 / 3) + 2))
+        s = LayeredSphere([0, 0, 0], rad, [eps])
+        c = gmm.isolated_scattered(s, K_BG, KHAT, POL, nmax)
+        cs = gmm.cross_sections([s], [c], K_BG, KHAT, POL)
+        qsca = cs["c_sca"] / (math.pi * rad**2)
+        qext = cs["c_ext"] / (math.pi * rad**2)
+        x = K_BG * rad
+        d_sca = abs(qsca - q_sca(cmath.sqrt(eps), x, nmax)) / q_sca(cmath.sqrt(eps), x, nmax)
+        d_ext = abs(qext - q_ext(cmath.sqrt(eps), x, nmax)) / abs(q_ext(cmath.sqrt(eps), x, nmax))
+        print(f"    rad={rad} eps={eps!s:>10}: dQsca={d_sca:.1e} dQext={d_ext:.1e}")
+        assert d_sca < 2e-3 and d_ext < 2e-3
+
+
+def test_energy_conservation_lossless_cluster():
+    """Кластер без потерь: C_abs = C_ext − C_sca ≈ 0."""
+    print("\n[6] энергобаланс кластера (lossless): C_abs≈0:")
+    s1 = LayeredSphere([0, 0, +3.0], 0.5, [2.25])
+    s2 = LayeredSphere([0, 0, -3.0], 0.5, [2.25])
+    _, c, _ = gmm.solve_cluster([s1, s2], K_BG, KHAT, POL, NMAX)
+    cs = gmm.cross_sections([s1, s2], c, K_BG, KHAT, POL)
+    rel = abs(cs["c_abs"]) / cs["c_sca"]
+    print(f"    C_sca={cs['c_sca']:.4f} C_ext={cs['c_ext']:.4f} |C_abs|/C_sca={rel:.1e}")
+    assert rel < 5e-3, f"нарушение энергобаланса кластера: {rel:.1e}"
+
+
+_TESTS = [test_decoupling_limit, test_coupling_is_active, test_solver_residual,
+          test_single_sphere_cross_sections, test_energy_conservation_lossless_cluster]
 
 if __name__ == "__main__":
     ok = True
