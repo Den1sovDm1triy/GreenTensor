@@ -370,56 +370,43 @@ def _B_skeleton(nu, mu, n, m, p, dr, dth, dph, k, zfun) -> complex:
     return base * t
 
 
-@lru_cache(maxsize=None)
-def _b_weights(nmax: int, k: float) -> tuple:
-    """Универсальные веса W(n,ν,σ) для B (не зависят от |d|/направления/типа волны).
+def _b_weight(n: int, nu: int, sigma: int) -> float:
+    """Аналитический вес W(n,ν,σ) коэффициента B (замкнутая форма, нечётная чётность).
 
-    Определяются раз методом наименьших квадратов из проекционных B (на большом разносе,
-    где проекция точна) и затем применяются при ЛЮБОМ разносе. Возвращает dict
-    {(n,ν): {σ: W}} (кэшируется по (nmax,k)).
+        W = -√[(2n+1)(2ν+1)(2σ+1)·(n+ν+σ+1)(n+ν-σ+1)(σ+n-ν)(σ-n+ν)] / (4√π · n(n+1)).
+
+    Выведено распознаванием из точной таблицы (универсальный множитель
+    extra²=(2n+1)(2ν+1)/(3(2σ+1))); проверено против проекции и тождества полей.
     """
-    refs = [2.6, 3.4, 4.2]                       # большие |d| (проекция точна)
-    dirs = [np.array([0.4, 0.7, 1.6]), np.array([-0.5, 0.9, 1.1]), np.array([0.8, -0.3, 1.4])]
-    samples = []
-    for dm in refs:
-        for dv in dirs:
-            d = dm * dv / np.linalg.norm(dv)
-            A, B, modes = translation_block(d, k, nmax, "reg")
-            samples.append((d, B, modes))
-    jn = lambda p, x: sp.spherical_jn(p, x)
-    weights: dict = {}
-    for n in range(1, nmax + 1):
-        for nu in range(1, nmax + 1):
-            sig = [p for p in range(abs(n - nu), n + nu + 1) if (n + nu + p) % 2 == 1]
-            if not sig:
-                continue
-            rows, rhs = [], []
-            for d, B, modes in samples:
-                dr, dth, dph = (float(v) for v in _to_spherical(d))
-                for m in range(-n, n + 1):
-                    for mu in range(-nu, nu + 1):
-                        row = [_B_skeleton(nu, mu, n, m, p, dr, dth, dph, k, jn) for p in sig]
-                        if any(abs(x) > 1e-14 for x in row):
-                            rows.append(row)
-                            rhs.append(B[modes.index((n, m)), modes.index((nu, mu))])
-            if not rows:
-                continue
-            W, *_ = np.linalg.lstsq(np.array(rows, complex), np.array(rhs, complex), rcond=None)
-            weights[(n, nu)] = {p: complex(w) for p, w in zip(sig, W)}
-    return (weights,)
+    rad = (n + nu + sigma + 1) * (n + nu - sigma + 1) * (sigma + n - nu) * (sigma - n + nu)
+    if rad < 0:
+        return 0.0
+    return -math.sqrt((2 * n + 1) * (2 * nu + 1) * (2 * sigma + 1) * rad) \
+        / (4.0 * math.sqrt(math.pi) * n * (n + 1))
+
+
+def _B_closed(nu, mu, n, m, dr, dth, dph, k, zfun) -> complex:
+    """Замкнутый коэффициент B^{νμ}_{nm} = Σ_σ(нечёт) W(n,ν,σ)·скелет(σ)."""
+    acc = 0.0 + 0.0j
+    for p in range(abs(n - nu), n + nu + 1):
+        if (n + nu + p) % 2 != 1:
+            continue
+        w = _b_weight(n, nu, p)
+        if w != 0.0:
+            acc += w * _B_skeleton(nu, mu, n, m, p, dr, dth, dph, k, zfun)
+    return acc
 
 
 def translation_block_closed(d, k: float, nmax: int, source_kind: str = "out"):
-    """Замкнутая векторная трансляция (Cruzan): A аналитически, B по кэш-весам.
+    """Замкнутая (Cruzan) векторная трансляция: A и B ПОЛНОСТЬЮ аналитические.
 
-    Без ограничения k·разнос ≳ nmax (в отличие от translation_block). Возвращает (A,B,modes)
-    в том же формате (K×K матрицы), пригодные для gmm.
+    Без ограничения k·разнос ≳ nmax (в отличие от проекционной translation_block) и без
+    численного решателя. Возвращает (A,B,modes) (K×K матрицы), пригодные для gmm.
     """
     d = np.asarray(d, dtype=float)
     dr, dth, dph = (float(v) for v in _to_spherical(d))
     zfun = ((lambda p, x: sp.spherical_jn(p, x)) if source_kind == "reg"
             else (lambda p, x: sp.spherical_jn(p, x) + 1j * sp.spherical_yn(p, x)))
-    (W,) = _b_weights(nmax, k)
     modes = mode_list(nmax)
     K = len(modes)
     A = np.zeros((K, K), complex)
@@ -427,10 +414,7 @@ def translation_block_closed(d, k: float, nmax: int, source_kind: str = "out"):
     for i, (n, m) in enumerate(modes):
         for j, (nu, mu) in enumerate(modes):
             A[i, j] = _A_closed(nu, mu, n, m, dr, dth, dph, k, zfun)
-            wnn = W.get((n, nu))
-            if wnn:
-                B[i, j] = sum(wnn[p] * _B_skeleton(nu, mu, n, m, p, dr, dth, dph, k, zfun)
-                              for p in wnn)
+            B[i, j] = _B_closed(nu, mu, n, m, dr, dth, dph, k, zfun)
     return A, B, modes
 
 
