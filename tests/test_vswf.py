@@ -173,9 +173,38 @@ def test_vector_translation():
         assert worstM < 1e-5 and worstN < 1e-5, f"векторная трансляция не сходится ({nu},{mu})"
 
 
+def test_translation_closed():
+    """Замкнутая (Cruzan) трансляция A,B: совпадает с проекцией и работает при ЛЮБОМ d."""
+    print("\n[8] замкнутая трансляция A,B (Cruzan):")
+    # (a) closed vs projection (reg, умеренный d) — все моды
+    k, nmax = 1.0, 6
+    d = np.array([0.45, 0.6, 1.5])
+    Ac, Bc, modes = vswf.translation_block_closed(d, k, nmax, "reg")
+    Ap, Bp, _ = vswf.translation_block(d, k, nmax, "reg")
+    dA, dB = np.max(np.abs(Ac - Ap)), np.max(np.abs(Bc - Bp))
+    print(f"    closed vs projection: max|dA|={dA:.1e} max|dB|={dB:.1e}")
+    assert dA < 1e-6 and dB < 1e-6
+    # (b) тождество полей при БЛИЗКОМ d (out) — где проекция не работает (R<d мало для nmax)
+    k, nmax = 1.3, 10
+    d = np.array([0.25, 0.4, 0.55])     # |d|≈0.72, k·|d|≈0.94 ≪ nmax
+    A, B, modes = vswf.translation_block_closed(d, k, nmax, "out")
+    worst = 0.0
+    for (nu, mu) in [(1, 0), (1, 1)]:
+        j = modes.index((nu, mu))
+        for r in (np.array([0.12, -0.08, 0.15]), np.array([-0.10, 0.13, 0.06])):
+            lhs = np.asarray(vswf.vsw_M(nu, mu, k, r - d, "out"))
+            rhs = np.zeros(3, complex)
+            for i, (n, m) in enumerate(modes):
+                rhs += A[i, j] * np.asarray(vswf.vsw_M(n, m, k, r, "reg")) \
+                    + B[i, j] * np.asarray(vswf.vsw_N(n, m, k, r, "reg"))
+            worst = max(worst, np.max(np.abs(lhs - rhs)))
+    print(f"    field identity OUT close d (k·|d|={k*np.linalg.norm(d):.2f}): max|dM|={worst:.1e}")
+    assert worst < 1e-2, "замкнутая трансляция должна работать на близком разносе"
+
+
 _TESTS = [test_wigner3j_known, test_gaunt_vs_quadrature, test_ynm_orthonormal,
           test_scalar_addition_theorem, test_zero_translation_identity,
-          test_vsw_curl_relations, test_vector_translation]
+          test_vsw_curl_relations, test_vector_translation, test_translation_closed]
 
 if __name__ == "__main__":
     ok = True

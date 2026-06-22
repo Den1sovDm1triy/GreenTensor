@@ -43,22 +43,22 @@ def plane_wave_coeffs(k: float, khat, pol, center, nmax: int) -> np.ndarray:
 
 
 def _check_applicability(positions, k: float, nmax: int) -> float:
-    """Предупредить, если k·(мин. разнос) < nmax — зона деградации проекц. трансляции.
+    """Предупредить о возможной потере точности на ОЧЕНЬ плотной упаковке.
 
-    Возвращает минимальный разнос. Проекционная трансляция out→Rg требует радиус сферы
-    проекции R<разноса и R≳nmax/k для представления nmax мод, т.е. k·разнос ≳ nmax.
-    Для плотных упаковок нужны замкнутые коэффициенты Cruzan (см. GreenTensor_Theory.tex).
+    Используются замкнутые коэффициенты Cruzan (translation_block_closed), которые
+    работают при любом разносе (включая k·разнос < nmax). Но при экстремально плотной
+    упаковке (касающиеся примитивы) усечение ряда по nmax может быть недостаточным —
+    тогда стоит увеличить nmax. Возвращает минимальный разнос.
     """
     P = len(positions)
     sep = np.inf
     for i in range(P):
         for j in range(i + 1, P):
             sep = min(sep, float(np.linalg.norm(positions[i] - positions[j])))
-    if P > 1 and k * sep < nmax:
+    if P > 1 and k * sep < 0.5 * nmax:
         warnings.warn(
-            f"GMM: k·min_sep={k*sep:.2f} < nmax={nmax}: проекционная трансляция теряет "
-            f"точность для плотной упаковки. Используйте больший разнос/меньше-крупнее "
-            f"примитивов или замкнутые коэффициенты Cruzan.",
+            f"GMM: очень плотная упаковка (k·min_sep={k*sep:.2f}); для точности "
+            f"при касающихся телах увеличьте nmax (сейчас {nmax}).",
             stacklevel=2,
         )
     return sep
@@ -79,7 +79,7 @@ def solve_cluster(scatterers, k: float, khat, pol, nmax: int):
         for q in range(P):
             if p == q:
                 continue
-            A, B, _ = vswf.translation_block(pos[p] - pos[q], k, nmax, "out")
+            A, B, _ = vswf.translation_block_closed(pos[p] - pos[q], k, nmax, "out")
             G = np.block([[A, B], [B, A]])          # 2K×2K: (c^M_q,c^N_q) -> a_p
             Mfull[p * blk:(p + 1) * blk, q * blk:(q + 1) * blk] = -G * tvecs[q][None, :]
     a = np.linalg.solve(Mfull, d).reshape(P, blk)

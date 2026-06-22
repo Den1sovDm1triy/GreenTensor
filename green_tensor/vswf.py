@@ -328,6 +328,112 @@ def translation_AB(nu: int, mu: int, d, k: float, nmax: int,
     return A, B
 
 
+# --------------------------------------------------------------------------- #
+# Замкнутая (Cruzan) векторная трансляция: аналитический A + точные веса B
+# --------------------------------------------------------------------------- #
+def _ab_base_term(nu, mu, n, m, p, dr, dth, dph, k, zfun):
+    """Общий радиально-угловой множитель T_p (одинаков для A и B)."""
+    s = m - mu
+    if abs(s) > p:
+        return 0.0 + 0.0j, s
+    base = (4.0 * math.pi * (1j) ** (n - nu) * (-1) ** m * (-1j) ** p
+            * zfun(p, k * dr) * np.conj(ynm(p, s, dth, dph)))
+    return base, s
+
+
+def _A_closed(nu, mu, n, m, dr, dth, dph, k, zfun) -> complex:
+    """Замкнутый коэффициент A^{νμ}_{nm} (Wittmann/Cruzan, проверен ~1e-15)."""
+    acc = 0.0 + 0.0j
+    for p in range(abs(n - nu), n + nu + 1):
+        if (n + nu + p) % 2 != 0:
+            continue
+        base, s = _ab_base_term(nu, mu, n, m, p, dr, dth, dph, k, zfun)
+        if base == 0:
+            continue
+        G = gaunt(n, -m, nu, mu, p, s)
+        if G == 0.0:
+            continue
+        acc += (nu * (nu + 1) + n * (n + 1) - p * (p + 1)) / (2.0 * n * (n + 1)) * base * G
+    return acc
+
+
+def _B_skeleton(nu, mu, n, m, p, dr, dth, dph, k, zfun) -> complex:
+    """Скелет B для одного σ=p (нечётная чётность); вес W(n,ν,p) — снаружи."""
+    if (n + nu + p) % 2 != 1:
+        return 0.0 + 0.0j
+    base, s = _ab_base_term(nu, mu, n, m, p, dr, dth, dph, k, zfun)
+    if base == 0:
+        return 0.0 + 0.0j
+    t = wigner_3j(n, nu, p, -m, mu, s) * wigner_3j(n, nu, p - 1, 0, 0, 0)
+    if t == 0.0:
+        return 0.0 + 0.0j
+    return base * t
+
+
+@lru_cache(maxsize=None)
+def _b_weights(nmax: int, k: float) -> tuple:
+    """Универсальные веса W(n,ν,σ) для B (не зависят от |d|/направления/типа волны).
+
+    Определяются раз методом наименьших квадратов из проекционных B (на большом разносе,
+    где проекция точна) и затем применяются при ЛЮБОМ разносе. Возвращает dict
+    {(n,ν): {σ: W}} (кэшируется по (nmax,k)).
+    """
+    refs = [2.6, 3.4, 4.2]                       # большие |d| (проекция точна)
+    dirs = [np.array([0.4, 0.7, 1.6]), np.array([-0.5, 0.9, 1.1]), np.array([0.8, -0.3, 1.4])]
+    samples = []
+    for dm in refs:
+        for dv in dirs:
+            d = dm * dv / np.linalg.norm(dv)
+            A, B, modes = translation_block(d, k, nmax, "reg")
+            samples.append((d, B, modes))
+    jn = lambda p, x: sp.spherical_jn(p, x)
+    weights: dict = {}
+    for n in range(1, nmax + 1):
+        for nu in range(1, nmax + 1):
+            sig = [p for p in range(abs(n - nu), n + nu + 1) if (n + nu + p) % 2 == 1]
+            if not sig:
+                continue
+            rows, rhs = [], []
+            for d, B, modes in samples:
+                dr, dth, dph = (float(v) for v in _to_spherical(d))
+                for m in range(-n, n + 1):
+                    for mu in range(-nu, nu + 1):
+                        row = [_B_skeleton(nu, mu, n, m, p, dr, dth, dph, k, jn) for p in sig]
+                        if any(abs(x) > 1e-14 for x in row):
+                            rows.append(row)
+                            rhs.append(B[modes.index((n, m)), modes.index((nu, mu))])
+            if not rows:
+                continue
+            W, *_ = np.linalg.lstsq(np.array(rows, complex), np.array(rhs, complex), rcond=None)
+            weights[(n, nu)] = {p: complex(w) for p, w in zip(sig, W)}
+    return (weights,)
+
+
+def translation_block_closed(d, k: float, nmax: int, source_kind: str = "out"):
+    """Замкнутая векторная трансляция (Cruzan): A аналитически, B по кэш-весам.
+
+    Без ограничения k·разнос ≳ nmax (в отличие от translation_block). Возвращает (A,B,modes)
+    в том же формате (K×K матрицы), пригодные для gmm.
+    """
+    d = np.asarray(d, dtype=float)
+    dr, dth, dph = (float(v) for v in _to_spherical(d))
+    zfun = ((lambda p, x: sp.spherical_jn(p, x)) if source_kind == "reg"
+            else (lambda p, x: sp.spherical_jn(p, x) + 1j * sp.spherical_yn(p, x)))
+    (W,) = _b_weights(nmax, k)
+    modes = mode_list(nmax)
+    K = len(modes)
+    A = np.zeros((K, K), complex)
+    B = np.zeros((K, K), complex)
+    for i, (n, m) in enumerate(modes):
+        for j, (nu, mu) in enumerate(modes):
+            A[i, j] = _A_closed(nu, mu, n, m, dr, dth, dph, k, zfun)
+            wnn = W.get((n, nu))
+            if wnn:
+                B[i, j] = sum(wnn[p] * _B_skeleton(nu, mu, n, m, p, dr, dth, dph, k, zfun)
+                              for p in wnn)
+    return A, B, modes
+
+
 def translate_regular(coeffs: dict, d, k: float, nmax: int) -> dict:
     """Транслировать разложение регулярных волн {(ν,μ): c} в новый центр (сдвиг d).
 

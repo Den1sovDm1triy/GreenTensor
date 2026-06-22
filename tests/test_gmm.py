@@ -61,7 +61,7 @@ def test_solver_residual():
     s2 = LayeredSphere([0, 0, -1.0], RAD, EPS)
     a, c, d = gmm.solve_cluster([s1, s2], K_BG, KHAT, POL, NMAX)
     # проверяем a_p = d_p + Σ_{q≠p} G T a_q напрямую
-    A, B, _ = __import__("vswf").translation_block(
+    A, B, _ = __import__("vswf").translation_block_closed(
         s1.position - s2.position, K_BG, NMAX, "out")
     G = np.block([[A, B], [B, A]])
     t2 = s2.t_vector(K_BG, NMAX)
@@ -103,8 +103,25 @@ def test_energy_conservation_lossless_cluster():
     assert rel < 5e-3, f"нарушение энергобаланса кластера: {rel:.1e}"
 
 
+def test_dense_packing_energy():
+    """Плотная упаковка (k·разнос ≪ nmax): замкнутая трансляция сохраняет энергобаланс."""
+    import warnings
+    print("\n[7] плотная упаковка, энергобаланс (замкнутая Cruzan):")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for sep in (1.2, 1.5):                 # k·sep = 1.2, 1.5 ≪ nmax=3
+            pos = [[0, 0, i * sep] for i in (-2, -1, 0, 1, 2)]
+            sc = [LayeredSphere(p, 0.5, [2.25]) for p in pos]
+            _, c, _ = gmm.solve_cluster(sc, K_BG, KHAT, POL, 3)
+            cs = gmm.cross_sections(sc, c, K_BG, KHAT, POL)
+            bal = abs(cs["c_abs"]) / cs["c_sca"]
+            print(f"    k·sep={K_BG*sep}: C_sca={cs['c_sca']:.4f}  |C_abs|/C_sca={bal:.2e}")
+            assert bal < 2e-2, f"энергобаланс плотного кластера нарушен: {bal:.1e}"
+
+
 _TESTS = [test_decoupling_limit, test_coupling_is_active, test_solver_residual,
-          test_single_sphere_cross_sections, test_energy_conservation_lossless_cluster]
+          test_single_sphere_cross_sections, test_energy_conservation_lossless_cluster,
+          test_dense_packing_energy]
 
 if __name__ == "__main__":
     ok = True
