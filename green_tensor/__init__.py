@@ -55,11 +55,13 @@ from .solvers import (  # noqa: F401
     ConeSolver,
     CylinderSolver,
     EllipsoidSolver,
+    LayeredCylinderSolver,
     SphereSolver,
     SpheroidSolver,
     solve_cluster,
     solve_cylinder,
     solve_ellipsoid,
+    solve_layered_cylinder,
     solve_sphere,
     solve_spheroid,
 )
@@ -70,10 +72,10 @@ __all__ = [
     "Scatterer", "LayeredSphere", "DiagonalTMatrix",
     # solver classes
     "SphereSolver", "EllipsoidSolver", "SpheroidSolver",
-    "CylinderSolver", "ConeSolver", "Cluster",
+    "CylinderSolver", "LayeredCylinderSolver", "ConeSolver", "Cluster",
     # functional facade
     "solve_sphere", "solve_ellipsoid", "solve_spheroid",
-    "solve_cylinder", "solve_cluster",
+    "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
     # modules
     "mie_core", "tmatrix", "scatterer", "vswf", "gmm",
     "ellipsoid", "spheroid", "cylinder", "cone", "decompose", "solvers",

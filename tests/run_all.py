@@ -26,6 +26,7 @@ import test_spheroid as spt  # noqa: E402
 import test_cylinder as cyt  # noqa: E402
 import test_cone as cnt  # noqa: E402
 import test_solvers as slv  # noqa: E402
+import test_cylinder_layered as cyl_l  # noqa: E402
 
 
 def main() -> int:
@@ -95,6 +96,12 @@ def main() -> int:
         ("solvers: CylinderSolver vs module", slv.test_cylinder_solver_matches_module),
         ("solvers: ConeSolver decompose+Cluster", slv.test_cone_solver_decompose_and_cluster),
         ("solvers: NotImplementedError honesty", slv.test_notimplemented_honesty),
+        ("layered cyl: N=1 vs B&H arbiter", cyl_l.test_layered_n1_vs_arbiter),
+        ("layered cyl: subdivision invariance", cyl_l.test_subdivision_invariance),
+        ("layered cyl: energy conservation", cyl_l.test_energy_conservation_lossless),
+        ("layered cyl: coated absorption", cyl_l.test_coated_absorption),
+        ("layered cyl: solver wrappers match", cyl_l.test_solver_wrapper_matches),
+        ("layered cyl: 1-layer vs homogeneous", cyl_l.test_solver_single_layer_matches_homogeneous),
     ]
     failures = 0
     for name, fn in suite:

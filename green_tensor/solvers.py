@@ -45,9 +45,9 @@ from . import tmatrix as _tmatrix
 
 __all__ = [
     "SphereSolver", "EllipsoidSolver", "SpheroidSolver",
-    "CylinderSolver", "ConeSolver", "Cluster",
+    "CylinderSolver", "LayeredCylinderSolver", "ConeSolver", "Cluster",
     "solve_sphere", "solve_ellipsoid", "solve_spheroid",
-    "solve_cylinder", "solve_cluster",
+    "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
 ]
 
 
@@ -240,6 +240,44 @@ class CylinderSolver:
         return _cylinder.finite(*args, **kwargs)
 
 
+class LayeredCylinderSolver:
+    """RU: Радиально-СЛОИСТЫЙ бесконечный цилиндр (нормальное падение), метод ТФГ
+    (эквивалентные линии передачи, Дайлис–Шабунин 2017). Точная многослойная
+    рекурсия; при одном слое совпадает с :class:`CylinderSolver`.
+    EN: Radially LAYERED infinite cylinder (normal incidence), TGF method
+    (equivalent transmission lines, Daylis–Shabunin 2017). Exact multilayer
+    recursion; reduces to :class:`CylinderSolver` for a single layer.
+
+    radius : внешний радиус / outer radius;
+    eps    : проницаемости слоёв изнутри наружу / layer permittivities, inner→outer;
+    mu     : магнитные проницаемости слоёв (по умолчанию 1) / layer permeabilities (default 1);
+    a_norm : нормированные радиусы границ (внешний = 1, по возрастанию); по умолчанию
+             равные толщины / normalized boundary radii (outer = 1, increasing);
+             default equal-thickness shells. Внешняя среда — вакуум / vacuum host.
+    """
+
+    def __init__(self, radius, eps, *, mu=None, a_norm=None):
+        self.radius = float(radius)
+        self.eps = list(eps)
+        n = len(self.eps)
+        self.mu = list(mu) if mu is not None else [1.0] * n
+        if a_norm is not None:
+            self.a_norm = list(a_norm)
+        else:
+            self.a_norm = [(i + 1) / n for i in range(n)]   # равные толщины, внешний = 1
+
+    def cross_sections(self, k: float, *, mode: str = "TM", nmax: int | None = None) -> dict:
+        """RU: Эффективности Q_sca, Q_ext, Q_abs (норм. на диаметр). mode: 'TM'(E∥) | 'TE'(H∥).
+        EN: Efficiencies Q_sca, Q_ext, Q_abs (normalized to diameter). mode: 'TM'(E∥) | 'TE'(H∥)."""
+        return _cylinder.cross_sections_layered(self.eps, self.mu, self.a_norm,
+                                               k * self.radius, mode=mode, nmax=nmax)
+
+    def coeff(self, k: float, n: int, *, mode: str = "TM") -> complex:
+        """RU: Коэффициент рассеяния a_n гармоники n. EN: scattering coefficient a_n of harmonic n."""
+        return _cylinder.layered_coeff(self.eps, self.mu, self.a_norm,
+                                      k * self.radius, n, mode=mode)
+
+
 # --------------------------------------------------------------------------- #
 # Конус — строгая аналитика через разложение в кластер сфер + GMM
 # Cone — rigorous analytics via sphere-cluster decomposition + GMM
@@ -345,6 +383,14 @@ def solve_cylinder(radius, eps, k: float, *, eps_m: complex = 1.0,
     """RU: Эффективности бесконечного цилиндра / EN: infinite-cylinder efficiencies
     (см. / see :class:`CylinderSolver`)."""
     return CylinderSolver(radius, eps, eps_m=eps_m).cross_sections(k, mode=mode, nmax=nmax)
+
+
+def solve_layered_cylinder(radius, eps, k: float, *, mu=None, a_norm=None,
+                           mode: str = "TM", nmax: int | None = None) -> dict:
+    """RU: Эффективности слоистого цилиндра (ТФГ) / EN: layered-cylinder efficiencies (TGF)
+    (см. / see :class:`LayeredCylinderSolver`)."""
+    return LayeredCylinderSolver(radius, eps, mu=mu, a_norm=a_norm).cross_sections(
+        k, mode=mode, nmax=nmax)
 
 
 def solve_cluster(scatterers, k: float, khat, pol, nmax: int) -> dict:
