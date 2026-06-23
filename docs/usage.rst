@@ -104,6 +104,12 @@ Clusters and complex geometry (GMM)
    scatterers, centers, radius = cone.decompose(spacing=2.0)
    gt.Cluster(scatterers).cross_sections(k=1.0, khat=(1, 0, 0), pol=(0, 0, 1), nmax=3)
 
+   # finite cylinder -> non-overlapping spheres -> GMM
+   cyl = gt.FiniteCylinderSolver(center=[0, 0, 0], radius=2.0, half_length=4.0,
+                                 eps=[2.25], axis=2)
+   scatterers, centers, radius = cyl.decompose(spacing=1.0)
+   gt.Cluster(scatterers).cross_sections(k=0.8, khat=(1, 0, 0), pol=(0, 0, 1), nmax=3)
+
 Not-implemented (honest) branches
 ---------------------------------
 

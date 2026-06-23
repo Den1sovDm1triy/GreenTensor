@@ -36,6 +36,7 @@ import numpy as np
 
 from . import cone as _cone
 from . import cylinder as _cylinder
+from . import decompose as _decompose
 from . import ellipsoid as _ellipsoid
 from . import gmm as _gmm
 from . import mie_core as _mie_core
@@ -45,7 +46,8 @@ from . import tmatrix as _tmatrix
 
 __all__ = [
     "SphereSolver", "EllipsoidSolver", "SpheroidSolver",
-    "CylinderSolver", "LayeredCylinderSolver", "ConeSolver", "Cluster",
+    "CylinderSolver", "LayeredCylinderSolver", "FiniteCylinderSolver",
+    "ConeSolver", "Cluster",
     "solve_sphere", "solve_ellipsoid", "solve_spheroid",
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
 ]
@@ -333,6 +335,52 @@ class ConeSolver:
         """RU: Прямой решатель конуса — НЕ реализован (нецелые функции Лежандра).
         EN: Direct cone solver — NOT implemented (non-integer Legendre functions)."""
         return _cone.full_wave(*args, **kwargs)
+
+
+# --------------------------------------------------------------------------- #
+# Конечный цилиндр — строгая аналитика через разложение в кластер сфер + GMM
+# Finite cylinder — rigorous analytics via sphere-cluster decomposition + GMM
+# --------------------------------------------------------------------------- #
+class FiniteCylinderSolver:
+    """RU: Конечный круговой цилиндр (центр, радиус, полудлина, ось). Прямого
+    полноволнового решателя нет (несепарабелен — см. :class:`CylinderSolver`.finite);
+    строго аналитический путь — :meth:`decompose` в кластер непересекающихся сфер
+    → :class:`Cluster` (GMM). Для БЕСКОНЕЧНОГО цилиндра используйте
+    :class:`CylinderSolver` / :class:`LayeredCylinderSolver` (точная аналитика).
+    EN: Finite circular cylinder (centre, radius, half-length, axis). No direct
+    full-wave solver (non-separable — see :class:`CylinderSolver`.finite); the
+    rigorous-analytic route is :meth:`decompose` into a non-overlapping sphere
+    cluster → :class:`Cluster` (GMM). For an INFINITE cylinder use
+    :class:`CylinderSolver` / :class:`LayeredCylinderSolver` (exact analytics).
+    """
+
+    def __init__(self, center, radius: float, half_length: float, eps, *,
+                 axis: int = 2, a_norm=None, miy=None):
+        self.center = np.asarray(center, dtype=float)
+        self.radius = float(radius)
+        self.half_length = float(half_length)
+        self.eps = list(eps)
+        self.axis = int(axis)
+        self.a_norm = a_norm
+        self.miy = miy
+
+    def indicator(self):
+        """RU: Логический индикатор «точка внутри цилиндра».
+        EN: Boolean indicator "point inside the cylinder"."""
+        return _decompose.cylinder_indicator(self.center, self.radius,
+                                             self.half_length, self.axis)
+
+    def decompose(self, spacing: float, *, fill: float = 0.45):
+        """RU: Разложить в непересекающиеся сферы: (scatterers, centers, radius) для GMM.
+        EN: Decompose into non-overlapping spheres: (scatterers, centers, radius) for GMM."""
+        return _decompose.decompose_cylinder(self.center, self.radius, self.half_length,
+                                            spacing, self.eps, axis=self.axis, fill=fill,
+                                            a_norm=self.a_norm, miy=self.miy)
+
+    def full_wave(self, *args, **kwargs):
+        """RU: Прямой решатель конечного цилиндра — НЕ реализован (мод-матчинг/EBCM).
+        EN: Direct finite-cylinder solver — NOT implemented (mode-matching/EBCM)."""
+        return _cylinder.finite(*args, **kwargs)
 
 
 # --------------------------------------------------------------------------- #

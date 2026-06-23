@@ -21,6 +21,10 @@ All notable changes to this project are documented here. The format is based on
     precision against both, plus subdivision invariance and energy conservation.
   - Theory: new section «Слоистый бесконечный цилиндр (ТФГ)» in
     `GreenTensor_Theory.tex` (+ Daylis–Shabunin, Wait, Kavaklıoğlu references).
+- **Finite cylinder integrated into the GMM engine via decomposition**:
+  `decompose.decompose_cylinder` packs a finite cylinder into a non-overlapping
+  sphere cluster; `FiniteCylinderSolver` (decompose → `Cluster`) added to the public
+  API, mirroring `ConeSolver`. Verified non-overlapping/inside + GMM integration.
 
 ### Fixed
 - `cylinder._coeffs` had TM/TE labels swapped vs the Bohren–Huffman convention

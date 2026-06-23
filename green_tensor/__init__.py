@@ -55,6 +55,7 @@ from .solvers import (  # noqa: F401
     ConeSolver,
     CylinderSolver,
     EllipsoidSolver,
+    FiniteCylinderSolver,
     LayeredCylinderSolver,
     SphereSolver,
     SpheroidSolver,
@@ -72,7 +73,8 @@ __all__ = [
     "Scatterer", "LayeredSphere", "DiagonalTMatrix",
     # solver classes
     "SphereSolver", "EllipsoidSolver", "SpheroidSolver",
-    "CylinderSolver", "LayeredCylinderSolver", "ConeSolver", "Cluster",
+    "CylinderSolver", "LayeredCylinderSolver", "FiniteCylinderSolver",
+    "ConeSolver", "Cluster",
     # functional facade
     "solve_sphere", "solve_ellipsoid", "solve_spheroid",
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",

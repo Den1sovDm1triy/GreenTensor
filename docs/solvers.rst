@@ -34,6 +34,10 @@ own. Thin ``solve_*`` functions provide one-line access.
      - :class:`~green_tensor.solvers.LayeredCylinderSolver`
      - :func:`~green_tensor.solvers.solve_layered_cylinder`
      - **Exact** (normal + oblique)
+   * - Cylinder (finite)
+     - :class:`~green_tensor.solvers.FiniteCylinderSolver`
+     - via :class:`~green_tensor.solvers.Cluster`
+     - Rigorous (sphere decomposition)
    * - Cone
      - :class:`~green_tensor.solvers.ConeSolver`
      - via :class:`~green_tensor.solvers.Cluster`
@@ -88,9 +92,20 @@ verified to machine precision against Bohren–Huffman (normal) and the Wait /
 Kavaklıoğlu isolated-cylinder coefficients (oblique), reduces to the homogeneous
 solver at one layer, and conserves energy.
 
-The finite cylinder is non-separable; ``finite()`` raises ``NotImplementedError``
-— model finite bodies with :class:`~green_tensor.solvers.ConeSolver`/``decompose``
-or a prolate spheroid.
+The **finite** cylinder is non-separable (no direct full-wave solver). Use
+:class:`~green_tensor.solvers.FiniteCylinderSolver`, which ``decompose``\ s the body
+into a non-overlapping sphere cluster solved by :class:`~green_tensor.solvers.Cluster`
+(GMM) — the same rigorous-analytic route as :class:`~green_tensor.solvers.ConeSolver`.
+A prolate spheroid is an alternative quasi-static approximation.
+
+Finite cylinder — rigorous via decomposition
+---------------------------------------------
+
+:class:`~green_tensor.solvers.FiniteCylinderSolver` (centre, radius, half-length,
+axis) has no direct full-wave solver; ``decompose(spacing)`` packs the cylinder with
+non-overlapping spheres (verified non-overlapping and inside the body) which feed the
+spherical-VSWF :class:`~green_tensor.solvers.Cluster` (GMM). ``full_wave()`` raises
+``NotImplementedError``.
 
 Cone — rigorous via decomposition
 ---------------------------------

@@ -81,3 +81,20 @@ def to_scatterers(centers, radius: float, eps, a_norm=None, miy=None):
     """Превратить упаковку в список рассеивателей LayeredSphere для GMM."""
     return [scatterer.LayeredSphere(c, radius, eps, a_norm=a_norm, miy=miy)
             for c in np.asarray(centers, float)]
+
+
+def decompose_cylinder(center, radius: float, half_length: float, spacing: float,
+                       eps, *, axis: int = 2, fill: float = 0.45, a_norm=None, miy=None):
+    """Разложить КОНЕЧНЫЙ круговой цилиндр в непересекающиеся сферы для GMM.
+
+    center — центр; radius — радиус; half_length — половина длины вдоль оси; axis — ось
+    цилиндра (0/1/2). Возвращает (scatterers, centers, sphere_radius). Сферический
+    GMM (gmm.solve_cluster) собирает поле кластера — путь для конечного цилиндра в
+    отсутствие прямого full-wave решателя (см. cylinder.finite)."""
+    center = np.asarray(center, dtype=float)
+    half = np.full(3, radius, dtype=float)
+    half[axis] = half_length
+    lo, hi = center - half, center + half
+    inside = cylinder_indicator(center, radius, half_length, axis)
+    centers, sphere_radius = pack_spheres(inside, lo, hi, spacing, fill)
+    return to_scatterers(centers, sphere_radius, eps, a_norm=a_norm, miy=miy), centers, sphere_radius

@@ -27,6 +27,7 @@ import test_cylinder as cyt  # noqa: E402
 import test_cone as cnt  # noqa: E402
 import test_solvers as slv  # noqa: E402
 import test_cylinder_layered as cyl_l  # noqa: E402
+import test_finite_cylinder as fcyl  # noqa: E402
 
 
 def main() -> int:
@@ -107,6 +108,10 @@ def main() -> int:
         ("oblique cyl: subdivision invariance", cyl_l.test_oblique_subdivision_invariance),
         ("oblique cyl: energy conservation", cyl_l.test_oblique_energy_conservation),
         ("oblique cyl: cross-sec reduce + wrappers", cyl_l.test_oblique_cross_sections_reduce_and_wrapper),
+        ("finite cyl: indicator", fcyl.test_indicator),
+        ("finite cyl: decompose non-overlap/inside", fcyl.test_decompose_non_overlap_inside),
+        ("finite cyl: decompose feeds GMM", fcyl.test_decompose_feeds_gmm),
+        ("finite cyl: solver wrapper + not-impl", fcyl.test_solver_wrapper_and_notimpl),
     ]
     failures = 0
     for name, fn in suite:
