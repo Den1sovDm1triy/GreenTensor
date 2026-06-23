@@ -145,6 +145,11 @@ Helpers: :func:`~green_tensor.decompose.maxwell_garnett_eps` /
    when *f* is too low for the requested ε. It is also quasi-static (valid for
    ``k·r_sphere ≪ 1``): it corrects the effective bulk permittivity, not surface detail.
 
+   Pass ``lattice="fcc"`` to ``decompose`` (face-centered cubic) for a ~√2× denser,
+   still non-overlapping packing — higher filling *f* and thus a higher reachable ε for
+   the Maxwell–Garnett correction, plus better boundary conformity. ``lattice="cubic"``
+   (default) is the simple cubic lattice.
+
 Cone — rigorous via decomposition
 ---------------------------------
 

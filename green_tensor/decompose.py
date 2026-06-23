@@ -38,19 +38,41 @@ def cylinder_indicator(center, radius, half_length, axis=2):
     return f
 
 
-def pack_spheres(inside_fn, bbox_min, bbox_max, spacing: float, fill: float = 0.45):
-    """Уложить непересекающиеся сферы внутрь тела (inside_fn) на кубической решётке.
+def pack_spheres(inside_fn, bbox_min, bbox_max, spacing: float, fill: float = 0.45,
+                 lattice: str = "cubic"):
+    """Уложить непересекающиеся сферы внутрь тела (inside_fn).
 
-    Возвращает (centers (M,3), radius). radius=fill·spacing, fill<0.5 ⇒ строго не пересекаются.
-    Сфера принимается, если её центр и 6 осевых точек на радиусе внутри тела.
+    Возвращает (centers (M,3), radius). Сфера принимается, если её центр и 6 осевых
+    точек на радиусе внутри тела. fill<0.5 ⇒ радиус меньше половины ближайшего соседа ⇒
+    сферы строго не пересекаются (для любой решётки).
+
+    lattice='cubic' — простая кубическая (шаг spacing, ближайший сосед = spacing,
+    radius = fill·spacing). lattice='fcc' — гранецентрированная (spacing = сторона
+    условной ячейки a, ближайший сосед = a/√2, radius = fill·a/√2): при тех же spacing
+    и fill даёт примерно в √2 раз бо́льшую объёмную долю и лучшую конформность границе —
+    важно для поправки эфф. среды (см. :func:`maxwell_garnett_eps`).
     """
     if not (0 < fill < 0.5):
         raise ValueError("fill must be in (0, 0.5) for non-overlapping spheres")
-    radius = fill * spacing
     bbox_min = np.asarray(bbox_min, float)
     bbox_max = np.asarray(bbox_max, float)
-    axes = [np.arange(bbox_min[i] + spacing / 2, bbox_max[i], spacing) for i in range(3)]
-    grid = np.stack(np.meshgrid(*axes, indexing="ij"), axis=-1).reshape(-1, 3)
+
+    if lattice == "cubic":
+        nn = spacing
+        axes = [np.arange(bbox_min[i] + spacing / 2, bbox_max[i], spacing) for i in range(3)]
+        grid = np.stack(np.meshgrid(*axes, indexing="ij"), axis=-1).reshape(-1, 3)
+    elif lattice == "fcc":
+        a = spacing
+        nn = a / np.sqrt(2.0)                       # ближайший сосед в ГЦК
+        cell_axes = [np.arange(bbox_min[i], bbox_max[i] + a, a) for i in range(3)]
+        cells = np.stack(np.meshgrid(*cell_axes, indexing="ij"), axis=-1).reshape(-1, 3)
+        basis = a * np.array([[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+        grid = (cells[:, None, :] + basis[None, :, :]).reshape(-1, 3)
+        grid = grid[np.all((grid >= bbox_min) & (grid <= bbox_max), axis=1)]
+    else:
+        raise ValueError("lattice must be 'cubic' or 'fcc'")
+
+    radius = fill * nn
     e = radius * np.eye(3)
     keep = inside_fn(grid)
     for i in range(3):
@@ -204,10 +226,15 @@ def reject_metal_packing(eps, miy, sphere_radius: float, k: float | None,
         )
 
 
+def _lattice_radius(spacing: float, fill: float, lattice: str) -> float:
+    """Радиус сферы для решётки: cubic → fill·spacing, fcc → fill·spacing/√2."""
+    return fill * spacing / (np.sqrt(2.0) if lattice == "fcc" else 1.0)
+
+
 def decompose_cylinder(center, radius: float, half_length: float, spacing: float,
                        eps, *, axis: int = 2, fill: float = 0.45, a_norm=None, miy=None,
                        k: float | None = None, allow_metal: bool = False,
-                       effective_medium: bool = False):
+                       effective_medium: bool = False, lattice: str = "cubic"):
     """Разложить КОНЕЧНЫЙ круговой цилиндр в непересекающиеся сферы для GMM.
 
     center — центр; radius — радиус; half_length — половина длины вдоль оси; axis — ось
@@ -219,13 +246,13 @@ def decompose_cylinder(center, radius: float, half_length: float, spacing: float
     :func:`reject_metal_packing`); задайте k для скин-слойной проверки, allow_metal=True
     для осознанного обхода. effective_medium=True — поправка Максвелла–Гарнетта на ε
     (однородный диэлектрик; квазистатика), см. :func:`effective_medium_eps`."""
-    reject_metal_packing(eps, miy, fill * spacing, k, allow_metal)
+    reject_metal_packing(eps, miy, _lattice_radius(spacing, fill, lattice), k, allow_metal)
     center = np.asarray(center, dtype=float)
     half = np.full(3, radius, dtype=float)
     half[axis] = half_length
     lo, hi = center - half, center + half
     inside = cylinder_indicator(center, radius, half_length, axis)
-    centers, sphere_radius = pack_spheres(inside, lo, hi, spacing, fill)
+    centers, sphere_radius = pack_spheres(inside, lo, hi, spacing, fill, lattice=lattice)
     eps_used = eps
     if effective_medium:
         body_volume = np.pi * radius ** 2 * (2.0 * half_length)

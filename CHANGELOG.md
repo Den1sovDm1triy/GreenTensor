@@ -40,6 +40,11 @@ All notable changes to this project are documented here. The format is based on
   Filling-limited (max reachable ε = `(1+2f)/(1−f)`; raises if `f` too low — denser packing
   needed). Added `maxwell_garnett_effective`, `maxwell_garnett_eps`, `effective_medium_eps`,
   and `packing_report` (filling, overlap margin, GMM size estimate).
+- **FCC packing lattice** (`pack_spheres(..., lattice="fcc")`): face-centered-cubic gives a
+  ~√2× denser, still non-overlapping packing (higher filling, better boundary conformity),
+  raising the Maxwell–Garnett reachable ε. Threaded through `decompose_cylinder`,
+  `decompose_cone`, and the `FiniteCylinderSolver`/`ConeSolver` `.decompose` methods
+  (`lattice="cubic"` default keeps prior behavior).
 
 ### Fixed
 - `cylinder._coeffs` had TM/TE labels swapped vs the Bohren–Huffman convention

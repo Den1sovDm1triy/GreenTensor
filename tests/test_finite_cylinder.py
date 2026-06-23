@@ -97,9 +97,29 @@ def test_metal_guard():
     print("    OK — диэлектрик/ядро-в-оболочке/allow_metal разрешены; металл-внешний и скин запрещены")
 
 
+def test_fcc_lattice():
+    print("\n[6] ГЦК-решётка: плотнее куба, непересекающаяся, выше достижимая ε (МГ):")
+    inside = dc.sphere_indicator([0, 0, 0], 3.0)
+    lo, hi = np.array([-3.0, -3, -3]), np.array([3.0, 3, 3])
+    V = (4.0 / 3.0) * np.pi * 27.0
+    Cc, rc = dc.pack_spheres(inside, lo, hi, 1.0, 0.45, lattice="cubic")
+    Cf, rf = dc.pack_spheres(inside, lo, hi, 1.0, 0.45, lattice="fcc")
+    fc = dc.coverage_fraction(Cc, rc, V)
+    ff = dc.coverage_fraction(Cf, rf, V)
+    assert dc.min_separation(Cf) >= 2 * rf - 1e-12        # строгое непересечение
+    assert ff > fc                                         # ГЦК плотнее
+    assert (1 + 2 * ff) / (1 - ff) > (1 + 2 * fc) / (1 - fc)   # выше eps_max для МГ
+    # интеграция: FiniteCylinderSolver(lattice='fcc') даёт больше непересекающихся сфер
+    sc, _, _ = gt.FiniteCylinderSolver([0, 0, 0], 2.0, 3.0, [2.0]).decompose(1.2, lattice="cubic")
+    sf, cf2, rf2 = gt.FiniteCylinderSolver([0, 0, 0], 2.0, 3.0, [2.0]).decompose(1.2, lattice="fcc")
+    assert len(sf) > len(sc) and dc.min_separation(cf2) >= 2 * rf2 - 1e-12
+    print(f"    cubic f={fc:.3f} (ε≤{(1+2*fc)/(1-fc):.2f}) → fcc f={ff:.3f} (ε≤{(1+2*ff)/(1-ff):.2f}); "
+          f"сфер {len(sc)}→{len(sf)} — ок")
+
+
 if __name__ == "__main__":
     for fn in (test_indicator, test_decompose_non_overlap_inside,
                test_decompose_feeds_gmm, test_solver_wrapper_and_notimpl,
-               test_metal_guard):
+               test_metal_guard, test_fcc_lattice):
         fn()
     print("\nOK")

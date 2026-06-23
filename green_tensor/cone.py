@@ -40,14 +40,14 @@ def cone_indicator(apex, axis, half_angle: float, height: float):
 def decompose_cone(apex, axis, half_angle: float, height: float, spacing: float,
                    eps, fill: float = 0.45, a_norm=None, miy=None,
                    k: float | None = None, allow_metal: bool = False,
-                   effective_medium: bool = False):
+                   effective_medium: bool = False, lattice: str = "cubic"):
     """Разложить конус в непересекающиеся сферы и вернуть рассеиватели для GMM.
 
     Металл: разложение запрещено, если внешний слой металлический (см.
     :func:`decompose.reject_metal_packing`); k — для скин-слойной проверки,
     allow_metal=True — осознанный обход. effective_medium=True — поправка
     Максвелла–Гарнетта на ε (однородный диэлектрик; квазистатика)."""
-    _dc.reject_metal_packing(eps, miy, fill * spacing, k, allow_metal)
+    _dc.reject_metal_packing(eps, miy, _dc._lattice_radius(spacing, fill, lattice), k, allow_metal)
     apex = np.asarray(apex, dtype=float)
     ax = np.asarray(axis, dtype=float)
     ax = ax / np.linalg.norm(ax)
@@ -57,7 +57,7 @@ def decompose_cone(apex, axis, half_angle: float, height: float, spacing: float,
     lo = np.minimum(apex, far) - R
     hi = np.maximum(apex, far) + R
     inside = cone_indicator(apex, ax, half_angle, height)
-    centers, radius = _dc.pack_spheres(inside, lo, hi, spacing, fill)
+    centers, radius = _dc.pack_spheres(inside, lo, hi, spacing, fill, lattice=lattice)
     eps_used = eps
     if effective_medium:
         body_volume = math.pi * R ** 2 * height / 3.0

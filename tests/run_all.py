@@ -114,6 +114,7 @@ def main() -> int:
         ("finite cyl: decompose feeds GMM", fcyl.test_decompose_feeds_gmm),
         ("finite cyl: solver wrapper + not-impl", fcyl.test_solver_wrapper_and_notimpl),
         ("finite cyl: metal guard (cavities)", fcyl.test_metal_guard),
+        ("finite cyl: FCC lattice (denser)", fcyl.test_fcc_lattice),
         ("MG: round-trip", mg.test_mg_roundtrip),
         ("MG: polarizability identity", mg.test_polarizability_identity),
         ("MG: unreachable filling raises", mg.test_unreachable_filling_raises),
