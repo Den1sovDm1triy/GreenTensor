@@ -325,16 +325,20 @@ class ConeSolver:
         return _cone.cone_indicator(self.apex, self.axis, self.half_angle, self.height)
 
     def decompose(self, spacing: float, *, fill: float = 0.45,
-                  k: float | None = None, allow_metal: bool = False):
+                  k: float | None = None, allow_metal: bool = False,
+                  effective_medium: bool = False):
         """RU: Разложить в непересекающиеся сферы: (scatterers, centers, radius) для GMM.
         Металл с металлической внешней средой запрещён (k — для скин-слойной проверки,
-        allow_metal=True — обход); см. :func:`green_tensor.decompose.reject_metal_packing`.
-        EN: Decompose into non-overlapping spheres for GMM. Metal with a metallic outer
-        layer is rejected (pass k for the skin-depth test; allow_metal=True to override)."""
+        allow_metal=True — обход). effective_medium=True — поправка Максвелла–Гарнетта на ε
+        (однородный диэлектрик, квазистатика). См. :mod:`green_tensor.decompose`.
+        EN: Decompose into non-overlapping spheres for GMM. Metal outer layer rejected
+        (pass k for the skin-depth test; allow_metal=True to override). effective_medium=True
+        applies the Maxwell–Garnett eps correction (homogeneous dielectric, quasi-static)."""
         return _cone.decompose_cone(self.apex, self.axis, self.half_angle, self.height,
                                     spacing, self.eps, fill=fill,
                                     a_norm=self.a_norm, miy=self.miy,
-                                    k=k, allow_metal=allow_metal)
+                                    k=k, allow_metal=allow_metal,
+                                    effective_medium=effective_medium)
 
     def full_wave(self, *args, **kwargs):
         """RU: Прямой решатель конуса — НЕ реализован (нецелые функции Лежандра).
@@ -376,16 +380,20 @@ class FiniteCylinderSolver:
                                              self.half_length, self.axis)
 
     def decompose(self, spacing: float, *, fill: float = 0.45,
-                  k: float | None = None, allow_metal: bool = False):
+                  k: float | None = None, allow_metal: bool = False,
+                  effective_medium: bool = False):
         """RU: Разложить в непересекающиеся сферы: (scatterers, centers, radius) для GMM.
         Металл с металлической внешней средой запрещён (k — для скин-слойной проверки,
-        allow_metal=True — обход); см. :func:`green_tensor.decompose.reject_metal_packing`.
-        EN: Decompose into non-overlapping spheres for GMM. Metal with a metallic outer
-        layer is rejected (pass k for the skin-depth test; allow_metal=True to override)."""
+        allow_metal=True — обход). effective_medium=True — поправка Максвелла–Гарнетта на ε
+        (однородный диэлектрик, квазистатика). См. :mod:`green_tensor.decompose`.
+        EN: Decompose into non-overlapping spheres for GMM. Metal outer layer rejected
+        (pass k for the skin-depth test; allow_metal=True to override). effective_medium=True
+        applies the Maxwell–Garnett eps correction (homogeneous dielectric, quasi-static)."""
         return _decompose.decompose_cylinder(self.center, self.radius, self.half_length,
                                             spacing, self.eps, axis=self.axis, fill=fill,
                                             a_norm=self.a_norm, miy=self.miy,
-                                            k=k, allow_metal=allow_metal)
+                                            k=k, allow_metal=allow_metal,
+                                            effective_medium=effective_medium)
 
     def full_wave(self, *args, **kwargs):
         """RU: Прямой решатель конечного цилиндра — НЕ реализован (мод-матчинг/EBCM).

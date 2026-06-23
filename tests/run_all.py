@@ -28,6 +28,7 @@ import test_cone as cnt  # noqa: E402
 import test_solvers as slv  # noqa: E402
 import test_cylinder_layered as cyl_l  # noqa: E402
 import test_finite_cylinder as fcyl  # noqa: E402
+import test_mg_correction as mg  # noqa: E402
 
 
 def main() -> int:
@@ -113,6 +114,11 @@ def main() -> int:
         ("finite cyl: decompose feeds GMM", fcyl.test_decompose_feeds_gmm),
         ("finite cyl: solver wrapper + not-impl", fcyl.test_solver_wrapper_and_notimpl),
         ("finite cyl: metal guard (cavities)", fcyl.test_metal_guard),
+        ("MG: round-trip", mg.test_mg_roundtrip),
+        ("MG: polarizability identity", mg.test_polarizability_identity),
+        ("MG: unreachable filling raises", mg.test_unreachable_filling_raises),
+        ("MG: effective_medium integration", mg.test_effective_medium_integration),
+        ("MG: packing report metrics", mg.test_packing_report),
     ]
     failures = 0
     for name, fn in suite:

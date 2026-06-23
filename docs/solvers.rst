@@ -121,6 +121,30 @@ spherical-VSWF :class:`~green_tensor.solvers.Cluster` (GMM). ``full_wave()`` rai
    solid metal body use a single closed body (:class:`~green_tensor.solvers.SphereSolver`
    with a metal layer) or a surface method (EBCM/MoM).
 
+Decomposition optimizers
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The packing leaves vacuum gaps, so the cluster's effective permittivity is **lower**
+than the solid body's (a systematic bias). ``decompose(..., effective_medium=True)``
+applies a closed-form **Maxwell–Garnett** correction: it chooses the sphere permittivity
+so the effective medium of (spheres at filling fraction *f* in vacuum) equals the body's
+true ε. In the quasi-static limit this is exact — the corrected sub-spheres reproduce the
+solid body's polarizability identically (``Σα_corrected == α_solid``), whereas the
+uncorrected packing is biased by a factor *f*.
+
+Helpers: :func:`~green_tensor.decompose.maxwell_garnett_eps` /
+:func:`~green_tensor.decompose.maxwell_garnett_effective`,
+:func:`~green_tensor.decompose.packing_report` (filling, overlap margin, GMM size).
+
+.. note::
+
+   The correction is **filling-limited**: the maximum reachable ε is
+   ``(1 + 2f)/(1 − f)`` (an infinite-ε inclusion would be metal, which is forbidden). A
+   sparse cubic packing gives ``f ≈ 0.1–0.4`` (reaches ε up to ≈ 1.4–3), so MG only
+   corrects modest-ε bodies unless the packing is made denser; it raises ``ValueError``
+   when *f* is too low for the requested ε. It is also quasi-static (valid for
+   ``k·r_sphere ≪ 1``): it corrects the effective bulk permittivity, not surface detail.
+
 Cone — rigorous via decomposition
 ---------------------------------
 

@@ -32,6 +32,14 @@ All notable changes to this project are documented here. The format is based on
   now raise `ValueError` when the **outermost** layer is metallic (`Re(eps) < 0` or
   skin depth `< r_sphere`, via an optional `k`). A metal core enclosed by a dielectric
   outer layer is allowed; `allow_metal=True` overrides for a genuine metal-sphere cluster.
+- **Decomposition optimizer — Maxwell–Garnett effective-medium correction**: packing
+  leaves vacuum gaps that lower the cluster's effective permittivity; `effective_medium=True`
+  on the `decompose` route chooses the sphere ε (closed-form `maxwell_garnett_eps`) so the
+  effective medium of (spheres at filling `f` in vacuum) equals the body's true ε. Exact in
+  the quasi-static limit (`Σα_corrected == α_solid`; uncorrected is biased by `f`).
+  Filling-limited (max reachable ε = `(1+2f)/(1−f)`; raises if `f` too low — denser packing
+  needed). Added `maxwell_garnett_effective`, `maxwell_garnett_eps`, `effective_medium_eps`,
+  and `packing_report` (filling, overlap margin, GMM size estimate).
 
 ### Fixed
 - `cylinder._coeffs` had TM/TE labels swapped vs the Bohren–Huffman convention

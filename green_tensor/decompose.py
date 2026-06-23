@@ -83,6 +83,82 @@ def to_scatterers(centers, radius: float, eps, a_norm=None, miy=None):
             for c in np.asarray(centers, float)]
 
 
+# --------------------------------------------------------------------------- #
+# Поправка эффективной среды (Максвелл–Гарнетт) + метрики упаковки
+# Maxwell–Garnett effective-medium correction + packing metrics
+# --------------------------------------------------------------------------- #
+def maxwell_garnett_effective(eps_incl, f: float, eps_host: complex = 1.0) -> complex:
+    """Эффективная ε смеси: включения eps_incl с объёмной долей f в среде eps_host.
+
+    Формула Максвелла–Гарнетта (сферические включения):
+        (eps_eff−eps_h)/(eps_eff+2eps_h) = f·(eps_i−eps_h)/(eps_i+2eps_h).
+    """
+    eps_i, eps_h = complex(eps_incl), complex(eps_host)
+    beta = (eps_i - eps_h) / (eps_i + 2.0 * eps_h)
+    return eps_h * (1.0 + 2.0 * f * beta) / (1.0 - f * beta)
+
+
+def maxwell_garnett_eps(eps_eff, f: float, eps_host: complex = 1.0) -> complex:
+    """Обратная задача МГ: ε включения, при котором эфф. среда (доля f) равна eps_eff.
+
+    Используется для КОРРЕКЦИИ упаковки: сферы занимают долю f<1 объёма тела
+    (остальное — вакуумные зазоры eps_host=1); подбираем ε сфер так, чтобы эффективная
+    среда упаковки равнялась истинной ε тела. Тогда квазистатический отклик кластера
+    совпадает со сплошным телом. Поднимает ValueError, если доли f не хватает для
+    достижения eps_eff немагнитным диэлектриком (нужна более плотная упаковка).
+    """
+    if not 0.0 < f < 1.0:
+        raise ValueError("объёмная доля f должна быть в (0, 1)")
+    eps_e, eps_h = complex(eps_eff), complex(eps_host)
+    L = (eps_e - eps_h) / (eps_e + 2.0 * eps_h)
+    beta = L / f
+    eps_i = eps_h * (1.0 + 2.0 * beta) / (1.0 - beta)
+    if not (np.isfinite(eps_i) and eps_i.real > 0.0):
+        raise ValueError(
+            f"доля f={f:.3f} мала для достижения eps_eff={eps_eff} по Максвеллу–Гарнетту "
+            "немагнитным диэлектриком: требуется более плотная упаковка (мельче spacing / "
+            "плотнее решётка) либо результат non-physical (eps включения ≤ 0)."
+        )
+    return eps_i
+
+
+def effective_medium_eps(eps, miy, centers, sphere_radius: float, body_volume: float):
+    """ε сфер с поправкой Максвелла–Гарнетта под истинную ε ОДНОРОДНОГО тела.
+
+    Возвращает список из одного элемента (для LayeredSphere). Применимо только к
+    однородному немагнитному диэлектрику (один слой, mu=1): доля f=объём сфер/объём тела,
+    eps_corr подбирается так, что эфф. среда упаковки = eps тела (см. maxwell_garnett_eps).
+    """
+    eps_list = list(eps)
+    if len(eps_list) != 1:
+        raise ValueError("поправка эфф. среды реализована только для однородного тела (один слой eps)")
+    if miy is not None and any(abs(complex(m) - 1.0) > 1e-12 for m in miy):
+        raise ValueError("поправка эфф. среды: магнитные слои (mu≠1) не поддержаны")
+    f = coverage_fraction(centers, sphere_radius, body_volume)
+    return [maxwell_garnett_eps(eps_list[0], f)]
+
+
+def packing_report(centers, sphere_radius: float, body_volume: float,
+                   nmax: int | None = None) -> dict:
+    """Метрики упаковки: число сфер, объёмная доля, запас непересечения, оценка GMM.
+
+    overlap_margin = min_sep/(2r) − 1 (>0 ⇒ строго не пересекаются; ~0 ⇒ касаются,
+    сходимость GMM деградирует). При заданном nmax — размерность системы GMM и число
+    элементов матрицы (оценка стоимости ~ (P·2K)²)."""
+    centers = np.asarray(centers, dtype=float)
+    n = len(centers)
+    f = coverage_fraction(centers, sphere_radius, body_volume) if n else 0.0
+    msep = min_separation(centers)
+    margin = (msep / (2.0 * sphere_radius) - 1.0) if (n > 1 and sphere_radius > 0) else float("inf")
+    rep = {"n_spheres": n, "filling": float(f), "min_sep": float(msep),
+           "overlap_margin": float(margin), "sphere_radius": float(sphere_radius)}
+    if nmax:
+        dim = n * 2 * nmax * (nmax + 2)
+        rep["gmm_dim"] = int(dim)
+        rep["gmm_matrix_elems"] = int(dim) ** 2
+    return rep
+
+
 def is_metal_layer(eps, mu=1.0, *, k: float | None = None, radius: float | None = None) -> bool:
     """Является ли слой «металлическим» (поле в него не проникает).
 
@@ -130,7 +206,8 @@ def reject_metal_packing(eps, miy, sphere_radius: float, k: float | None,
 
 def decompose_cylinder(center, radius: float, half_length: float, spacing: float,
                        eps, *, axis: int = 2, fill: float = 0.45, a_norm=None, miy=None,
-                       k: float | None = None, allow_metal: bool = False):
+                       k: float | None = None, allow_metal: bool = False,
+                       effective_medium: bool = False):
     """Разложить КОНЕЧНЫЙ круговой цилиндр в непересекающиеся сферы для GMM.
 
     center — центр; radius — радиус; half_length — половина длины вдоль оси; axis — ось
@@ -140,7 +217,8 @@ def decompose_cylinder(center, radius: float, half_length: float, spacing: float
 
     Металл: разложение запрещено, если внешний слой металлический (см.
     :func:`reject_metal_packing`); задайте k для скин-слойной проверки, allow_metal=True
-    для осознанного обхода."""
+    для осознанного обхода. effective_medium=True — поправка Максвелла–Гарнетта на ε
+    (однородный диэлектрик; квазистатика), см. :func:`effective_medium_eps`."""
     reject_metal_packing(eps, miy, fill * spacing, k, allow_metal)
     center = np.asarray(center, dtype=float)
     half = np.full(3, radius, dtype=float)
@@ -148,4 +226,8 @@ def decompose_cylinder(center, radius: float, half_length: float, spacing: float
     lo, hi = center - half, center + half
     inside = cylinder_indicator(center, radius, half_length, axis)
     centers, sphere_radius = pack_spheres(inside, lo, hi, spacing, fill)
-    return to_scatterers(centers, sphere_radius, eps, a_norm=a_norm, miy=miy), centers, sphere_radius
+    eps_used = eps
+    if effective_medium:
+        body_volume = np.pi * radius ** 2 * (2.0 * half_length)
+        eps_used = effective_medium_eps(eps, miy, centers, sphere_radius, body_volume)
+    return to_scatterers(centers, sphere_radius, eps_used, a_norm=a_norm, miy=miy), centers, sphere_radius
