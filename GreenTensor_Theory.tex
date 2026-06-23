@@ -1221,6 +1221,50 @@ $d_{m'm}^n(\beta)$ --- малая (вещественная) d-функция В
 \paragraph{Коробчатые («блочные») тела.}
 Принципиальная установка проекта --- \emph{не} вводить отдельный «решатель параллелепипеда». Угловатое тело аппроксимируется композицией разрешённых примитивов (например, сильно сплюснутый/вытянутый сфероид как несущий блок плюс окаймляющие сферы), а острые рёбра и углы --- областью, где сферический мультипольный ряд сходится медленнее и требует увеличения $n_{\max}$. Такой подход сохраняет \emph{аналитичность} каждого блока T-матрицы и переносит всю «сложность» геометрии в линейную алгебру \eqref{decomp-eq:gmm-system}, тогда как отдельный численный решатель для коробки разрушил бы единый аналитический каркас и контролируемость погрешности.
 
+\subsection{Дискретизация тела упаковкой сфер: исключение металла и поправка эффективной среды}
+\label{decomp-ssec:packing}
+
+Когда тело не сводится к малому числу крупных примитивов (конечный цилиндр, конус и прочие «угловатые» тела; реализованы как \texttt{FiniteCylinderSolver}/\texttt{ConeSolver}), применяется предельный случай разложения \eqref{decomp-eq:superpos}: тело заполняется решёткой одинаковых \emph{непересекающихся} сфер (условие \eqref{decomp-eq:non-overlap} с запасом), а система GMM \eqref{decomp-eq:gmm-system} собирает их совместный отклик. Сферы радиуса $r=\mathrm{fill}\cdot s$ ($\mathrm{fill}<\tfrac12$) на решётке с шагом $s$ занимают \emph{объёмную долю}
+\begin{equation}
+f \;=\; \frac{N\,\tfrac{4}{3}\pi r^3}{V_{\mathrm{body}}} \;<\; 1,
+\label{decomp-eq:filling}
+\end{equation}
+а остаток $1-f$ --- вакуумные зазоры. Именно $f$ определяет физичность и точность дискретизации.
+
+\paragraph{Исключение металла.}
+Для диэлектрика зазоры суть доброкачественное эффективно-средовое приближение (см.\ ниже). Для \emph{металла} они фатальны: поле не проникает в металлические сферы (скин-эффект), но проникает в зазоры, которые становятся открытыми полостями с паразитными межсферными переотражениями и резонансами, отсутствующими у сплошного тела, --- это металлическая «губка», а не сплошной металл. Поэтому разложение запрещается, если \emph{внешний} слой сферы металлический по критерию
+\begin{equation}
+\operatorname{Re}\varepsilon < 0
+\qquad\text{или}\qquad
+\delta \equiv \frac{1}{k_0\,\operatorname{Im}\sqrt{\varepsilon\mu}} < r,
+\label{decomp-eq:metal}
+\end{equation}
+где $\delta$ --- глубина скин-слоя \cite{stratton1941,jackson1999}. Исключение составляет металлическое \emph{ядро}, полностью закрытое диэлектрической внешней оболочкой: тогда зазоры касаются лишь диэлектрика, а металл образует замкнутый объём внутри каждой сферы (экранирование, ср.\ предел металлической оболочки $\to$ PEC в \S\ref{decomp-ssec:verify}).
+
+\paragraph{Поправка эффективной среды (Максвелл--Гарнетт).}
+Поскольку $f<1$, эффективная проницаемость упаковки занижена относительно истинной $\varepsilon$ тела; закрыть зазоры перекрытием нельзя (нарушится \eqref{decomp-eq:non-overlap}). Смещение устраняется \emph{аналитически}: проницаемость сфер $\varepsilon_i$ подбирается так, чтобы эффективная среда упаковки равнялась $\varepsilon$ тела. Формула смешения Максвелла--Гарнетта для сферических включений с долей $f$ в среде $\varepsilon_h$ \cite{maxwellgarnett1904,sihvola1990,bohren1983}:
+\begin{equation}
+\frac{\varepsilon_{\mathrm{eff}}-\varepsilon_h}{\varepsilon_{\mathrm{eff}}+2\varepsilon_h}
+\;=\; f\,\frac{\varepsilon_i-\varepsilon_h}{\varepsilon_i+2\varepsilon_h}.
+\label{decomp-eq:mg}
+\end{equation}
+Обратная задача (вакуумные зазоры $\varepsilon_h=1$, цель $\varepsilon_{\mathrm{eff}}=\varepsilon$): с $L\equiv(\varepsilon-1)/(\varepsilon+2)$ имеем $\beta_i\equiv(\varepsilon_i-1)/(\varepsilon_i+2)=L/f$, откуда
+\begin{equation}
+\varepsilon_i \;=\; \frac{1+2\beta_i}{1-\beta_i},
+\qquad \beta_i \;=\; \frac{1}{f}\,\frac{\varepsilon-1}{\varepsilon+2}.
+\label{decomp-eq:mg-inv}
+\end{equation}
+\emph{Точность в квазистатике.} Суммарная рэлеевская поляризуемость скорректированных подсфер тождественно равна поляризуемости сплошного тела: при $\sum_p \tfrac{4}{3}\pi r^3 = f\,V_{\mathrm{body}}$ и $\alpha_i=4\pi r^3\beta_i$,
+\begin{equation}
+\sum_p \alpha_i
+= 4\pi\Bigl(\textstyle\sum_p r^3\Bigr)\beta_i
+= 4\pi\,\frac{f V_{\mathrm{body}}}{\tfrac{4}{3}\pi}\cdot\frac{L}{f}
+= 3 V_{\mathrm{body}}\,L
+= \alpha_{\mathrm{solid}},
+\label{decomp-eq:mg-identity}
+\end{equation}
+тогда как без поправки ($\varepsilon_i=\varepsilon$) сумма занижена ровно в $f$ раз. \emph{Ограничение по доле.} Немагнитный диэлектрик имеет $\beta_i<1$, поэтому достижимая эффективная проницаемость ограничена: $\beta_i=L/f<1 \Leftrightarrow \varepsilon_{\mathrm{eff}}\le(1+2f)/(1-f)$; при недостаточной $f$ цель потребовала бы $\varepsilon_i\to\infty$ (металл, запрещённый \eqref{decomp-eq:metal}), и поправка не существует --- нужна более плотная упаковка. Поправка квазистатична ($k_0 r\ll1$): она восстанавливает эффективную \emph{объёмную} проницаемость, но не детали поверхности. Реализация --- \texttt{green\_tensor/decompose.py} (\texttt{maxwell\_garnett\_eps}, \texttt{reject\_metal\_packing}, \texttt{packing\_report}); тождество \eqref{decomp-eq:mg-identity} проверено в \texttt{tests/test\_mg\_correction.py}.
+
 \subsection{Протокол верификации}
 \label{decomp-ssec:verify}
 
@@ -1301,6 +1345,7 @@ $C_{\mathrm{abs}}\!=\!0$ для непоглощающего тела &
 \begin{thebibliography}{99}
 \bibitem{eisenhart1934} L.~P.~Eisenhart, \emph{Separable systems of St\"ackel}, Ann. Math. \textbf{35}, 284--305 (1934).
 \bibitem{stratton1941} J.~A.~Stratton, \emph{Electromagnetic Theory} (McGraw-Hill, New York, 1941).
+\bibitem{jackson1999} J.~D.~Jackson, \emph{Classical Electrodynamics}, 3rd ed. (Wiley, New York, 1999).
 \bibitem{aden1951} A.~L.~Aden, M.~Kerker, \emph{Scattering of electromagnetic waves from two concentric spheres}, J. Appl. Phys. \textbf{22}, 1242--1246 (1951).
 \bibitem{flammer1957} C.~Flammer, \emph{Spheroidal Wave Functions} (Stanford Univ. Press, 1957).
 \bibitem{stein1961} S.~Stein, \emph{Addition theorems for spherical wave functions}, Q. Appl. Math. \textbf{19}, 15--24 (1961).
@@ -1310,6 +1355,7 @@ $C_{\mathrm{abs}}\!=\!0$ для непоглощающего тела &
 \bibitem{asano1975} S.~Asano, G.~Yamamoto, \emph{Light scattering by a spheroidal particle}, Appl. Opt. \textbf{14}, 29--49 (1975).
 \bibitem{bohren1983} C.~F.~Bohren, D.~R.~Huffman, \emph{Absorption and Scattering of Light by Small Particles} (Wiley, New York, 1983).
 \bibitem{sihvola1990} A.~H.~Sihvola, I.~V.~Lindell, \emph{Polarizability and effective permittivity of layered and continuously inhomogeneous dielectric ellipsoids}, J. Electromagn. Waves Appl. \textbf{4}, 1--26 (1990).
+\bibitem{maxwellgarnett1904} J.~C.~Maxwell Garnett, \emph{Colours in metal glasses and in metallic films}, Phil. Trans. R. Soc. Lond. A \textbf{203}, 385--420 (1904).
 \bibitem{xu1995} Y.-L.~Xu, \emph{Electromagnetic scattering by an aggregate of spheres}, Appl. Opt. \textbf{34}, 4573--4588 (1995).
 \bibitem{farafonov1996} V.~G.~Farafonov, N.~V.~Voshchinnikov, V.~V.~Somsikov, \emph{Light scattering by a core-mantle spheroidal particle}, Appl. Opt. \textbf{35}, 5412--5426 (1996).
 \bibitem{mishchenko2002} M.~I.~Mishchenko, L.~D.~Travis, A.~A.~Lacis, \emph{Scattering, Absorption, and Emission of Light by Small Particles} (Cambridge Univ. Press, 2002).
