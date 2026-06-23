@@ -15,9 +15,9 @@ import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
-sys.path.insert(0, os.path.join(_ROOT, "green_tensor"))
+sys.path.insert(0, _ROOT)
 
-import cylinder as cyl  # noqa: E402
+from green_tensor import cylinder as cyl  # noqa: E402
 
 
 def test_energy_conservation_lossless():

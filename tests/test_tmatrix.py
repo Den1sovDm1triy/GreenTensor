@@ -19,11 +19,11 @@ import numpy as np
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, _HERE)
-sys.path.insert(0, os.path.join(_ROOT, "green_tensor"))
+sys.path.insert(0, _ROOT)
 
 from analytic_mie import mie_ab, q_sca, q_ext, wiscombe_nmax  # noqa: E402
-import mie_core as mc  # noqa: E402
-import tmatrix as tm  # noqa: E402
+from green_tensor import mie_core as mc  # noqa: E402
+from green_tensor import tmatrix as tm  # noqa: E402
 
 # (eps слоя, толеранс) — диэлектрик, поглощающий, «металл» (PEC-прокси)
 _CASES = [(2.25, 1e-9), (2.25 + 0.3j, 1e-9), (4.0 + 0.5j, 1e-9)]

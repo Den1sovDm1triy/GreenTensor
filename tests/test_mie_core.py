@@ -21,13 +21,13 @@ import numpy as np
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, _HERE)
-sys.path.insert(0, os.path.join(_ROOT, "green_tensor"))
+sys.path.insert(0, _ROOT)
 
 from analytic_mie import (  # noqa: E402
     q_sca, mie_pec, _q_sca, mie_helicity, wiscombe_nmax, trapezoid,
 )
 from _loader import load_sphere  # noqa: E402
-import mie_core as mc  # noqa: E402
+from green_tensor import mie_core as mc  # noqa: E402
 
 warnings.filterwarnings("ignore")
 _S = load_sphere()

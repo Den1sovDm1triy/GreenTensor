@@ -14,9 +14,9 @@ import sys
 import numpy as np
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "green_tensor"))
+sys.path.insert(0, _ROOT)
 
-from mie_core import MieSphere  # noqa: E402
+from green_tensor.mie_core import MieSphere  # noqa: E402
 
 DB_FLOOR = -60.0
 MAX_TOCH = 150

@@ -10,11 +10,14 @@ authors = [
     {name = "I.O. Skumatenko", email = "ilya.skumatenko@urfu.ru"},
 ]
 readme = "README.rst"
+license = {file = "LICENSE"}
 requires-python = ">=3.9"
-keywords = ["electromagnetics", "scattering", "green-tensor", "mie", "luneburg-lens", "rcs"]
+keywords = ["electromagnetics", "scattering", "green-tensor", "mie", "t-matrix", "gmm", "luneburg-lens", "rcs"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
     "Topic :: Scientific/Engineering :: Physics",
+    "Intended Audience :: Science/Research",
 ]
 dependencies = [
     "numpy>=1.26",
@@ -26,7 +29,14 @@ dynamic = ["version", "description"]
 [project.optional-dependencies]
 vie = ["numba>=0.59", "scikit-image>=0.22", "tqdm>=4.66"]
 examples = ["pandas>=2.0"]
+docs = ["sphinx>=7", "sphinx-rtd-theme>=2"]
+dev = ["pytest>=8", "pytest-cov>=5"]
 
 [project.urls]
 Homepage = "https://github.com/Den1sovDm1triy/GreenTensor"
 Documentation = "https://greentensor.readthedocs.io"
+
+# Дистрибутив называется `greentensor`, импортируемый пакет — `green_tensor`.
+# Distribution name is `greentensor`; the import package is `green_tensor`.
+[tool.flit.module]
+name = "green_tensor"

@@ -17,7 +17,7 @@ import math
 
 import numpy as np
 
-import decompose as _dc
+from . import decompose as _dc
 
 
 def cone_indicator(apex, axis, half_angle: float, height: float):

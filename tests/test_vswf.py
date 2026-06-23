@@ -19,9 +19,9 @@ import numpy as np
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
-sys.path.insert(0, os.path.join(_ROOT, "green_tensor"))
+sys.path.insert(0, _ROOT)
 
-import vswf  # noqa: E402
+from green_tensor import vswf  # noqa: E402
 
 
 def _sphere_quad(nθ=24, nφ=48):

@@ -19,10 +19,10 @@ import numpy as np
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, _HERE)
-sys.path.insert(0, os.path.join(_ROOT, "green_tensor"))
+sys.path.insert(0, _ROOT)
 
 from analytic_mie import q_sca, q_abs, mie_ab  # noqa: E402
-import ellipsoid as el  # noqa: E402
+from green_tensor import ellipsoid as el  # noqa: E402
 
 
 def test_depolarization_sum_and_sphere():

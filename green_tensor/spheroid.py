@@ -22,7 +22,7 @@ import math
 
 import numpy as np
 
-import ellipsoid as _el
+from . import ellipsoid as _el
 
 
 def depolarization(a_eq: float, c_ax: float):

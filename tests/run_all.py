@@ -25,6 +25,7 @@ import test_decompose as dct  # noqa: E402
 import test_spheroid as spt  # noqa: E402
 import test_cylinder as cyt  # noqa: E402
 import test_cone as cnt  # noqa: E402
+import test_solvers as slv  # noqa: E402
 
 
 def main() -> int:
@@ -85,6 +86,15 @@ def main() -> int:
         ("cone indicator", cnt.test_cone_indicator),
         ("cone decompose+GMM", cnt.test_decompose_cone_and_gmm),
         ("cone full-wave not-impl", cnt.test_full_wave_not_implemented),
+        ("solvers: SphereSolver vs core", slv.test_sphere_solver_matches_core),
+        ("solvers: sphere T-matrix consistency", slv.test_sphere_tmatrix_consistency),
+        ("solvers: as_scatterer in Cluster", slv.test_sphere_as_scatterer_in_cluster),
+        ("solvers: Cluster.solve shapes", slv.test_cluster_solve_shapes),
+        ("solvers: EllipsoidSolver vs module", slv.test_ellipsoid_solver_matches_module),
+        ("solvers: SpheroidSolver vs module", slv.test_spheroid_solver_matches_module),
+        ("solvers: CylinderSolver vs module", slv.test_cylinder_solver_matches_module),
+        ("solvers: ConeSolver decompose+Cluster", slv.test_cone_solver_decompose_and_cluster),
+        ("solvers: NotImplementedError honesty", slv.test_notimplemented_honesty),
     ]
     failures = 0
     for name, fn in suite:

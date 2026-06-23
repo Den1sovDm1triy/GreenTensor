@@ -17,10 +17,10 @@ import numpy as np
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
-sys.path.insert(0, os.path.join(_ROOT, "green_tensor"))
+sys.path.insert(0, _ROOT)
 
-import gmm  # noqa: E402
-from scatterer import LayeredSphere  # noqa: E402
+from green_tensor import gmm, vswf  # noqa: E402
+from green_tensor.scatterer import LayeredSphere  # noqa: E402
 
 K_BG = 2.0                     # фоновое волновое число
 RAD = 0.5                      # радиус сферы (размерный параметр x = k·rad = 1.0)
@@ -61,7 +61,7 @@ def test_solver_residual():
     s2 = LayeredSphere([0, 0, -1.0], RAD, EPS)
     a, c, d = gmm.solve_cluster([s1, s2], K_BG, KHAT, POL, NMAX)
     # проверяем a_p = d_p + Σ_{q≠p} G T a_q напрямую
-    A, B, _ = __import__("vswf").translation_block_closed(
+    A, B, _ = vswf.translation_block_closed(
         s1.position - s2.position, K_BG, NMAX, "out")
     G = np.block([[A, B], [B, A]])
     t2 = s2.t_vector(K_BG, NMAX)

@@ -2,7 +2,7 @@ Intro
 =====
 
 Open Source Library for Solving Scattering Problems on Multilayer Spherical Bodies
-------------
+----------------------------------------------------------------------------------
 
 * D.V. Denisov - Candidate of Technical Sciences, Associate Professor at the Department of Information Technologies and Control Systems, Institute of Radio Electronics and Information Technology, Ural Federal University, Ekaterinburg. E-mail: dv.denisov@urfu.ru
 
@@ -16,12 +16,12 @@ Introduction
 The paper discusses a developed open-source library in Python. The library is designed for solving excitation problems in heterogeneous spherical structures using the method of Tensor Green Function [1]. The solution is employed for the numerical computation of diffraction parameters on bodies of simple geometric shapes, enabling the assessment of general patterns and specific characteristics of the performance of shelters and the materials used for them.
 
 Electrodynamic Apparatus
-------------
+------------------------
 
 The proposed library employs the electrodynamic apparatus of Tensor Green Functions (TGF) as the primary computational model. The methodology for using the TGF apparatus is outlined in [1], while a detailed solution for the excitation problem of a heterogeneous spherical structure and calculations in the Matlab software package are provided in [2].
 
 Library Description
-------------
+-------------------
 
 The library consists of functions for computations, including:
 Bessel and Neumann functions and their derivatives, impedances and admittances (Y and Z) for bound layers;
@@ -29,7 +29,7 @@ Hankel function and its derivative, and coefficients Mn and Nn for layers.
 The usage instructions, licensing information, and details about input and output data formats are provided in the readme.txt file at the root of the repository [3].
 
 Comparison of Methods and Previously Obtained Results
-------------
+-----------------------------------------------------
 
 As a validation of the accuracy of the obtained results, we present a comparison of solutions for some typical problems. The general geometry of the electromagnetic wave scattering problem on a multilayered spherical structure is illustrated in Figure 1.
 
@@ -62,7 +62,7 @@ Conclusions
 The software implementation exhibits significant computational efficiency and can be effectively utilized for preliminary analysis of volumetric dielectric structures, as well as for determining their diffraction and radar characteristics.
 
 The work is based on:
-------------
+---------------------
 
 #. Panchenko, B. A. (2013). Scattering and Absorption of Electromagnetic Waves by Inhomogeneous Spherical Bodies. Moscow: Radiotekhnika.
 #. Denisov, D. V. (2015). Antenna and Diffraction Characteristics of Luneburg Lenses under Circular Polarization Field Illumination: Thesis for the Degree of Candidate of Technical Sciences. Nizhny Novgorod: Nizhny Novgorod State Technical University named after R. E. Alekseev - NNGTU.

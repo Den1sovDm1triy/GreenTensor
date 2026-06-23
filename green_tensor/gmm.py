@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-import vswf
+from . import vswf
 
 
 def plane_wave_coeffs(k: float, khat, pol, center, nmax: int) -> np.ndarray:

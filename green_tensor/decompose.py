@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import numpy as np
 
-import scatterer
+from . import scatterer
 
 
 def sphere_indicator(center, radius):

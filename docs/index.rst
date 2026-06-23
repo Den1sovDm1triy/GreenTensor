@@ -1,23 +1,43 @@
-Welcome to GreenTensor
-===================================
+GreenTensor
+===========
 
-**GreenTensor** (/lu'make/) is a Python library for calculate and food lovers
-that creates recipes mixing random ingredients.
-It pulls data from the `Open Food Facts database <https://world.openfoodfacts.org/>`_
-and offers a *simple* and *intuitive* API.
+**GreenTensor** — библиотека аналитического анализа рассеяния электромагнитных
+волн на гетерогенных структурах. Математическим ядром служит точное решение для
+радиально-слоистой сферы методом тензорных функций Грина (ТФГ / Ми). Поверх ядра
+построено семейство аналитических решателей (сфероид, эллипсоид, цилиндр, конус) с
+единым T-матричным интерфейсом в сферическом базисе векторных волновых функций и
+единый движок сборки сложной геометрии (Generalized Multiparticle Mie, GMM).
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
+*EN.* **GreenTensor** is a library for analytic electromagnetic-scattering analysis
+on heterogeneous structures. Its mathematical core is the exact radially-layered-sphere
+solution by the tensor Green's function (TGF / Mie) method. On top of the core, a
+family of analytic solvers (spheroid, ellipsoid, cylinder, cone) shares one T-matrix
+interface in the spherical vector-wave-function basis, composed by a single
+complex-geometry assembly engine (Generalized Multiparticle Mie, GMM).
+
+The library underpins two IEEE publications:
+
+* `GreenTensor: Efficient Electromagnetic Scattering Analysis on Heterogeneous
+  Spherical Structures <https://ieeexplore.ieee.org/document/10615009>`_
+* `GreenTensor: A Python Library for Electromagnetic Wave Propagation Analysis
+  <https://ieeexplore.ieee.org/document/10584060>`_
+
+The full mathematical derivation is in ``GreenTensor_Theory.tex`` at the repository root.
 
 .. note::
 
-   This project is under active development.
+   Точные ветви (сфера, бесконечный цилиндр) и квазистатические решатели
+   (эллипсоид, сфероид) проверены на машинную точность против независимых
+   эталонов. Полноволновые ветви сфероида/конечного цилиндра/конуса честно
+   поднимают :class:`NotImplementedError` — заглушек нет.
 
 Contents
 --------
 
 .. toctree::
+   :maxdepth: 2
 
    intro
    usage
+   solvers
    api

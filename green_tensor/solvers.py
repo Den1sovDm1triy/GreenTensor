@@ -1,0 +1,353 @@
+"""solvers — единый публичный API: по одному решателю на геометрию.
+solvers — unified public API: one solver per geometry.
+
+RU: Каждый примитив семейства экспонируется как самостоятельный класс-решатель с
+единообразным интерфейсом (``cross_sections`` и т.п.) поверх уже проверенных ядер
+пакета. Классы НЕ содержат собственной математики — только связывают проверенные
+функции (mie_core/tmatrix/ellipsoid/spheroid/cylinder/cone/gmm) в удобный объект.
+Для краткого вызова есть функции-обёртки ``solve_*``.
+
+EN: Each primitive of the family is exposed as a standalone solver class with a
+uniform interface (``cross_sections`` etc.) on top of the package's already-verified
+cores. The classes carry NO math of their own — they only wire the verified functions
+(mie_core/tmatrix/ellipsoid/spheroid/cylinder/cone/gmm) into a convenient object.
+Thin ``solve_*`` wrapper functions are provided for one-line calls.
+
+Карта решателей / solver map (see GreenTensor_Theory.tex):
+  * :class:`SphereSolver`    — слоистая сфера, точное ядро (Mie/TFG) / layered sphere, exact core;
+  * :class:`SpheroidSolver`  — сфероид, квазистатика / spheroid, quasi-static;
+  * :class:`EllipsoidSolver` — трёхосный эллипсоид, квазистатика / triaxial ellipsoid, quasi-static;
+  * :class:`CylinderSolver`  — бесконечный цилиндр, точная 2D-аналитика / infinite cylinder, exact 2D;
+  * :class:`ConeSolver`      — конус через разложение в сферы + GMM / cone via sphere decomposition + GMM;
+  * :class:`Cluster`         — сборка набора рассеивателей (GMM) / assembly of scatterers (GMM).
+
+RU: Полноволновые ветви сфероида/конечного цилиндра/конуса честно поднимают
+``NotImplementedError`` — заглушек-фейков нет.
+EN: Full-wave branches of spheroid/finite-cylinder/cone honestly raise
+``NotImplementedError`` — no fake stubs.
+
+Конвенция / convention: e^{-iωt}, внешняя среда — вакуум / vacuum host, исходящая
+волна / outgoing wave ~ h_n^{(1)}. ``k`` — волновое число во внешней среде / wavenumber
+in the host; параметр размера / size parameter x = k·(радиус / radius).
+"""
+from __future__ import annotations
+
+import numpy as np
+
+from . import cone as _cone
+from . import cylinder as _cylinder
+from . import ellipsoid as _ellipsoid
+from . import gmm as _gmm
+from . import mie_core as _mie_core
+from . import scatterer as _scatterer
+from . import spheroid as _spheroid
+from . import tmatrix as _tmatrix
+
+__all__ = [
+    "SphereSolver", "EllipsoidSolver", "SpheroidSolver",
+    "CylinderSolver", "ConeSolver", "Cluster",
+    "solve_sphere", "solve_ellipsoid", "solve_spheroid",
+    "solve_cylinder", "solve_cluster",
+]
+
+
+# --------------------------------------------------------------------------- #
+# Сфера — каноническое точное ядро (метод Ми / ТФГ)
+# Sphere — canonical exact core (Mie / TFG method)
+# --------------------------------------------------------------------------- #
+class SphereSolver:
+    """RU: Радиально-слоистая сфера — точный решатель поверх ядра ``mie_core``.
+    EN: Radially layered sphere — exact solver on top of the ``mie_core`` core.
+
+    radius : внешний радиус / outer radius;
+    eps    : комплексные проницаемости слоёв изнутри наружу / layer permittivities, inner→outer;
+    a_norm : нормированные радиусы границ (внешний = 1); по умолчанию однородная
+             / normalized layer-boundary radii (outer = 1); default homogeneous;
+    miy    : магнитные проницаемости слоёв (по умолчанию 1) / layer permeabilities (default 1);
+    position : центр сферы для сборки кластера / sphere centre for cluster assembly.
+    """
+
+    def __init__(self, radius, eps, *, a_norm=None, miy=None, position=(0.0, 0.0, 0.0)):
+        self.radius = float(radius)
+        self.eps = list(eps)
+        self.a_norm = list(a_norm) if a_norm is not None else [1.0] * len(self.eps)
+        self.miy = list(miy) if miy is not None else None
+        self.position = np.asarray(position, dtype=float)
+
+    def mie(self, k: float, *, toch: int | None = None, **mie_kwargs) -> "_mie_core.MieSphere":
+        """RU: Объект ядра ``MieSphere`` для волнового числа k (x = k·radius).
+        EN: ``MieSphere`` core object for wavenumber k (x = k·radius)."""
+        return _mie_core.MieSphere(k0=k * self.radius, a=self.a_norm, eps=self.eps,
+                                   miy=self.miy, toch=toch, **mie_kwargs)
+
+    def cross_sections(self, k: float, *, toch: int | None = None) -> dict:
+        """RU: Эффективности Q_sca, Q_ext, Q_abs, Q_back (норм. на πR²).
+        EN: Efficiencies Q_sca, Q_ext, Q_abs, Q_back (normalized to πR²)."""
+        return self.mie(k, toch=toch).cross_sections()
+
+    def t_matrix(self, k: float, *, toch: int | None = None) -> "_tmatrix.DiagonalTMatrix":
+        """RU: Диагональная T-матрица сферы в сферическом базисе ВСВФ.
+        EN: Diagonal sphere T-matrix in the spherical VSWF basis."""
+        return _tmatrix.sphere_tmatrix(self.mie(k, toch=toch))
+
+    def pattern(self, k: float, theta=None, **mie_kwargs) -> dict:
+        """RU: Диаграмма рассеяния (линейная/круговая поляризация) — формулы ``mie_core``.
+        EN: Scattering pattern (linear/circular polarization) — ``mie_core`` formulas."""
+        return self.mie(k, **mie_kwargs).pattern(theta)
+
+    def as_scatterer(self) -> "_scatterer.LayeredSphere":
+        """RU: Представление для движка сборки кластера (GMM).
+        EN: Representation for the cluster-assembly engine (GMM)."""
+        return _scatterer.LayeredSphere(self.position, self.radius, self.eps,
+                                        a_norm=self.a_norm, miy=self.miy)
+
+
+# --------------------------------------------------------------------------- #
+# Трёхосный эллипсоид — квазистатика (рэлеевский предел)
+# Triaxial ellipsoid — quasi-static (Rayleigh) limit
+# --------------------------------------------------------------------------- #
+class EllipsoidSolver:
+    """RU: Однородный трёхосный эллипсоид в квазистатическом пределе (k·a ≪ 1).
+    EN: Homogeneous triaxial ellipsoid in the quasi-static limit (k·a ≪ 1).
+
+    Полуоси / semi-axes a ≥ b ≥ c; eps — тело / body permittivity; eps_m — среда / host.
+    """
+
+    def __init__(self, a, b, c, eps, *, eps_m: complex = 1.0, position=(0.0, 0.0, 0.0)):
+        self.a, self.b, self.c = float(a), float(b), float(c)
+        self.eps = complex(eps)
+        self.eps_m = complex(eps_m)
+        self.position = np.asarray(position, dtype=float)
+
+    def depolarization_factors(self):
+        """RU: Факторы деполяризации (L_a, L_b, L_c), Σ = 1.
+        EN: Depolarization factors (L_a, L_b, L_c), Σ = 1."""
+        return _ellipsoid.depolarization_factors(self.a, self.b, self.c)
+
+    def polarizability(self) -> np.ndarray:
+        """RU: Поляризуемость α вдоль трёх главных осей.
+        EN: Polarizability α along the three principal axes."""
+        return _ellipsoid.polarizability_homogeneous(self.a, self.b, self.c,
+                                                     self.eps, self.eps_m)
+
+    def cross_sections(self, k: float, *, orientation_average: bool = True,
+                       axis: int | None = None) -> dict:
+        """RU: Рэлеевские сечения C_sca, C_abs, C_ext. orientation_average=True — среднее
+        по случайной ориентации; axis=i — поле вдоль главной оси i (0/1/2).
+        EN: Rayleigh cross sections C_sca, C_abs, C_ext. orientation_average=True —
+        random-orientation average; axis=i — field along principal axis i (0/1/2)."""
+        if axis is None and orientation_average:
+            return _ellipsoid.orientation_average_cross_sections(
+                self.a, self.b, self.c, self.eps, k, self.eps_m)
+        i = 0 if axis is None else int(axis)
+        return _ellipsoid.rayleigh_cross_sections(self.polarizability()[i], k)
+
+    def dipole_t(self, k: float, *, axis: int = 0) -> complex:
+        """RU: Электрич.-дипольный элемент T_N(n=1) вдоль оси axis (рэлеевский предел).
+        EN: Electric-dipole element T_N(n=1) along ``axis`` (Rayleigh limit)."""
+        return _ellipsoid.dipole_t_scalar(self.polarizability()[axis], k)
+
+
+# --------------------------------------------------------------------------- #
+# Сфероид (вытянутый / сплюснутый) — квазистатика
+# Spheroid (prolate / oblate) — quasi-static
+# --------------------------------------------------------------------------- #
+class SpheroidSolver:
+    """RU: Однородный сфероид: экваториальная полуось a_eq, ось симметрии c_ax.
+    EN: Homogeneous spheroid: equatorial semi-axis a_eq, symmetry axis c_ax.
+
+    prolate (вытянутый / prolate): c_ax > a_eq; oblate (сплюснутый / oblate): c_ax < a_eq.
+    """
+
+    def __init__(self, a_eq, c_ax, eps, *, eps_m: complex = 1.0, position=(0.0, 0.0, 0.0)):
+        self.a_eq = float(a_eq)
+        self.c_ax = float(c_ax)
+        self.eps = complex(eps)
+        self.eps_m = complex(eps_m)
+        self.position = np.asarray(position, dtype=float)
+
+    @property
+    def is_prolate(self) -> bool:
+        return self.c_ax > self.a_eq
+
+    def depolarization_factors(self, *, closed: bool = True):
+        """RU: Факторы деполяризации (L_eq, L_eq, L_ax). closed=True — замкнутая форма
+        (Bohren & Huffman); иначе численный интеграл.
+        EN: Depolarization factors (L_eq, L_eq, L_ax). closed=True — closed form
+        (Bohren & Huffman); otherwise numerical integral."""
+        if closed:
+            L_eq, L_ax = _spheroid.depolarization_closed(self.a_eq, self.c_ax)
+            return L_eq, L_eq, L_ax
+        return _spheroid.depolarization(self.a_eq, self.c_ax)
+
+    def polarizability(self) -> np.ndarray:
+        """RU: Поляризуемость (α_eq, α_eq, α_ax) однородного сфероида.
+        EN: Polarizability (α_eq, α_eq, α_ax) of a homogeneous spheroid."""
+        return _spheroid.polarizability(self.a_eq, self.c_ax, self.eps, self.eps_m)
+
+    def cross_sections(self, k: float, *, orientation_average: bool = True,
+                       axis: int | None = None) -> dict:
+        """RU: Рэлеевские сечения C_sca, C_abs, C_ext (см. :meth:`EllipsoidSolver.cross_sections`).
+        EN: Rayleigh cross sections C_sca, C_abs, C_ext (see :meth:`EllipsoidSolver.cross_sections`)."""
+        if axis is None and orientation_average:
+            return _ellipsoid.orientation_average_cross_sections(
+                self.a_eq, self.a_eq, self.c_ax, self.eps, k, self.eps_m)
+        i = 0 if axis is None else int(axis)
+        return _spheroid.rayleigh_cross_sections(self.polarizability()[i], k)
+
+    def dipole_t(self, k: float, *, axis: int = 0) -> complex:
+        """RU: Электрич.-дипольный элемент T_N(n=1) вдоль оси axis.
+        EN: Electric-dipole element T_N(n=1) along ``axis``."""
+        return _spheroid.dipole_t_scalar(self.polarizability()[axis], k)
+
+    def full_wave(self, *args, **kwargs):
+        """RU: Полноволновой конфокальный сфероид — НЕ реализован (комплексный-c базис).
+        EN: Full-wave confocal spheroid — NOT implemented (complex-c basis required)."""
+        return _spheroid.full_wave(*args, **kwargs)
+
+
+# --------------------------------------------------------------------------- #
+# Бесконечный круговой цилиндр — точная 2D-аналитика
+# Infinite circular cylinder — exact 2D analytics
+# --------------------------------------------------------------------------- #
+class CylinderSolver:
+    """RU: Бесконечный круговой цилиндр (нормальное падение), точное разделение переменных.
+    EN: Infinite circular cylinder (normal incidence), exact separation of variables.
+
+    radius — радиус / radius; eps — проницаемость / permittivity; eps_m — среда / host.
+    Относительный показатель / relative index m = √(eps/eps_m).
+    """
+
+    def __init__(self, radius, eps, *, eps_m: complex = 1.0):
+        self.radius = float(radius)
+        self.eps = complex(eps)
+        self.eps_m = complex(eps_m)
+
+    @property
+    def m(self) -> complex:
+        """RU: Относительный комплексный показатель преломления √(eps/eps_m).
+        EN: Relative complex refractive index √(eps/eps_m)."""
+        return np.sqrt(self.eps / self.eps_m)
+
+    def cross_sections(self, k: float, *, mode: str = "TM", nmax: int | None = None) -> dict:
+        """RU: Эффективности Q_sca, Q_ext, Q_abs (норм. на диаметр). mode: 'TM' | 'TE'.
+        EN: Efficiencies Q_sca, Q_ext, Q_abs (normalized to diameter). mode: 'TM' | 'TE'."""
+        return _cylinder.cross_sections_infinite(self.m, k * self.radius, mode=mode, nmax=nmax)
+
+    def finite(self, *args, **kwargs):
+        """RU: Конечный цилиндр (мод-матчинг/EBCM) — НЕ реализован (см. ConeSolver/decompose).
+        EN: Finite cylinder (mode-matching/EBCM) — NOT implemented (see ConeSolver/decompose)."""
+        return _cylinder.finite(*args, **kwargs)
+
+
+# --------------------------------------------------------------------------- #
+# Конус — строгая аналитика через разложение в кластер сфер + GMM
+# Cone — rigorous analytics via sphere-cluster decomposition + GMM
+# --------------------------------------------------------------------------- #
+class ConeSolver:
+    """RU: Конечный круговой конус: вершина apex, ось axis, полуугол half_angle, высота height.
+    Прямой сферо-конический решатель не реализован (нецелые P_ν^μ); строго аналитический
+    путь — :meth:`decompose` → :class:`Cluster` (GMM).
+    EN: Finite circular cone: apex, axis, half-angle, height. The direct sphero-conal
+    solver is not implemented (non-integer P_ν^μ); the rigorous-analytic route is
+    :meth:`decompose` → :class:`Cluster` (GMM).
+    """
+
+    def __init__(self, apex, axis, half_angle: float, height: float, eps, *,
+                 a_norm=None, miy=None):
+        self.apex = np.asarray(apex, dtype=float)
+        self.axis = np.asarray(axis, dtype=float)
+        self.half_angle = float(half_angle)
+        self.height = float(height)
+        self.eps = list(eps)
+        self.a_norm = a_norm
+        self.miy = miy
+
+    def indicator(self):
+        """RU: Логический индикатор «точка внутри конуса».
+        EN: Boolean indicator "point inside the cone"."""
+        return _cone.cone_indicator(self.apex, self.axis, self.half_angle, self.height)
+
+    def decompose(self, spacing: float, *, fill: float = 0.45):
+        """RU: Разложить в непересекающиеся сферы: (scatterers, centers, radius) для GMM.
+        EN: Decompose into non-overlapping spheres: (scatterers, centers, radius) for GMM."""
+        return _cone.decompose_cone(self.apex, self.axis, self.half_angle, self.height,
+                                    spacing, self.eps, fill=fill,
+                                    a_norm=self.a_norm, miy=self.miy)
+
+    def full_wave(self, *args, **kwargs):
+        """RU: Прямой решатель конуса — НЕ реализован (нецелые функции Лежандра).
+        EN: Direct cone solver — NOT implemented (non-integer Legendre functions)."""
+        return _cone.full_wave(*args, **kwargs)
+
+
+# --------------------------------------------------------------------------- #
+# Кластер — движок сборки (GMM) для произвольного набора рассеивателей
+# Cluster — assembly engine (GMM) for an arbitrary set of scatterers
+# --------------------------------------------------------------------------- #
+class Cluster:
+    """RU: Самосогласованная сборка списка рассеивателей (GMM, трансляционные теоремы).
+    Принимает любые объекты протокола :class:`green_tensor.scatterer.Scatterer`
+    (например ``SphereSolver(...).as_scatterer()`` или результат ``ConeSolver.decompose``).
+    EN: Self-consistent assembly of a list of scatterers (GMM, translation theorems).
+    Accepts any object implementing the :class:`green_tensor.scatterer.Scatterer` protocol
+    (e.g. ``SphereSolver(...).as_scatterer()`` or the result of ``ConeSolver.decompose``).
+    """
+
+    def __init__(self, scatterers):
+        self.scatterers = list(scatterers)
+
+    def solve(self, k: float, khat, pol, nmax: int):
+        """RU: Решить кластер: (a, c, d) — возбуждающие/рассеянные/падающие коэффициенты.
+        EN: Solve the cluster: (a, c, d) — exciting/scattered/incident coefficients."""
+        return _gmm.solve_cluster(self.scatterers, k, khat, pol, nmax)
+
+    def cross_sections(self, k: float, khat, pol, nmax: int) -> dict:
+        """RU: Сечения кластера C_sca (дальнее поле), C_ext (опт. теорема), C_abs.
+        EN: Cluster cross sections C_sca (far field), C_ext (optical theorem), C_abs."""
+        _, c, _ = _gmm.solve_cluster(self.scatterers, k, khat, pol, nmax)
+        return _gmm.cross_sections(self.scatterers, c, k, khat, pol)
+
+    def scattered_field(self, c, k: float, pts) -> np.ndarray:
+        """RU: Полное рассеянное поле кластера в точках pts по коэффициентам c (из :meth:`solve`).
+        EN: Total scattered field of the cluster at ``pts`` from coefficients c (from :meth:`solve`)."""
+        return _gmm.scattered_field(self.scatterers, c, k, pts)
+
+
+# --------------------------------------------------------------------------- #
+# Тонкий функциональный фасад — короткий вызов «решить и получить сечения»
+# Thin functional facade — one-line "solve and get cross sections"
+# --------------------------------------------------------------------------- #
+def solve_sphere(radius, eps, k: float, *, a_norm=None, miy=None, toch: int | None = None) -> dict:
+    """RU: Сечения слоистой сферы одной строкой / EN: layered-sphere cross sections in one line
+    (см. / see :class:`SphereSolver`)."""
+    return SphereSolver(radius, eps, a_norm=a_norm, miy=miy).cross_sections(k, toch=toch)
+
+
+def solve_ellipsoid(a, b, c, eps, k: float, *, eps_m: complex = 1.0,
+                    orientation_average: bool = True, axis: int | None = None) -> dict:
+    """RU: Рэлеевские сечения трёхосного эллипсоида / EN: Rayleigh cross sections of a triaxial
+    ellipsoid (см. / see :class:`EllipsoidSolver`)."""
+    return EllipsoidSolver(a, b, c, eps, eps_m=eps_m).cross_sections(
+        k, orientation_average=orientation_average, axis=axis)
+
+
+def solve_spheroid(a_eq, c_ax, eps, k: float, *, eps_m: complex = 1.0,
+                   orientation_average: bool = True, axis: int | None = None) -> dict:
+    """RU: Рэлеевские сечения сфероида / EN: Rayleigh cross sections of a spheroid
+    (см. / see :class:`SpheroidSolver`)."""
+    return SpheroidSolver(a_eq, c_ax, eps, eps_m=eps_m).cross_sections(
+        k, orientation_average=orientation_average, axis=axis)
+
+
+def solve_cylinder(radius, eps, k: float, *, eps_m: complex = 1.0,
+                   mode: str = "TM", nmax: int | None = None) -> dict:
+    """RU: Эффективности бесконечного цилиндра / EN: infinite-cylinder efficiencies
+    (см. / see :class:`CylinderSolver`)."""
+    return CylinderSolver(radius, eps, eps_m=eps_m).cross_sections(k, mode=mode, nmax=nmax)
+
+
+def solve_cluster(scatterers, k: float, khat, pol, nmax: int) -> dict:
+    """RU: Сечения произвольного кластера рассеивателей / EN: cross sections of an arbitrary
+    cluster of scatterers (см. / see :class:`Cluster`)."""
+    return Cluster(scatterers).cross_sections(k, khat, pol, nmax)

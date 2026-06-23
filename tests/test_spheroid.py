@@ -18,10 +18,10 @@ import numpy as np
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, _HERE)
-sys.path.insert(0, os.path.join(_ROOT, "green_tensor"))
+sys.path.insert(0, _ROOT)
 
 from analytic_mie import mie_ab  # noqa: E402
-import spheroid as sph  # noqa: E402
+from green_tensor import spheroid as sph  # noqa: E402
 
 
 def test_closed_form_vs_numerical():
