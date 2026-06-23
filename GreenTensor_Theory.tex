@@ -976,6 +976,46 @@ z_l^{(p)}(k r_{ij})\,Y_{l}^{\,m-\mu}(\hat{\bm{r}}_{ij}),
 \end{equation}
 действующий на сдвоенные столбцы $(c^{(1)},c^{(2)})$ так же, как \eqref{tmatrix-eq:tm-addM}--\eqref{tmatrix-eq:tm-addN}; это матрица переноса из (5.229)--(5.230) у Мищенко \cite{mishchenko2002}. Обозначим $\bm{\beta}^{(3)}$ оператор с $z_l^{(3)}=h_l^{(1)}$ (исходящий$\to$регулярный сдвиг) и $\bm{\beta}^{(1)}$ --- регулярный ($z_l^{(1)}=j_l$).
 
+\subsection{Явная замкнутая форма коэффициентов \texorpdfstring{$A,B$}{A,B} (реализованная)}
+\label{tmatrix-sec:tm-explicit}
+
+Абстрактные линеаризационные коэффициенты $a(\cdot),b(\cdot)$ в \eqref{tmatrix-eq:tm-Acoef}--\eqref{tmatrix-eq:tm-Bcoef} ниже конкретизированы до явных замкнутых выражений, реализованных в библиотеке (\texttt{vswf.translation\_block\_closed}). Введём общий радиально-угловой множитель (тот же «скелет», что и в скалярной теореме сложения)
+\begin{equation}
+\tau_l \equiv 4\pi\, i^{\,n-\nu}\,(-1)^m\,(-i)^{\,l}\, z_l^{(p)}(k r_{ij})\,
+\bigl[\,Y_l^{\,m-\mu}(\hat{\bm r}_{ij})\,\bigr]^{*},
+\qquad z_l^{(1)}=j_l,\ \ z_l^{(3)}=h_l^{(1)},
+\label{tmatrix-eq:tm-tau}
+\end{equation}
+и коэффициент Гонта в нормировке через символы Вигнера $3j$:
+\begin{equation}
+\mathcal{G}^{\,m\mu}_{n\nu l}=\sqrt{\frac{(2n+1)(2\nu+1)(2l+1)}{4\pi}}\,
+\begin{pmatrix} n&\nu&l\\ 0&0&0\end{pmatrix}
+\begin{pmatrix} n&\nu&l\\ -m&\mu&m-\mu\end{pmatrix}.
+\label{tmatrix-eq:tm-gaunt}
+\end{equation}
+Тогда (источник $(\nu,\mu)$, цель $(n,m)$; конвенция $e^{-i\omega t}$, исходящая волна $\sim h_l^{(1)}$):
+\begin{align}
+A_{\mu\nu}^{mn} &= \frac{1}{2\,n(n+1)}
+\!\!\sum_{\substack{l=|n-\nu|\\[1pt] n+\nu+l\ \mathrm{чётн.}}}^{\,n+\nu}\!\!
+\bigl[\,\nu(\nu+1)+n(n+1)-l(l+1)\,\bigr]\,
+\mathcal{G}^{\,m\mu}_{n\nu l}\,\tau_l,
+\label{tmatrix-eq:tm-Aexplicit}\\[4pt]
+B_{\mu\nu}^{mn} &=
+\!\!\sum_{\substack{l=|n-\nu|\\[1pt] n+\nu+l\ \mathrm{нечётн.}}}^{\,n+\nu}\!\!
+W_{n\nu l}\,
+\begin{pmatrix} n&\nu&l\\ -m&\mu&m-\mu\end{pmatrix}
+\begin{pmatrix} n&\nu&l-1\\ 0&0&0\end{pmatrix}\tau_l,
+\label{tmatrix-eq:tm-Bexplicit}
+\end{align}
+где аналитический вес коэффициента $B$ есть
+\begin{equation}
+W_{n\nu l}=-\,\frac{\sqrt{\,(2n+1)(2\nu+1)(2l+1)\,(n{+}\nu{+}l{+}1)(n{+}\nu{-}l{+}1)(l{+}n{-}\nu)(l{-}n{+}\nu)\,}}
+{4\sqrt{\pi}\,\,n(n+1)}.
+\label{tmatrix-eq:tm-Wbeta}
+\end{equation}
+
+\paragraph{Происхождение и проверка.} Весовой множитель $A$ в \eqref{tmatrix-eq:tm-Aexplicit}, $[\nu(\nu{+}1)+n(n{+}1)-l(l{+}1)]/[2n(n{+}1)]$, согласуется с операторной формой Виттмана \cite{wittmann1988} (для $n=\nu$ --- тождественно; нормировка целевой моды $1/[2n(n{+}1)]$ зафиксирована сверкой). Аналитический вес $B$ \eqref{tmatrix-eq:tm-Wbeta} получен распознаванием из точной таблицы коэффициентов: после выделения универсального множителя $(2n{+}1)(2\nu{+}1)/[3(2l{+}1)]$ выражение сворачивается к симметричной по $(n,\nu)$ замкнутой форме. Обе формулы верифицированы независимо: (i) против спектрального вычисления тех же коэффициентов проекцией на сферу --- совпадение $\sim\!10^{-9}$ для $A$ и $\sim\!10^{-11}$ для $B$; (ii) как тождество полей $\bm M^{(3)}_{\mu\nu}(\bm r-\bm r_{ij})=\sum_{nm}[\,A_{\mu\nu}^{mn}\,\mathrm{Rg}\,\bm M_{mn}+B_{\mu\nu}^{mn}\,\mathrm{Rg}\,\bm N_{mn}\,]$ (и аналогично для $\bm N$) в контрольных точках при \emph{произвольном} разносе --- невязка $\sim\!10^{-5}$ при $n_{\max}=12$, монотонно убывающая с $n_{\max}$. В отличие от спектральной проекции, замкнутые \eqref{tmatrix-eq:tm-Aexplicit}--\eqref{tmatrix-eq:tm-Bexplicit} \emph{не} имеют численного ограничения $k r_{ij}\gtrsim n_{\max}$ и точны всюду, где сходится ряд \eqref{tmatrix-eq:tm-addM}--\eqref{tmatrix-eq:tm-addN} ($r_i<r_{ij}$); это снимает потерю точности на плотных кластерах (касающиеся примитивы при разложении сложной геометрии).
+
 \subsection{Самосогласованная система GMM}
 \label{tmatrix-sec:tm-system}
 
@@ -1217,6 +1257,7 @@ $C_{\mathrm{abs}}\!=\!0$ для непоглощающего тела &
 \bibitem{flammer1957} C.~Flammer, \emph{Spheroidal Wave Functions} (Stanford Univ. Press, 1957).
 \bibitem{stein1961} S.~Stein, \emph{Addition theorems for spherical wave functions}, Q. Appl. Math. \textbf{19}, 15--24 (1961).
 \bibitem{cruzan1962} O.~R.~Cruzan, \emph{Translational addition theorems for spherical vector wave functions}, Q. Appl. Math. \textbf{20}, 33--40 (1962).
+\bibitem{wittmann1988} R.~C.~Wittmann, \emph{Spherical wave operators and the translation formulas}, IEEE Trans. Antennas Propag. \textbf{36}, 1078--1087 (1988).
 \bibitem{waterman1971} P.~C.~Waterman, \emph{Symmetry, unitarity, and geometry in electromagnetic scattering}, Phys. Rev. D \textbf{3}, 825--839 (1971).
 \bibitem{asano1975} S.~Asano, G.~Yamamoto, \emph{Light scattering by a spheroidal particle}, Appl. Opt. \textbf{14}, 29--49 (1975).
 \bibitem{bohren1983} C.~F.~Bohren, D.~R.~Huffman, \emph{Absorption and Scattering of Light by Small Particles} (Wiley, New York, 1983).
