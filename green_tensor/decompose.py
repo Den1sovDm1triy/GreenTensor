@@ -83,14 +83,65 @@ def to_scatterers(centers, radius: float, eps, a_norm=None, miy=None):
             for c in np.asarray(centers, float)]
 
 
+def is_metal_layer(eps, mu=1.0, *, k: float | None = None, radius: float | None = None) -> bool:
+    """Является ли слой «металлическим» (поле в него не проникает).
+
+    Критерий: Re(eps)<0 (плазмонный/металлический отклик) ИЛИ скин-слой меньше
+    радиуса сферы δ=1/(k·Im√(εμ)) < radius (хороший проводник). Скин-слойная проверка
+    требует k и radius; без них проверяется только Re(eps)<0.
+    """
+    eps = complex(eps)
+    mu = complex(mu)
+    if eps.real < 0.0:
+        return True
+    if k and radius and radius > 0:
+        n_im = abs(np.sqrt(eps * mu).imag)
+        if n_im > 0 and 1.0 / (k * n_im) < radius:
+            return True
+    return False
+
+
+def reject_metal_packing(eps, miy, sphere_radius: float, k: float | None,
+                         allow_metal: bool) -> None:
+    """Запретить разложение в сферы, если ВНЕШНИЙ слой металлический (зазоры обнажены).
+
+    Упаковка непересекающихся сфер оставляет вакуумные зазоры. Для металла это
+    «губка»: зазоры — открытые полости, дающие паразитные переотражения и резонансы,
+    которых у сплошного тела нет. Допустимо лишь металлическое ЯДРО, полностью
+    закрытое диэлектрической внешней оболочкой (eps[-1] — диэлектрик): тогда зазоры
+    касаются только диэлектрика, а металл — замкнутый объём внутри каждой сферы.
+    """
+    if allow_metal:
+        return
+    eps_list = list(eps)
+    mu_outer = (list(miy)[-1] if miy is not None else 1.0)
+    if is_metal_layer(eps_list[-1], mu_outer, k=k, radius=sphere_radius):
+        raise ValueError(
+            "Разложение в сферы недопустимо: внешний слой тела металлический "
+            f"(eps_внеш={complex(eps_list[-1])}). Упаковка оставляет зазоры-полости, в "
+            "которых возникают паразитные переотражения (поле не проникает в металл, "
+            "но проникает в зазоры) — это металлическая «губка», а не сплошное тело. "
+            "Допустимо: металлическое ЯДРО под диэлектрической внешней оболочкой "
+            "(eps[-1] — диэлектрик), либо одиночное замкнутое тело "
+            "(SphereSolver/LayeredSphere с металлическим слоем), либо поверхностный "
+            "метод (EBCM/MoM). Осознанный обход (кластер металлических сфер): allow_metal=True."
+        )
+
+
 def decompose_cylinder(center, radius: float, half_length: float, spacing: float,
-                       eps, *, axis: int = 2, fill: float = 0.45, a_norm=None, miy=None):
+                       eps, *, axis: int = 2, fill: float = 0.45, a_norm=None, miy=None,
+                       k: float | None = None, allow_metal: bool = False):
     """Разложить КОНЕЧНЫЙ круговой цилиндр в непересекающиеся сферы для GMM.
 
     center — центр; radius — радиус; half_length — половина длины вдоль оси; axis — ось
     цилиндра (0/1/2). Возвращает (scatterers, centers, sphere_radius). Сферический
     GMM (gmm.solve_cluster) собирает поле кластера — путь для конечного цилиндра в
-    отсутствие прямого full-wave решателя (см. cylinder.finite)."""
+    отсутствие прямого full-wave решателя (см. cylinder.finite).
+
+    Металл: разложение запрещено, если внешний слой металлический (см.
+    :func:`reject_metal_packing`); задайте k для скин-слойной проверки, allow_metal=True
+    для осознанного обхода."""
+    reject_metal_packing(eps, miy, fill * spacing, k, allow_metal)
     center = np.asarray(center, dtype=float)
     half = np.full(3, radius, dtype=float)
     half[axis] = half_length

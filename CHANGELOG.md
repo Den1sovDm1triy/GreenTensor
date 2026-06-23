@@ -25,6 +25,13 @@ All notable changes to this project are documented here. The format is based on
   `decompose.decompose_cylinder` packs a finite cylinder into a non-overlapping
   sphere cluster; `FiniteCylinderSolver` (decompose → `Cluster`) added to the public
   API, mirroring `ConeSolver`. Verified non-overlapping/inside + GMM integration.
+- **Metal guard for the decomposition route** (`decompose.is_metal_layer` /
+  `reject_metal_packing`): sphere packing of a metal body creates spurious
+  inter-sphere cavity re-reflections (a metallic "sponge"), so `decompose_cylinder`,
+  `decompose_cone`, and the `FiniteCylinderSolver`/`ConeSolver` `.decompose` methods
+  now raise `ValueError` when the **outermost** layer is metallic (`Re(eps) < 0` or
+  skin depth `< r_sphere`, via an optional `k`). A metal core enclosed by a dielectric
+  outer layer is allowed; `allow_metal=True` overrides for a genuine metal-sphere cluster.
 
 ### Fixed
 - `cylinder._coeffs` had TM/TE labels swapped vs the Bohren–Huffman convention

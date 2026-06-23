@@ -112,6 +112,7 @@ def main() -> int:
         ("finite cyl: decompose non-overlap/inside", fcyl.test_decompose_non_overlap_inside),
         ("finite cyl: decompose feeds GMM", fcyl.test_decompose_feeds_gmm),
         ("finite cyl: solver wrapper + not-impl", fcyl.test_solver_wrapper_and_notimpl),
+        ("finite cyl: metal guard (cavities)", fcyl.test_metal_guard),
     ]
     failures = 0
     for name, fn in suite:

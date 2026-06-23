@@ -65,8 +65,41 @@ def test_solver_wrapper_and_notimpl():
     print(f"    обёртка согласована ({len(s1)} сфер); full_wave — честный NotImplementedError — ок")
 
 
+def _raises(fn):
+    try:
+        fn()
+        return False
+    except ValueError:
+        return True
+
+
+def test_metal_guard():
+    print("\n[5] запрет разложения металла (паразитные полости); исключения:")
+    C, R, HL = [0, 0, 0], 2.0, 4.0
+    # (a) диэлектрик — разрешено
+    assert len(gt.FiniteCylinderSolver(C, R, HL, [2.25]).decompose(1.0)[0]) > 1
+    # (b) металл (Re eps<0) во внешнем слое — запрет
+    assert _raises(lambda: gt.FiniteCylinderSolver(C, R, HL, [-10 + 1j]).decompose(1.0))
+    # (c) металлическое ЯДРО под диэлектрической оболочкой — разрешено (внешний слой диэлектрик)
+    assert len(gt.FiniteCylinderSolver(C, R, HL, [-10 + 1j, 2.25],
+                                       a_norm=[0.6, 1.0]).decompose(1.0)[0]) > 1
+    # (d) allow_metal=True — осознанный обход
+    assert len(gt.FiniteCylinderSolver(C, R, HL, [-10 + 1j]).decompose(1.0, allow_metal=True)[0]) > 1
+    # (e) лосси-проводник (Re>0, большой Im): без k проходит, с k (скин-слой<радиуса) — запрет
+    fcs = gt.FiniteCylinderSolver(C, R, HL, [10 + 200j])
+    assert len(fcs.decompose(1.0)[0]) > 1                       # Re>0, скин не проверен
+    assert _raises(lambda: fcs.decompose(1.0, k=5.0))           # скин-слой ≪ радиуса
+    # (f) тот же guard в конусе
+    assert _raises(lambda: gt.ConeSolver([0, 0, 0], [0, 0, 1], 0.5, 8.0, [-10 + 1j]).decompose(2.0))
+    # (g) низкоуровневый детектор
+    assert dc.is_metal_layer(-3.0) and not dc.is_metal_layer(2.25)
+    assert dc.is_metal_layer(10 + 200j, k=5.0, radius=0.45)
+    print("    OK — диэлектрик/ядро-в-оболочке/allow_metal разрешены; металл-внешний и скин запрещены")
+
+
 if __name__ == "__main__":
     for fn in (test_indicator, test_decompose_non_overlap_inside,
-               test_decompose_feeds_gmm, test_solver_wrapper_and_notimpl):
+               test_decompose_feeds_gmm, test_solver_wrapper_and_notimpl,
+               test_metal_guard):
         fn()
     print("\nOK")

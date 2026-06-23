@@ -107,6 +107,20 @@ non-overlapping spheres (verified non-overlapping and inside the body) which fee
 spherical-VSWF :class:`~green_tensor.solvers.Cluster` (GMM). ``full_wave()`` raises
 ``NotImplementedError``.
 
+.. warning::
+
+   **Metals are rejected.** A non-overlapping sphere packing leaves vacuum gaps; for a
+   metal body these gaps are open cavities that produce spurious inter-sphere
+   re-reflections and resonances absent in the solid body (a metallic "sponge", not a
+   solid). ``decompose`` raises ``ValueError`` when the **outermost** layer is metallic
+   — ``Re(eps) < 0`` or skin depth ``δ = 1/(k·Im√(εμ)) < r_sphere`` (pass ``k`` to
+   enable the skin-depth test). A metal **core fully enclosed by a dielectric outer
+   layer** is allowed (gaps touch only dielectric; the metal is a closed volume inside
+   each sphere). Use ``allow_metal=True`` to deliberately model a cluster of metal
+   spheres. The same guard applies to :class:`~green_tensor.solvers.ConeSolver`. For a
+   solid metal body use a single closed body (:class:`~green_tensor.solvers.SphereSolver`
+   with a metal layer) or a surface method (EBCM/MoM).
+
 Cone — rigorous via decomposition
 ---------------------------------
 

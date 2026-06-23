@@ -38,8 +38,14 @@ def cone_indicator(apex, axis, half_angle: float, height: float):
 
 
 def decompose_cone(apex, axis, half_angle: float, height: float, spacing: float,
-                   eps, fill: float = 0.45, a_norm=None, miy=None):
-    """Разложить конус в непересекающиеся сферы и вернуть рассеиватели для GMM."""
+                   eps, fill: float = 0.45, a_norm=None, miy=None,
+                   k: float | None = None, allow_metal: bool = False):
+    """Разложить конус в непересекающиеся сферы и вернуть рассеиватели для GMM.
+
+    Металл: разложение запрещено, если внешний слой металлический (см.
+    :func:`decompose.reject_metal_packing`); k — для скин-слойной проверки,
+    allow_metal=True — осознанный обход."""
+    _dc.reject_metal_packing(eps, miy, fill * spacing, k, allow_metal)
     apex = np.asarray(apex, dtype=float)
     ax = np.asarray(axis, dtype=float)
     ax = ax / np.linalg.norm(ax)

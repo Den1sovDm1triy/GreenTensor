@@ -324,12 +324,17 @@ class ConeSolver:
         EN: Boolean indicator "point inside the cone"."""
         return _cone.cone_indicator(self.apex, self.axis, self.half_angle, self.height)
 
-    def decompose(self, spacing: float, *, fill: float = 0.45):
+    def decompose(self, spacing: float, *, fill: float = 0.45,
+                  k: float | None = None, allow_metal: bool = False):
         """RU: Разложить в непересекающиеся сферы: (scatterers, centers, radius) для GMM.
-        EN: Decompose into non-overlapping spheres: (scatterers, centers, radius) for GMM."""
+        Металл с металлической внешней средой запрещён (k — для скин-слойной проверки,
+        allow_metal=True — обход); см. :func:`green_tensor.decompose.reject_metal_packing`.
+        EN: Decompose into non-overlapping spheres for GMM. Metal with a metallic outer
+        layer is rejected (pass k for the skin-depth test; allow_metal=True to override)."""
         return _cone.decompose_cone(self.apex, self.axis, self.half_angle, self.height,
                                     spacing, self.eps, fill=fill,
-                                    a_norm=self.a_norm, miy=self.miy)
+                                    a_norm=self.a_norm, miy=self.miy,
+                                    k=k, allow_metal=allow_metal)
 
     def full_wave(self, *args, **kwargs):
         """RU: Прямой решатель конуса — НЕ реализован (нецелые функции Лежандра).
@@ -370,12 +375,17 @@ class FiniteCylinderSolver:
         return _decompose.cylinder_indicator(self.center, self.radius,
                                              self.half_length, self.axis)
 
-    def decompose(self, spacing: float, *, fill: float = 0.45):
+    def decompose(self, spacing: float, *, fill: float = 0.45,
+                  k: float | None = None, allow_metal: bool = False):
         """RU: Разложить в непересекающиеся сферы: (scatterers, centers, radius) для GMM.
-        EN: Decompose into non-overlapping spheres: (scatterers, centers, radius) for GMM."""
+        Металл с металлической внешней средой запрещён (k — для скин-слойной проверки,
+        allow_metal=True — обход); см. :func:`green_tensor.decompose.reject_metal_packing`.
+        EN: Decompose into non-overlapping spheres for GMM. Metal with a metallic outer
+        layer is rejected (pass k for the skin-depth test; allow_metal=True to override)."""
         return _decompose.decompose_cylinder(self.center, self.radius, self.half_length,
                                             spacing, self.eps, axis=self.axis, fill=fill,
-                                            a_norm=self.a_norm, miy=self.miy)
+                                            a_norm=self.a_norm, miy=self.miy,
+                                            k=k, allow_metal=allow_metal)
 
     def full_wave(self, *args, **kwargs):
         """RU: Прямой решатель конечного цилиндра — НЕ реализован (мод-матчинг/EBCM).
