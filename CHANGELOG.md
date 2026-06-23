@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-06-23
+
+### Added
+- **Layered-cylinder scattering solver** via the tensor Green's function (TGF) /
+  equivalent transmission-line method (Daylis & Shabunin 2017):
+  - `cylinder.layered_coeff` / `cross_sections_layered` — radially multilayer
+    cylinder at **normal incidence** (decoupled TM/TE transfer-matrix recursion).
+  - `cylinder.layered_coeff_oblique` / `cross_sections_oblique` — **oblique
+    incidence** (h ≠ 0) with E–H polarization coupling via a 4×4 layer transfer
+    matrix; returns co- and cross-polarized scattering.
+  - `LayeredCylinderSolver` (with `theta` for oblique) + `solve_layered_cylinder`
+    in the public API.
+  - `tests/analytic_cylinder.py`: independent arbiters — Bohren–Huffman (normal)
+    and Wait (1955) / Kavaklıoğlu (oblique). New solver verified to machine
+    precision against both, plus subdivision invariance and energy conservation.
+  - Theory: new section «Слоистый бесконечный цилиндр (ТФГ)» in
+    `GreenTensor_Theory.tex` (+ Daylis–Shabunin, Wait, Kavaklıoğlu references).
+
+### Fixed
+- `cylinder._coeffs` had TM/TE labels swapped vs the Bohren–Huffman convention
+  (TM = E parallel to the axis); corrected. Cross-section/energy results unaffected.
+
 ## [0.2.0] — 2026-06-23
 
 Major expansion of the original layered-sphere library into a full analytic

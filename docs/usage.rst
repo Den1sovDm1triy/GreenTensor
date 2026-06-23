@@ -71,7 +71,20 @@ Infinite cylinder (exact 2-D)
 
 .. code-block:: python
 
+   # homogeneous
    gt.solve_cylinder(radius=1.0, eps=4.0, k=2.0, mode="TM")   # or mode="TE"
+
+   # radially layered (TGF), normal incidence
+   gt.solve_layered_cylinder(radius=1.0, eps=[4 + 0.5j, 2.0], mu=[1, 1],
+                             a_norm=[0.6, 1.0], k=2.0, mode="TM")
+
+   # oblique incidence (theta measured from the cylinder axis; couples polarizations)
+   import numpy as np
+   gt.solve_layered_cylinder(radius=1.0, eps=[4 + 0.5j, 2.0], a_norm=[0.6, 1.0],
+                             k=2.0, theta=np.deg2rad(45))
+   # per-harmonic co/cross-polarized coefficients:
+   gt.LayeredCylinderSolver(1.0, [4 + 0.5j, 2.0], a_norm=[0.6, 1.0]) \
+     .coeff_oblique(k=2.0, theta=np.deg2rad(45), n=1)   # -> (A_E, A_H)
 
 Clusters and complex geometry (GMM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -637,6 +637,54 @@ C_{\mathrm{ext},j}=C_{\mathrm{abs},j}+C_{\mathrm{sca},j},
 
 Сформулированный результат корректен строго при: (i) конфокальности всех границ~\eqref{ellipsoid-eq:confocal-req}; (ii) квазистатике $x=\kappa a\ll1$ (на практике $x\lesssim0.2$\,--\,$0.3$), когда запаздывание и высшие мультиполи $n\ge2$ пренебрежимы; (iii) линейных изотропных слоях. Вне квазистатики для триаксиального эллипсоида аналитического модуля нет (см.~\ref{ellipsoid-sec:ellipsoid}, п.~о невозможности векторного разделения): здесь библиотека ограничивается рэлеевской поляризуемостью~\eqref{ellipsoid-eq:alpha-eff}, которую при необходимости можно подать как дипольный вклад в Т-матричную суперпозицию (GMM) наряду с полноволновыми Т-матрицами сферы и сфероида. Таким образом, эллипсоид присутствует в семействе примитивов на честном уровне точности --- как точный диполь конфокальной слоистой структуры, а не как полноволновой решатель.
 
+\section{Слоистый бесконечный цилиндр: метод тензорных функций Грина (ТФГ)}
+\label{laycyl-sec:layered-cylinder}
+
+Радиально-слоистый бесконечный круговой цилиндр (слои $i=1\ldots N$ с границами $a_1<\dots<a_N$, относительные $\varepsilon_i,\mu_i$; внешняя среда --- вакуум) допускает \emph{строгое} аналитическое решение методом тензорных функций Грина в форме эквивалентных линий передачи \cite{daylis2017,mitelman2013}. Задача разделяется в цилиндрических координатах, а многослойность сводится к послойной рекурсии матриц переноса --- цилиндрическому аналогу импедансно-адмитансной рекурсии слоистой сферы.
+
+\subsection{Модальное разложение}
+\label{laycyl-ssec:modal}
+Поле представляется рядом Фурье по азимуту $n$ и (для наклонного падения) гармоникой вдоль оси:
+\begin{equation}
+E_z,\,H_z \;\sim\; \sum_{n=-\infty}^{\infty} [\,\cdot\,]\,e^{i(n\varphi + k_z z)},\qquad k_z=k_0\cos\theta_i,
+\label{laycyl-eq:expansion}
+\end{equation}
+где $\theta_i$ --- угол падения, отсчитанный от оси цилиндра ($\theta_i=\pi/2$ --- нормальное падение). В слое $i$ продольные компоненты удовлетворяют уравнению Бесселя с радиальным волновым числом
+\begin{equation}
+\gamma_i=\sqrt{\varepsilon_i\mu_i\,k_0^2-k_z^2}=k_0\sqrt{\varepsilon_i\mu_i-\cos^2\theta_i}
+\label{laycyl-eq:gamma}
+\end{equation}
+и раскладываются в устойчивом базисе $\{J_n(\gamma_i\rho),\,H_n^{(1)}(\gamma_i\rho)\}$ (функция Ханкеля первого рода --- исходящая при $e^{-i\omega t}$; базис корректен и при комплексных $\varepsilon_i$, т.\,е. для поглощающих слоёв). В сердцевине ($i=1$) присутствует только $J_n$ (регулярность на оси).
+
+\subsection{Нормальное падение: расцепление TM/TE}
+\label{laycyl-ssec:normal}
+При $k_z=0$ поперечные компоненты $E_\varphi,H_\varphi$ не перемешивают $E_z$ и $H_z$: задача распадается на две независимые скалярные --- TM ($E\parallel$ ось) и TE ($H\parallel$ ось). Непрерывность продольной компоненты и тангенциального поля на каждой границе $\rho=a_j$ даёт $2\times2$ матрицу переноса; множитель в условии непрерывности
+\begin{equation}
+\eta_i^{\mathrm{TM}}=\frac{\sqrt{\varepsilon_i\mu_i}}{\mu_i},\qquad
+\eta_i^{\mathrm{TE}}=\frac{\sqrt{\varepsilon_i\mu_i}}{\varepsilon_i}.
+\label{laycyl-eq:eta}
+\end{equation}
+Прогон амплитуд от регулярной сердцевины наружу и сшивка с вакуумом дают поверхностную проводимость $G_n$ и коэффициент рассеяния
+\begin{equation}
+a_n=\frac{J_n'(x)-G_n\,J_n(x)}{H_n^{(1)\prime}(x)-G_n\,H_n^{(1)}(x)},\qquad x=k_0 a_N.
+\label{laycyl-eq:an}
+\end{equation}
+При $N=1$ выражение~\eqref{laycyl-eq:an} тождественно сводится к коэффициентам однородного цилиндра Бора--Хаффмана \cite{bohren1983} (случай~I --- TM, случай~II --- TE).
+
+\subsection{Наклонное падение: связь поляризаций}
+\label{laycyl-ssec:oblique}
+При $k_z\neq0$ граничные условия связывают E- и H-поляризации через член $\propto n\,k_z/\rho$ в $E_\varphi,H_\varphi$ (в терминологии эквивалентных линий Шабунина --- восьмиполюсник границы с коэффициентом связи $N_i\propto m\,h$, обращающимся в нуль при $h=0$ или $n=0$ \cite{daylis2017}). Поле в слое описывается уже четырьмя амплитудами ($E_z$: $J_n,H_n^{(1)}$; $H_z$: $J_n,H_n^{(1)}$), а непрерывность четырёх тангенциальных компонент $(E_z,H_z,E_\varphi,H_\varphi)$ даёт $4\times4$ матрицу переноса на слой. Для TM-падения (вертикальная поляризация) решение связанной системы на внешней границе даёт со-поляризационный коэффициент $A_n^{E}$ (рассеянный $E_z$) и кросс-поляризационный $A_n^{H}$ (рассеянный $H_z$); последний обращается в нуль при $\theta_i\to\pi/2$.
+
+\subsection{Сечения и верификация}
+\label{laycyl-ssec:cross}
+Эффективности (нормировка на диаметр $2a$ и на падающую компоненту $E_z$):
+\begin{equation}
+Q_{\mathrm{sca}}=\frac{2}{x}\Big[\,|A_0^{E}|^2+|A_0^{H}|^2+2\!\sum_{n\ge1}\!\big(|A_n^{E}|^2+|A_n^{H}|^2\big)\Big],\quad
+Q_{\mathrm{ext}}=-\frac{2}{x}\,\mathrm{Re}\Big[A_0^{E}+2\!\sum_{n\ge1}\!A_n^{E}\Big],
+\label{laycyl-eq:cross}
+\end{equation}
+экстинкция --- по со-поляризации (оптическая теорема), $Q_{\mathrm{abs}}=Q_{\mathrm{ext}}-Q_{\mathrm{sca}}$. Реализация (\texttt{green\_tensor/cylinder.py}: \texttt{layered\_coeff}, \texttt{layered\_coeff\_oblique}, \texttt{cross\_sections\_layered/\_oblique}) проверена до машинной точности: (i)~$N=1$, нормальное падение --- против Бора--Хаффмана; (ii)~$N=1$, наклонное --- против коэффициентов одиночного цилиндра Уэйта \cite{wait1955} в форме Кавакліоğлу \cite{kavaklioglu2008} ($|\Delta|\sim10^{-16}$); (iii)~предельный переход $\theta_i\to\pi/2$; (iv)~инвариантность к подразбиению однородного цилиндра на одинаковые слои; (v)~сохранение энергии $Q_{\mathrm{abs}}\approx0$ для непоглощающих структур на всех углах.
+
 \section{Конечный цилиндр: полуаналитическое решение методом сшивания мод}
 \label{cylinder-cyl-sec:cylinder}
 
@@ -1270,5 +1318,9 @@ $C_{\mathrm{abs}}\!=\!0$ для непоглощающего тела &
 \bibitem{dlmf} \emph{NIST Digital Library of Mathematical Functions}, \url{https://dlmf.nist.gov/}.
 \bibitem{bowman1987} J.~J.~Bowman, T.~B.~A.~Senior, P.~L.~E.~Uslenghi (eds.), \emph{Electromagnetic and Acoustic Scattering by Simple Shapes} (Hemisphere, New York, 1987).
 \bibitem{klinkenbusch2007} L.~Klinkenbusch, \emph{Electromagnetic scattering by semi-infinite circular and elliptic cones}, Radio Sci. \textbf{42}, RS6S10 (2007).
+\bibitem{daylis2017} С.~Дайлис, С.~Н.~Шабунин, \emph{Функции Грина многослойных цилиндрических структур в задачах излучения, распространения и дифракции электромагнитных волн}, Ural Radio Engineering Journal \textbf{1}(1), 91--117 (2017); DOI 10.15826/urej.2017.1.1.005.
+\bibitem{mitelman2013} Ю.~Е.~Мительман, С.~Н.~Шабунин, \emph{Электродинамика многослойных цилиндрических направляющих систем} (LAP Lambert Academic Publishing, 2013).
+\bibitem{wait1955} J.~R.~Wait, \emph{Scattering of a plane wave from a circular dielectric cylinder at oblique incidence}, Can. J. Phys. \textbf{33}, 189--195 (1955).
+\bibitem{kavaklioglu2008} Ö.~Kavaklıoğlu, B.~Schneider, \emph{On the Fourier--Bessel multiple scattering coefficients of an infinite grating of dielectric circular cylinders at oblique incidence} (Wait's isolated-cylinder coefficients), arXiv:0711.0362 (2008).
 \end{thebibliography}
 \end{document}

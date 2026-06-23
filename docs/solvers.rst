@@ -26,10 +26,14 @@ own. Thin ``solve_*`` functions provide one-line access.
      - :class:`~green_tensor.solvers.EllipsoidSolver`
      - :func:`~green_tensor.solvers.solve_ellipsoid`
      - Quasi-static (Rayleigh)
-   * - Cylinder (infinite)
+   * - Cylinder (infinite, homogeneous)
      - :class:`~green_tensor.solvers.CylinderSolver`
      - :func:`~green_tensor.solvers.solve_cylinder`
      - **Exact** 2-D
+   * - Cylinder (infinite, layered, TGF)
+     - :class:`~green_tensor.solvers.LayeredCylinderSolver`
+     - :func:`~green_tensor.solvers.solve_layered_cylinder`
+     - **Exact** (normal + oblique)
    * - Cone
      - :class:`~green_tensor.solvers.ConeSolver`
      - via :class:`~green_tensor.solvers.Cluster`
@@ -71,10 +75,22 @@ with complex ``c``) is **not implemented** — ``SpheroidSolver.full_wave()`` ra
 Cylinder — exact 2-D
 --------------------
 
-:class:`~green_tensor.solvers.CylinderSolver` solves the infinite circular
-cylinder at normal incidence exactly (TM/TE 2-D Mie series). The finite cylinder
-is non-separable; ``finite()`` raises ``NotImplementedError`` — model finite bodies
-with :class:`~green_tensor.solvers.ConeSolver`/``decompose`` or a prolate spheroid.
+:class:`~green_tensor.solvers.CylinderSolver` solves the infinite *homogeneous*
+circular cylinder at normal incidence exactly (TM/TE 2-D Mie series).
+
+:class:`~green_tensor.solvers.LayeredCylinderSolver` extends this to a radially
+**multilayer** cylinder via the tensor Green's function (TGF) / equivalent
+transmission-line method (Daylis–Shabunin), covering both **normal** and
+**oblique** incidence. At normal incidence the TM/TE polarizations decouple into
+independent scalar layer recursions; at oblique incidence (``theta`` ≠ π/2) they
+couple (the ``n·k_z`` term), producing co- and cross-polarized scattering. It is
+verified to machine precision against Bohren–Huffman (normal) and the Wait /
+Kavaklıoğlu isolated-cylinder coefficients (oblique), reduces to the homogeneous
+solver at one layer, and conserves energy.
+
+The finite cylinder is non-separable; ``finite()`` raises ``NotImplementedError``
+— model finite bodies with :class:`~green_tensor.solvers.ConeSolver`/``decompose``
+or a prolate spheroid.
 
 Cone — rigorous via decomposition
 ---------------------------------

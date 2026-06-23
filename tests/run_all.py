@@ -102,6 +102,11 @@ def main() -> int:
         ("layered cyl: coated absorption", cyl_l.test_coated_absorption),
         ("layered cyl: solver wrappers match", cyl_l.test_solver_wrapper_matches),
         ("layered cyl: 1-layer vs homogeneous", cyl_l.test_solver_single_layer_matches_homogeneous),
+        ("oblique cyl: N=1 vs Wait arbiter", cyl_l.test_oblique_n1_vs_arbiter),
+        ("oblique cyl: reduces to normal", cyl_l.test_oblique_reduces_to_normal),
+        ("oblique cyl: subdivision invariance", cyl_l.test_oblique_subdivision_invariance),
+        ("oblique cyl: energy conservation", cyl_l.test_oblique_energy_conservation),
+        ("oblique cyl: cross-sec reduce + wrappers", cyl_l.test_oblique_cross_sections_reduce_and_wrapper),
     ]
     failures = 0
     for name, fn in suite:

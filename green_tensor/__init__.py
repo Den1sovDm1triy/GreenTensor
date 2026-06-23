@@ -30,7 +30,7 @@ in the spherical-VSWF basis, composed by a single complex-geometry assembly engi
 """
 from __future__ import annotations
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 # Низкоуровневые модули / low-level modules
 from . import (  # noqa: F401

@@ -266,16 +266,32 @@ class LayeredCylinderSolver:
         else:
             self.a_norm = [(i + 1) / n for i in range(n)]   # равные толщины, внешний = 1
 
-    def cross_sections(self, k: float, *, mode: str = "TM", nmax: int | None = None) -> dict:
-        """RU: Эффективности Q_sca, Q_ext, Q_abs (норм. на диаметр). mode: 'TM'(E∥) | 'TE'(H∥).
-        EN: Efficiencies Q_sca, Q_ext, Q_abs (normalized to diameter). mode: 'TM'(E∥) | 'TE'(H∥)."""
-        return _cylinder.cross_sections_layered(self.eps, self.mu, self.a_norm,
-                                               k * self.radius, mode=mode, nmax=nmax)
+    def cross_sections(self, k: float, *, mode: str = "TM", theta: float | None = None,
+                       nmax: int | None = None) -> dict:
+        """RU: Эффективности Q_sca, Q_ext, Q_abs (норм. на диаметр). theta — угол падения
+        от оси (по умолчанию нормальное); при нормальном — mode 'TM'(E∥)/'TE'(H∥), при
+        косом — TM-падение (вертикальная поляризация) со связью поляризаций.
+        EN: Efficiencies Q_sca, Q_ext, Q_abs (per diameter). theta = incidence angle from
+        the axis (default normal); at normal — mode 'TM'(E∥)/'TE'(H∥), at oblique —
+        TM incidence (vertical polarization) with polarization coupling."""
+        x = k * self.radius
+        if theta is None or abs(theta - np.pi / 2) < 1e-12:
+            return _cylinder.cross_sections_layered(self.eps, self.mu, self.a_norm,
+                                                   x, mode=mode, nmax=nmax)
+        return _cylinder.cross_sections_oblique(self.eps, self.mu, self.a_norm,
+                                               x, theta, nmax=nmax)
 
     def coeff(self, k: float, n: int, *, mode: str = "TM") -> complex:
-        """RU: Коэффициент рассеяния a_n гармоники n. EN: scattering coefficient a_n of harmonic n."""
+        """RU: Коэффициент рассеяния a_n гармоники n (нормальное падение).
+        EN: scattering coefficient a_n of harmonic n (normal incidence)."""
         return _cylinder.layered_coeff(self.eps, self.mu, self.a_norm,
                                       k * self.radius, n, mode=mode)
+
+    def coeff_oblique(self, k: float, theta: float, n: int):
+        """RU: Рассеянные (A_E со-пол, A_H кросс-пол) при косом TM-падении, гармоника n.
+        EN: scattered (A_E co-pol, A_H cross-pol) for oblique TM incidence, harmonic n."""
+        return _cylinder.layered_coeff_oblique(self.eps, self.mu, self.a_norm,
+                                              k * self.radius, theta, n)
 
 
 # --------------------------------------------------------------------------- #
@@ -386,11 +402,14 @@ def solve_cylinder(radius, eps, k: float, *, eps_m: complex = 1.0,
 
 
 def solve_layered_cylinder(radius, eps, k: float, *, mu=None, a_norm=None,
-                           mode: str = "TM", nmax: int | None = None) -> dict:
-    """RU: Эффективности слоистого цилиндра (ТФГ) / EN: layered-cylinder efficiencies (TGF)
+                           mode: str = "TM", theta: float | None = None,
+                           nmax: int | None = None) -> dict:
+    """RU: Эффективности слоистого цилиндра (ТФГ); theta — угол падения от оси (косое
+    падение со связью поляризаций) / EN: layered-cylinder efficiencies (TGF); theta =
+    incidence angle from the axis (oblique incidence with polarization coupling)
     (см. / see :class:`LayeredCylinderSolver`)."""
     return LayeredCylinderSolver(radius, eps, mu=mu, a_norm=a_norm).cross_sections(
-        k, mode=mode, nmax=nmax)
+        k, mode=mode, theta=theta, nmax=nmax)
 
 
 def solve_cluster(scatterers, k: float, khat, pol, nmax: int) -> dict:
