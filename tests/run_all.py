@@ -152,6 +152,9 @@ def main() -> int:
         ("EBCM spheroid energy + Rayleigh", ebc.test_ebcm_spheroid_energy_and_rayleigh),
         ("EBCM cone energy conservation", ebc.test_ebcm_cone_energy),
         ("EBCM finite cylinder energy (convergent)", ebc.test_ebcm_cylinder_energy),
+        ("EBCM layered coated sphere -> Mie", ebc.test_ebcm_layered_coated_sphere),
+        ("EBCM layered reduction (identical=homog)", ebc.test_ebcm_layered_reduction),
+        ("EBCM layered spheroid energy", ebc.test_ebcm_layered_spheroid_energy),
     ]
     failures = 0
     for name, fn in suite:

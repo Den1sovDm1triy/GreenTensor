@@ -186,20 +186,22 @@ def cone_segments(radius: float, height: float, *, z_apex: float | None = None):
 # --------------------------------------------------------------------------- #
 # J-интегралы и сборка Q, RgQ (поблочно по m)
 # --------------------------------------------------------------------------- #
-def _J_block(pts, nvec_dS, k: float, k1: complex, m: int, n_list, test_kind: str):
+def _J_block(pts, nvec_dS, k: float, k1: complex, m: int, n_list, test_kind: str,
+             src_kind: str = "reg"):
     """Четыре J-матрицы (J11,J12,J21,J22) для фиксированного m.
 
-    Источник — РЕГУЛЯРНЫЕ ВСВФ внутри (k1), мода (n', m); тест — внешние ВСВФ (k),
-    мода (n, −m), вида test_kind ('out' → Q, 'reg' → RgQ). Элемент:
+    Источник — ВСВФ внутри (k1), мода (n', m), радиальная функция src_kind ('reg' —
+    регулярная для однородного тела/ядра; 'out' — исходящая, для оболочек слоистого
+    тела); тест — внешние ВСВФ (k), мода (n, −m), вида test_kind ('out' → Q, 'reg' → RgQ):
         J^{XY}_{nn'} = Σ_q nvec_dS[q] · ( X_{n'm}(k1) × Y_{n,−m}(k) )[q].
     Возвращает (J11,J12,J21,J22), каждая N×N (N=len(n_list)); X,Y∈{M,N}: первый индекс —
     тип теста (строка n), второй — тип источника (столбец n').
     """
     N = len(n_list)
-    # источники (регулярные, k1): Msrc[j], Nsrc[j] для n'=n_list[j], мода +m
+    # источники (k1, радиальная функция src_kind): Msrc[j], Nsrc[j] для n'=n_list[j], мода +m
     Msrc, Nsrc = [], []
     for npr in n_list:
-        Mg, Ng = vswf.mn_grid(npr, m, k1, pts, "reg")
+        Mg, Ng = vswf.mn_grid(npr, m, k1, pts, src_kind)
         Msrc.append(Mg)
         Nsrc.append(Ng)
     # тест (внешние, k): Mt[i], Nt[i] для n=n_list[i], мода −m
@@ -225,24 +227,24 @@ def _J_block(pts, nvec_dS, k: float, k1: complex, m: int, n_list, test_kind: str
     return J11, J12, J21, J22
 
 
-def _Q_from_J(J, k: float, k1: complex, eps_rel: complex, mu_rel: complex):
+def _Q_from_J(J, k: float, k1: complex, eps_rel: complex, mu_rel: complex,
+              eps_o: complex = 1.0, mu_o: complex = 1.0):
     """Собрать блочную Q (2N×2N) из (J11,J12,J21,J22), порядок блоков [M(TE); N(TM)].
 
-    Импедансный множитель s_E=√(ε/μ) умножает «магнитный» (H-непрерывность) член —
-    тот, где тип ИСТОЧНИКА противоположен типу блока (для M-блока это N-источник, J21).
-    Выведено аналитически из предела сферы: T^{MM}=−RgQ^{MM}/Q^{MM} даёт ровно −b_n
-    (Bohren–Huffman 4.53), T^{NN} → −a_n; для μ=1 s_E=√ε=k1/k. Общий множитель −i k k1
-    сокращается в T. Калибровка: tests/test_ebcm.py против analytic_mie.
+    Импедансный множитель s_E умножает «магнитный» (H-непрерывность) член — тот, где тип
+    ИСТОЧНИКА противоположен типу блока (для M-блока это N-источник, J21). В общем случае
+    интерфейса между внешней средой (eps_o,mu_o; волн. число k) и внутренней (eps_rel,mu_rel;
+    k1) s_E — относительный импеданс √[(ε_i/μ_i)/(ε_o/μ_o)]; для внешней среды-вакуума
+    (eps_o=mu_o=1) сводится к √(ε/μ). Выведено из предела сферы: T^{MM}=−RgQ^{MM}/Q^{MM}=−b_n
+    (Bohren–Huffman 4.53), T^{NN}→−a_n. Общий множитель −i k k1 сокращается в T.
 
         Q^{MM} = s_E·J21 + J12   (→ t_M = −b_n)
         Q^{NN} = s_E·J12 + J21   (→ t_N = −a_n)
         Q^{MN} = s_E·J11 + J22   (кросс TE↔TM; на сфере J11=J22=0 ⇒ 0)
         Q^{NM} = s_E·J22 + J11
-
-    J^{XY}_{nn'} = ∮ n̂·(RgX_{n'm}(k1) × Y_{n,−m}(k)) dS, X=источник, Y=тест.
     """
     J11, J12, J21, J22 = J
-    s_E = np.sqrt(eps_rel / mu_rel)
+    s_E = np.sqrt((eps_rel / mu_rel) / (eps_o / mu_o))
     pref = -1j * k * k1
     QMM = pref * (s_E * J21 + J12)
     QNN = pref * (s_E * J12 + J21)
@@ -341,6 +343,101 @@ def _tmatrix_from_surface(pts, nvec_dS, k: float, eps: complex, mu: complex,
     # Конвенция проекта (mie_core хранит сопряжённые коэффициенты): сопрягаем для
     # совместимости с gmm и сферой scatterer.LayeredSphere.
     return np.conj(T)
+
+
+# --------------------------------------------------------------------------- #
+# Слоистые тела: рекурсия Петерсона–Стрёма (T-матрица оболочка-за-оболочкой)
+# --------------------------------------------------------------------------- #
+def _interface_P(pts, nvec_dS, k_o, k_i, eps_o, mu_o, eps_i, mu_i, nmax):
+    """Четыре полных (2K×2K) интерфейсных матрицы P[src,test], src/test ∈ {reg,out}.
+
+    src — радиальная функция внутреннего поля (k_i): reg (j_n) или out (h_n^{(1)});
+    test — внешняя пробная (k_o): reg или out. Возвращает (P_rr, P_or, P_ro, P_oo)
+    (первый индекс — src, второй — test). Внешняя среда (eps_o,mu_o) может быть не вакуум.
+    """
+    modes = vswf.mode_list(nmax)
+    K = len(modes)
+    idx = {nm: i for i, nm in enumerate(modes)}
+    combos = [("reg", "reg"), ("out", "reg"), ("reg", "out"), ("out", "out")]
+    P = {c: np.zeros((2 * K, 2 * K), complex) for c in combos}
+    for m in range(-nmax, nmax + 1):
+        n_list = list(range(max(1, abs(m)), nmax + 1))
+        if not n_list:
+            continue
+        N = len(n_list)
+        rows = [idx[(n, m)] for n in n_list]
+        for sk, tk in combos:
+            Jb = _J_block(pts, nvec_dS, k_o, k_i, m, n_list, tk, src_kind=sk)
+            Qb = _Q_from_J(Jb, k_o, k_i, eps_i, mu_i, eps_o, mu_o)
+            Pm = P[(sk, tk)]
+            for bi, ri in enumerate(rows):
+                for bj, rj in enumerate(rows):
+                    Pm[ri, rj] += Qb[bi, bj]
+                    Pm[ri, rj + K] += Qb[bi, bj + N]
+                    Pm[ri + K, rj] += Qb[bi + N, bj]
+                    Pm[ri + K, rj + K] += Qb[bi + N, bj + N]
+    return P[("reg", "reg")], P[("out", "reg")], P[("reg", "out")], P[("out", "out")]
+
+
+def tmatrix_layered(surface_builder, eps, mu, a_norm, k0: float, nmax: int):
+    """ПОЛНАЯ T-матрица радиально-слоистого осесимметричного тела (рекурсия Петерсона–Стрёма).
+
+    surface_builder(a) -> (pts, n̂·dS) строит квадратуру интерфейса, гомотетично
+    масштабированного на фактор a (a_norm[p]); eps,mu — проницаемости слоёв ИЗНУТРИ
+    НАРУЖУ (eps[0] — ядро); a_norm — нормированные радиусы границ (внешний = 1, по
+    возрастанию); k0 — волновое число снаружи (вакуум).
+
+    Рекурсия от ядра наружу: на каждом интерфейсе T_внеш = −(P_rr+P_or·T_внутр)·
+    (P_ro+P_oo·T_внутр)⁻¹, где P** — интерфейсные матрицы между смежными средами, а
+    T_внутр — T-матрица всего, что внутри (нагрузка). Это матричный аналог импедансной
+    рекурсии слоистой сферы (ТФГ); для сферы воспроизводит покрытые коэф. Адена–Керкера.
+
+    ВАЛИДАЦИЯ/ПРЕДЕЛ: покрытая сфера → Ми ~1e-15; редукция (одинаковые слои → однородное
+    тело) ~1e-6. ЧИСЛЕННО: рекурсия использует ИСХОДЯЩИЕ (h_n^{(1)}) функции на внутренних
+    границах, что для многих слоёв / малого радиуса ядра ухудшает обусловленность
+    (энергобаланс ~1e-2 у 2-слойного сфероида, хуже для 3+ слоёв) — известная особенность
+    T-матричной рекурсии (устойчивый вариант — импедансная форма / расш. точность).
+    """
+    eps = [complex(e) for e in eps]
+    mu = [complex(m) for m in mu]
+    nL = len(eps)
+    if not (len(mu) == len(a_norm) == nL):
+        raise ValueError("eps, mu, a_norm должны быть одной длины")
+    k = [k0 * np.sqrt(eps[i] * mu[i]) for i in range(nL)]
+    modes = vswf.mode_list(nmax)
+    K = len(modes)
+    T_in = np.zeros((2 * K, 2 * K), complex)
+    for p in range(nL):                                   # изнутри наружу
+        eps_i, mu_i, k_i = eps[p], mu[p], k[p]
+        if p < nL - 1:
+            eps_o, mu_o, k_o = eps[p + 1], mu[p + 1], k[p + 1]
+        else:
+            eps_o, mu_o, k_o = 1.0 + 0j, 1.0 + 0j, k0     # внешняя среда — вакуум
+        pts, nvec_dS = surface_builder(a_norm[p])
+        P_rr, P_or, P_ro, P_oo = _interface_P(pts, nvec_dS, k_o, k_i,
+                                              eps_o, mu_o, eps_i, mu_i, nmax)
+        T_in = -(P_rr + P_or @ T_in) @ np.linalg.inv(P_ro + P_oo @ T_in)
+    nn = np.array([n * (n + 1) for (n, m) in modes], dtype=float)
+    dvec = np.concatenate([1.0 / nn, 1.0 / nn])
+    T = dvec[:, None] * T_in * (1.0 / dvec[None, :])
+    return np.conj(T)
+
+
+def tmatrix_axisym_layered(r_of_theta, eps, mu, a_norm, k0: float, nmax: int,
+                           *, ntheta: int | None = None, nphi: int | None = None) -> np.ndarray:
+    """Слоистая T-матрица гладкого тела вращения (сфера через const, сфероид) — обёртка
+    над :func:`tmatrix_layered` с гомотетичным масштабированием образующей r(θ)."""
+    if ntheta is None:
+        ntheta = 2 * nmax + 6
+    if nphi is None:
+        nphi = 2 * nmax + 2
+
+    def builder(a):
+        def scaled(theta):
+            r, dr = r_of_theta(theta)
+            return a * np.asarray(r, float), a * np.asarray(dr, float)
+        return axisym_surface(scaled, ntheta, nphi)
+    return tmatrix_layered(builder, eps, mu, a_norm, k0, nmax)
 
 
 def diagonal_from_tmatrix(T: np.ndarray, nmax: int):

@@ -210,10 +210,55 @@ def test_ebcm_cylinder_energy():
         assert bal < 1.2e-2, f"цилиндр (сходящийся режим): энергобаланс нарушен ({bal:.1e})"
 
 
+def test_ebcm_layered_coated_sphere():
+    """Слоистая рекурсия (Петерсон–Стрём) на ПОКРЫТОЙ сфере → покрытые коэф. Ми
+    (mie_core, Аден–Керкер). Калибрует рекурсию на точном пределе."""
+    from green_tensor.mie_core import MieSphere
+    print("\n[8] EBCM слоистая рекурсия: покрытая сфера → Ми:")
+    for R, a1, ec, es, k in [(0.5, 0.6, 2.5, 4.0, 2.0), (0.6, 0.5, 3.0, 2.0, 2.5)]:
+        nmax = 6
+        T = ebcm.tmatrix_axisym_layered(ebcm.sphere_curve(R), [ec, es], [1.0, 1.0], [a1, 1.0], k, nmax)
+        ref = MieSphere(k0=k * R, a=[a1, 1.0], eps=[ec, es], miy=[1.0, 1.0], toch=nmax)
+        Mn, Nn = ref.coefficients()
+        ns, tM, tN = ebcm.diagonal_from_tmatrix(T, nmax)
+        dN = np.max(np.abs(tN - (-Mn))) / np.max(np.abs(Mn))
+        dM = np.max(np.abs(tM - (-Nn))) / np.max(np.abs(Nn))
+        print(f"    R={R} a1={a1} eps=[{ec},{es}] k={k}: dN={dN:.1e} dM={dM:.1e}")
+        assert dN < 1e-11 and dM < 1e-11, f"покрытая сфера разошлась с Ми ({dN:.1e})"
+
+
+def test_ebcm_layered_reduction():
+    """Редукция: слоистое тело с ОДИНАКОВЫМИ слоями == однородное (тот же T)."""
+    print("\n[9] EBCM слоистая редукция (одинаковые слои == однородное):")
+    k0, nmax = 2.0, 7
+    for curve, tag in [(ebcm.sphere_curve(0.5), "sphere"), (ebcm.spheroid_curve(0.4, 0.8), "spheroid")]:
+        Thom = ebcm.tmatrix_axisym(curve, k0, 2.25, 1.0, nmax)
+        Tlay = ebcm.tmatrix_axisym_layered(curve, [2.25, 2.25], [1.0, 1.0], [0.5, 1.0], k0, nmax)
+        d = np.max(np.abs(Tlay - Thom))
+        print(f"    {tag}: max|T_layered_identical − T_homog| = {d:.1e}")
+        assert d < 1e-4, f"редукция слоистого к однородному нарушена ({d:.1e})"
+
+
+def test_ebcm_layered_spheroid_energy():
+    """Слоистый сфероид (ядро/оболочка), lossless энергобаланс. ВНИМАНИЕ: T-матричная
+    рекурсия использует исходящие функции на внутр. границах ⇒ для многих слоёв / малого
+    ядра обусловленность падает (тут 2 слоя, умеренное ядро); высокая точность —
+    импедансная форма/расш. точность (см. tmatrix_layered docstring)."""
+    print("\n[10] EBCM слоистый сфероид — энергобаланс (2 слоя):")
+    k0, nmax = 2.0, 7
+    curve = ebcm.spheroid_curve(0.4, 0.8)
+    for eps, mu, tag in [([4.0, 2.25], [1.0, 1.0], "diel"), ([4.0, 2.25], [1.5, 1.0], "mag-core")]:
+        T = ebcm.tmatrix_axisym_layered(curve, eps, mu, [0.5, 1.0], k0, nmax)
+        bal = max(_energy_balance(T, k0, nmax, (0, 0, 1))[1], _energy_balance(T, k0, nmax, (0, 1, 0))[1])
+        print(f"    {tag} eps={eps} mu={mu}: |C_abs|/C_sca={bal:.1e}")
+        assert bal < 2.5e-2, f"слоистый сфероид: энергобаланс {bal:.1e}"
+
+
 _TESTS = [test_ebcm_sphere_matches_mie, test_ebcm_magnetic_sphere_matches_mie,
           test_ebcm_sphere_cross_sections_vs_mie, test_ebcm_drop_in_cluster,
           test_ebcm_spheroid_energy_and_rayleigh, test_ebcm_cone_energy,
-          test_ebcm_cylinder_energy]
+          test_ebcm_cylinder_energy, test_ebcm_layered_coated_sphere,
+          test_ebcm_layered_reduction, test_ebcm_layered_spheroid_energy]
 
 if __name__ == "__main__":
     ok = True
