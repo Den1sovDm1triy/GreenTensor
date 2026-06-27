@@ -4,17 +4,21 @@
 Solvers
 =======
 
-GreenTensor exposes **one solver per geometry**, all behind a uniform object API
-in :mod:`green_tensor.solvers` (re-exported at the top level as ``green_tensor.*``).
-Each class wraps an already-verified mathematical core; it carries no math of its
-own. Thin ``solve_*`` functions provide one-line access.
+Non-spherical bodies are solved **rigorously** by the full-wave EBCM/TGF method:
+the primitives :class:`~green_tensor.scatterer.Spheroid`,
+:class:`~green_tensor.scatterer.FiniteCylinder` and :class:`~green_tensor.scatterer.Cone`
+(re-exported as ``green_tensor.*``) build a T-matrix and assemble through
+:class:`~green_tensor.solvers.Cluster` (GMM). The sphere keeps its exact closed-form
+core; a few closed-form analytics are retained where they add unique physics
+(triaxial ellipsoid; infinite/layered/oblique cylinder), plus a ``decompose``
+fallback for arbitrary bodies.
 
 .. list-table:: Solver map
    :header-rows: 1
-   :widths: 18 30 26 26
+   :widths: 22 32 22 24
 
    * - Geometry
-     - Class
+     - Class / primitive
      - Facade
      - Regime
    * - Sphere (layered)
@@ -22,9 +26,17 @@ own. Thin ``solve_*`` functions provide one-line access.
      - :func:`~green_tensor.solvers.solve_sphere`
      - **Exact** (Mie / TGF)
    * - Spheroid
-     - :class:`~green_tensor.solvers.SpheroidSolver`
-     - :func:`~green_tensor.solvers.solve_spheroid`
-     - Quasi-static (Rayleigh)
+     - :class:`~green_tensor.scatterer.Spheroid`
+     - via :class:`~green_tensor.solvers.Cluster`
+     - **Rigorous full-wave** (EBCM/TGF)
+   * - Finite cylinder
+     - :class:`~green_tensor.scatterer.FiniteCylinder`
+     - via :class:`~green_tensor.solvers.Cluster`
+     - **Rigorous full-wave** (EBCM/TGF)
+   * - Cone
+     - :class:`~green_tensor.scatterer.Cone`
+     - via :class:`~green_tensor.solvers.Cluster`
+     - **Rigorous full-wave** (EBCM/TGF)
    * - Ellipsoid (triaxial)
      - :class:`~green_tensor.solvers.EllipsoidSolver`
      - :func:`~green_tensor.solvers.solve_ellipsoid`
@@ -37,12 +49,8 @@ own. Thin ``solve_*`` functions provide one-line access.
      - :class:`~green_tensor.solvers.LayeredCylinderSolver`
      - :func:`~green_tensor.solvers.solve_layered_cylinder`
      - **Exact** (normal + oblique)
-   * - Cylinder (finite)
-     - :class:`~green_tensor.solvers.FiniteCylinderSolver`
-     - via :class:`~green_tensor.solvers.Cluster`
-     - Rigorous (sphere decomposition)
-   * - Cone
-     - :class:`~green_tensor.solvers.ConeSolver`
+   * - Arbitrary body (fallback)
+     - :class:`~green_tensor.solvers.ConeSolver` / :class:`~green_tensor.solvers.FiniteCylinderSolver` / :mod:`~green_tensor.decompose`
      - via :class:`~green_tensor.solvers.Cluster`
      - Rigorous (sphere decomposition)
    * - Arbitrary cluster
@@ -63,21 +71,38 @@ Key methods: ``cross_sections(k)`` (efficiencies normalized to :math:`\pi R^2`),
 basis), ``pattern(k)`` (scattering diagram), and ``as_scatterer()`` (to drop the
 sphere into a :class:`~green_tensor.solvers.Cluster`).
 
-Ellipsoid and spheroid — quasi-static
--------------------------------------
+Non-spherical primitives — rigorous full-wave (EBCM/TGF)
+-------------------------------------------------------
 
-:class:`~green_tensor.solvers.EllipsoidSolver` and
-:class:`~green_tensor.solvers.SpheroidSolver` solve the Rayleigh
-(:math:`k a \ll 1`) limit exactly: geometric depolarization factors, homogeneous
-and confocal-coated polarizabilities, Rayleigh cross sections, and the
+:class:`~green_tensor.scatterer.Spheroid`,
+:class:`~green_tensor.scatterer.FiniteCylinder` and
+:class:`~green_tensor.scatterer.Cone` are the **rigorous, full-wave** primitives for
+non-spherical bodies. Each builds a T-matrix by the extended boundary-condition /
+null-field method (EBCM, :mod:`green_tensor.ebcm`) in the spherical-VSWF basis —
+calibrated to the layered-sphere core — and is solved (alone or in a cluster)
+through :class:`~green_tensor.solvers.Cluster` (GMM)::
+
+    import green_tensor as gt
+    cone = gt.Cone(position=(0, 0, 0), radius=0.35, height=0.8, eps=2.25)
+    gt.Cluster([cone]).cross_sections(k=2.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=7)
+
+They support **layered** bodies (Peterson–Ström recursion) and **arbitrary
+orientation** via Wigner-D rotation of the T-matrix (``euler=(α, β, γ)``). The EBCM
+finite cylinder is edge-limited (sharp rims): elongated aspect is accurate, a
+flat/cubic aspect diverges — use the ``decompose`` fallback there.
+
+Ellipsoid — quasi-static
+------------------------
+
+:class:`~green_tensor.solvers.EllipsoidSolver` solves the **triaxial** ellipsoid in
+the Rayleigh (:math:`k a \ll 1`) limit exactly: geometric depolarization factors,
+homogeneous and confocal-coated polarizabilities, Rayleigh cross sections, and the
 electric-dipole T-matrix element. ``cross_sections(k)`` returns the
-random-orientation average by default, or the response along a chosen principal
-axis with ``axis=i``. The spheroid additionally offers closed-form depolarization
-factors (``depolarization_factors(closed=True)``).
-
-The full-wave confocal spheroid (separation of variables in the spheroidal basis
-with complex ``c``) is **not implemented** — ``SpheroidSolver.full_wave()`` raises
-``NotImplementedError``; SciPy provides only real-``c`` spheroidal functions.
+random-orientation average by default, or the response along a chosen principal axis
+with ``axis=i``. The triaxial ellipsoid is non-axisymmetric, so the axisymmetric
+EBCM cannot cover it — this quasi-static solver is the dedicated route. A **spheroid**
+in the Rayleigh limit is the special case ``EllipsoidSolver(a_eq, a_eq, c_ax, …)``
+(b = a); for the full-wave spheroid use :class:`~green_tensor.scatterer.Spheroid`.
 
 Cylinder — exact 2-D
 --------------------
@@ -95,20 +120,20 @@ verified to machine precision against Bohren–Huffman (normal) and the Wait /
 Kavaklıoğlu isolated-cylinder coefficients (oblique), reduces to the homogeneous
 solver at one layer, and conserves energy.
 
-The **finite** cylinder is non-separable (no direct full-wave solver). Use
-:class:`~green_tensor.solvers.FiniteCylinderSolver`, which ``decompose``\ s the body
-into a non-overlapping sphere cluster solved by :class:`~green_tensor.solvers.Cluster`
-(GMM) — the same rigorous-analytic route as :class:`~green_tensor.solvers.ConeSolver`.
-A prolate spheroid is an alternative quasi-static approximation.
+For the **finite** cylinder the rigorous solver is the full-wave EBCM primitive
+:class:`~green_tensor.scatterer.FiniteCylinder` (in :class:`~green_tensor.solvers.Cluster`).
+A decompose fallback (:class:`~green_tensor.solvers.FiniteCylinderSolver`) remains for
+the EBCM edge-limited regime (flat/cubic aspect).
 
-Finite cylinder — rigorous via decomposition
----------------------------------------------
+Finite cylinder — decompose fallback
+------------------------------------
 
-:class:`~green_tensor.solvers.FiniteCylinderSolver` (centre, radius, half-length,
-axis) has no direct full-wave solver; ``decompose(spacing)`` packs the cylinder with
-non-overlapping spheres (verified non-overlapping and inside the body) which feed the
-spherical-VSWF :class:`~green_tensor.solvers.Cluster` (GMM). ``full_wave()`` raises
-``NotImplementedError``.
+The rigorous finite cylinder is the EBCM primitive
+:class:`~green_tensor.scatterer.FiniteCylinder`. As a fallback (e.g. flat/cubic aspect
+where the EBCM rim diverges), :class:`~green_tensor.solvers.FiniteCylinderSolver`
+(centre, radius, half-length, axis) offers ``decompose(spacing)``: it packs the cylinder
+with non-overlapping spheres (verified non-overlapping and inside the body) which feed the
+spherical-VSWF :class:`~green_tensor.solvers.Cluster` (GMM).
 
 .. warning::
 
@@ -153,15 +178,15 @@ Helpers: :func:`~green_tensor.decompose.maxwell_garnett_eps` /
    the Maxwell–Garnett correction, plus better boundary conformity. ``lattice="cubic"``
    (default) is the simple cubic lattice.
 
-Cone — rigorous via decomposition
----------------------------------
+Cone — rigorous full-wave (EBCM), with decompose fallback
+---------------------------------------------------------
 
-The direct sphero-conal solver needs non-integer-degree Legendre functions and is
-**not implemented** (``ConeSolver.full_wave()`` raises ``NotImplementedError``).
-The rigorous, *analytic* route is ``ConeSolver.decompose(spacing)`` → a cluster of
-non-overlapping spheres solved by GMM. This pattern (``decompose`` →
-:class:`~green_tensor.solvers.Cluster`) handles arbitrary "brick-like" geometry
-from the strictly analytic sphere family.
+The rigorous cone is the full-wave EBCM primitive
+:class:`~green_tensor.scatterer.Cone` (in :class:`~green_tensor.solvers.Cluster`) —
+no sphero-conal special functions are needed. A decompose fallback remains:
+``ConeSolver.decompose(spacing)`` → a cluster of non-overlapping spheres solved by
+GMM. This pattern (``decompose`` → :class:`~green_tensor.solvers.Cluster`) also
+handles arbitrary "brick-like" geometry from the strictly analytic sphere family.
 
 Cluster — the GMM assembly engine
 ----------------------------------

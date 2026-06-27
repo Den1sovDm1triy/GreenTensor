@@ -7,16 +7,20 @@ GreenTensor
 **GreenTensor** — библиотека аналитического анализа рассеяния электромагнитных
 волн на гетерогенных структурах. Математическим ядром служит точное решение для
 радиально-слоистой сферы методом тензорных функций Грина (ТФГ / Ми). Поверх ядра
-построено семейство аналитических решателей (сфероид, эллипсоид, цилиндр, конус) с
-единым T-матричным интерфейсом в сферическом базисе векторных волновых функций и
-единый движок сборки сложной геометрии (Generalized Multiparticle Mie, GMM).
+построены строгие полноволновые EBCM/ТФГ-примитивы для несферических тел (сфероид,
+конечный цилиндр, конус, в т.ч. слоистые) с единым T-матричным интерфейсом в
+сферическом базисе векторных волновых функций; сложная геометрия собирается единым
+движком (Generalized Multiparticle Mie, GMM). Семейство дополняют замкнутые аналитики
+(трёхосный эллипсоид; бесконечный/слоистый/косой цилиндр).
 
 *EN.* **GreenTensor** is a library for analytic electromagnetic-scattering analysis
 on heterogeneous structures. Its mathematical core is the exact radially-layered-sphere
-solution by the tensor Green's function (TGF / Mie) method. On top of the core, a
-family of analytic solvers (spheroid, ellipsoid, cylinder, cone) shares one T-matrix
-interface in the spherical vector-wave-function basis, composed by a single
-complex-geometry assembly engine (Generalized Multiparticle Mie, GMM).
+solution by the tensor Green's function (TGF / Mie) method. On top of the core,
+rigorous full-wave EBCM/TGF primitives for non-spherical bodies (spheroid, finite
+cylinder, cone, incl. layered) share one T-matrix interface in the spherical
+vector-wave-function basis, composed by a single complex-geometry assembly engine
+(Generalized Multiparticle Mie, GMM); complementary closed-form analytics (triaxial
+ellipsoid; infinite/layered/oblique cylinder) round out the family.
 
 The library underpins two IEEE publications:
 

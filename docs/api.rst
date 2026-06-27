@@ -33,6 +33,11 @@ Vector spherical wave functions & translation
 
 .. automodule:: green_tensor.vswf
 
+Rigorous full-wave EBCM/TGF (non-spherical primitives)
+------------------------------------------------------
+
+.. automodule:: green_tensor.ebcm
+
 Complex-geometry assembly (GMM)
 -------------------------------
 
@@ -40,13 +45,9 @@ Complex-geometry assembly (GMM)
 
 .. automodule:: green_tensor.decompose
 
-Analytic geometry solvers
--------------------------
+Complementary closed-form analytics
+-----------------------------------
 
 .. automodule:: green_tensor.ellipsoid
 
-.. automodule:: green_tensor.spheroid
-
 .. automodule:: green_tensor.cylinder
-
-.. automodule:: green_tensor.cone

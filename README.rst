@@ -31,25 +31,28 @@ Features
 - **Exact layered-sphere core** (Mie / TGF): multilayer, complex permittivity
   (absorption), magnetic layers, PEC limit, diffraction and surface-source
   ("antenna") problems, linear and circular polarization.
-- **One solver per geometry**, all behind a uniform API:
+- **Rigorous full-wave EBCM/TGF primitives** for non-spherical bodies, assembled
+  through ``Cluster`` (GMM):
 
-  ===============  =====================================  ==========================
-  Geometry         Solver                                 Regime
-  ===============  =====================================  ==========================
-  Sphere           ``SphereSolver``                       exact (Mie / TGF)
-  Spheroid         ``SpheroidSolver``                     quasi-static (Rayleigh)
-  Ellipsoid        ``EllipsoidSolver``                    quasi-static (Rayleigh)
-  Cylinder (∞)     ``CylinderSolver``                     exact 2-D
-  Cone             ``ConeSolver`` → sphere cluster + GMM  rigorous via decomposition
-  Cluster          ``Cluster``                            self-consistent GMM
-  ===============  =====================================  ==========================
+  - ``SphereSolver`` — layered sphere, exact (Mie / TGF).
+  - ``Spheroid``, ``FiniteCylinder``, ``Cone`` — rigorous full-wave EBCM/TGF
+    primitives (incl. **layered**, with arbitrary orientation via Wigner-D
+    rotation); solved through ``Cluster``.
+  - ``EllipsoidSolver`` — triaxial ellipsoid, quasi-static (Rayleigh) — the one
+    geometry the axisymmetric EBCM cannot cover.
+  - ``CylinderSolver`` / ``LayeredCylinderSolver`` — infinite cylinder, exact 2-D
+    (homogeneous, layered, normal + oblique incidence).
+  - ``decompose`` → ``Cluster`` — rigorous fallback: arbitrary bodies as a
+    non-overlapping sphere cluster.
+  - ``Cluster`` — self-consistent GMM assembly of any of the above.
 
 - **Unified T-matrix interface** (spherical VSWF) + **GMM** assembly engine with
   closed-form Cruzan translation-addition coefficients (no dense-packing limit).
-- **Honest scope.** Full-wave branches that require special-function machinery not
-  available in SciPy (confocal spheroid, finite cylinder, sphero-conal cone) raise
-  ``NotImplementedError`` rather than returning unverified results; complex bodies
-  are handled rigorously by decomposition into the analytic sphere family + GMM.
+- **Honest scope.** The EBCM finite cylinder is edge-limited (sharp rims:
+  elongated aspect is accurate, flat/cubic diverges — use the ``decompose``
+  fallback there). The legacy 2-D ``CylinderSolver.finite`` raises
+  ``NotImplementedError`` rather than returning unverified results, pointing to the
+  rigorous ``FiniteCylinder`` (EBCM) instead.
 
 Installation
 ------------
