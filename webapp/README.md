@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering. -->
+
 # GreenTensor Web — рассеяние на многослойной сфере
 
 Локальное веб-приложение поверх **эталонного ядра** `green_tensor/mie_core.py`

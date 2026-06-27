@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Сквозное демо: композитное решение на сложной геометрии из сфер-примитивов.
 
 Демонстрирует цель проекта: сложное тело представляется кластером непересекающихся

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering. -->
+
 # 📡 Сравнение диаграмм рассеяния линзы Люнеберга
 
 Этот репозиторий содержит скрипты для построения и сравнения диаграмм рассеяния Лунебурговской линзы, рассчитанных в **GreenTensor** и **HFSS**. 

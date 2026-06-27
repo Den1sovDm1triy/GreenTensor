@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering. -->
+
 # GreenTensor — технический разбор расчётных скриптов
 
 > Аудит подготовлен автоматически. Цель — зафиксировать назначение, физико-математическую

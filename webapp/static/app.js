@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+ */
+
 /* GreenTensor web — фронтенд.
    Все диаграммы строятся через ЕДИНЫЙ шаблон (шрифты, сетка, палитра, экспорт),
    цвета читаются из CSS-токенов: индиго = θ/co, янтарь = φ/cross. */

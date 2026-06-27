@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """
 ВНИМАНИЕ: этот файл не относится к библиотеке GreenTensor (электродинамика).
 Это утилита для анализа HTML соцсетей через Yandex GPT, попавшая сюда по ошибке.

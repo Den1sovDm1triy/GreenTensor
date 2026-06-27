@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering. -->
+
 # Верификация GreenTensor_Theory.tex по публикациям
 
 Каждый раздел независимо сверен с литературой (агент-скептик, web-поиск первоисточников).

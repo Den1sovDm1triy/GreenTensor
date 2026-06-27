@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering. -->
+
 # Ревью реализации против теории (`GreenTensor_Theory.tex`)
 
 Сверка кода (`green_tensor/`) с теоретическим документом: конвенции, формулы, покрытие,
