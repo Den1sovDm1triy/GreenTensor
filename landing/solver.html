@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('gt-theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'light');}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreenTensor Solver — веб-расчётчик</title>
+<meta name="description" content="Интерактивный веб-расчётчик GreenTensor: бистатическая ЭПР, диаграммы рассеяния и параметрический свип k₀a для многослойных сферических структур. Python + numpy + scipy в браузере.">
+<meta name="theme-color" content="#f4f7f6">
+
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg: #07090a;
+  --bg-2: #0c1311;
+  --surface: #0f1815;
+  --surface-2: #15211c;
+  --border: #1d2d27;
+  --text: #d8efe5;
+  --muted: #6f8a82;
+  --accent: #00ff9c;
+  --accent-2: #21d68a;
+  --accent-dim: rgba(0, 255, 156, 0.12);
+  --accent-glow: rgba(0, 255, 156, 0.35);
+  --danger: #ff6b6b;
+  --warn: #ffb547;
+  --code-bg: #0a1411;
+  /* themeable tokens (overridden in light theme) */
+  --on-accent: #001a10;
+  --bar-bg: rgba(7,9,10,0.85);
+  --grid-line: rgba(0,255,156,0.03);
+  color-scheme: dark;
+}
+
+/* =========================================================
+   LIGHT THEME — light UI chrome, dark visualization canvas
+   ========================================================= */
+html[data-theme="light"]{
+  --bg: #f4f7f6;
+  --bg-2: #eef3f1;
+  --surface: #ffffff;
+  --surface-2: #e9efed;
+  --border: #d9e2de;
+  --text: #0e1f18;
+  --muted: #586b63;
+  --accent: #047857;
+  --accent-2: #059669;
+  --accent-dim: rgba(4,120,87,0.10);
+  --accent-glow: rgba(4,120,87,0.22);
+  --danger: #d64545;
+  --warn: #b7791f;
+  --code-bg: #eef3f1;
+  --on-accent: #ffffff;
+  --bar-bg: rgba(255,255,255,0.85);
+  --grid-line: rgba(4,120,87,0.05);
+  color-scheme: light;
+}
+/* light theme: light visualization canvas (3D viewport + Plotly panels) */
+html[data-theme="light"] .viewport-3d{background:radial-gradient(ellipse at center,#eef3f1 0%,#dbe6e1 72%)}
+html[data-theme="light"] .viewport-3d-overlay{background:rgba(255,255,255,0.72)}
+html[data-theme="light"] .viewport-3d-legend .item{background:rgba(255,255,255,0.8)}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+
+a{color:inherit}
+
+/* ===== Top bar ===== */
+.app-bar{
+  flex:0 0 56px;
+  display:flex;align-items:center;
+  padding:0 18px;gap:14px;
+  background:var(--bar-bg);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.app-bar a.brand{
+  display:flex;align-items:center;gap:10px;
+  text-decoration:none;color:var(--text);
+  font-weight:700;font-size:16px;letter-spacing:-0.02em;
+}
+.brand-mark{
+  width:24px;height:24px;border-radius:6px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  position:relative;box-shadow:0 0 18px var(--accent-glow);
+}
+.brand-mark::after{content:'';position:absolute;inset:5px;border:1.5px solid var(--bg);border-radius:50%}
+.brand-mark::before{content:'';position:absolute;inset:9px;background:var(--bg);border-radius:50%}
+.brand span{color:var(--accent)}
+.app-bar .sep{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px}
+.app-bar .crumb{
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.05em;
+}
+.app-bar .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.app-bar .btn-link{
+  padding:7px 14px;border-radius:7px;
+  font-size:13px;color:var(--muted);text-decoration:none;
+  border:1px solid transparent;transition:all .2s ease;
+}
+.app-bar .btn-link:hover{color:var(--text);border-color:var(--border);background:var(--bg-2)}
+.app-bar .btn-cta{
+  padding:7px 14px;border-radius:7px;
+  background:var(--accent);color:var(--on-accent);
+  font-weight:600;font-size:13px;text-decoration:none;
+  transition:all .2s ease;
+}
+.app-bar .btn-cta:hover{background:var(--accent-2);box-shadow:0 4px 14px var(--accent-glow)}
+.app-bar .theme-toggle{
+  width:32px;height:32px;flex-shrink:0;
+  display:inline-grid;place-items:center;padding:0;
+  background:transparent;border:1px solid var(--border);border-radius:7px;
+  color:var(--muted);cursor:pointer;
+  transition:border-color .2s ease, color .2s ease, background .2s ease;
+}
+.app-bar .theme-toggle:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.app-bar .theme-toggle svg{width:16px;height:16px;display:block}
+.theme-toggle .icon-moon{display:none}
+html[data-theme="light"] .theme-toggle .icon-sun{display:none}
+html[data-theme="light"] .theme-toggle .icon-moon{display:block}
+
+/* ===== HFSS-style ribbon toolbar ===== */
+.toolbar{
+  flex:0 0 76px;
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:stretch;
+  padding:8px 14px;gap:14px;
+  background:linear-gradient(to bottom, var(--bg-2), var(--surface));
+  border-bottom:1px solid var(--border);
+  overflow-x:auto;
+  white-space:nowrap;
+}
+.toolbar > .tb-status{justify-self:start}
+.toolbar > .tb-ribbon{justify-self:center}
+.tb-divider{
+  width:1px;align-self:center;height:44px;background:var(--border);flex-shrink:0;
+}
+/* Centered ribbon container */
+.tb-ribbon{
+  display:flex;align-items:stretch;gap:14px;
+  flex-shrink:0;
+}
+/* HFSS-style group: controls on top, label below */
+.tb-group{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  flex-shrink:0;
+}
+.tb-group-controls{
+  display:flex;align-items:center;gap:8px;flex:1;
+}
+.tb-group-label{
+  font-family:'JetBrains Mono',monospace;font-size:9.5px;
+  color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;
+  opacity:0.75;
+  align-self:center;
+}
+
+.tb-status{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;
+  align-self:center;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:7px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--muted);min-width:160px;max-width:240px;flex-shrink:1;
+  overflow:hidden;
+}
+.tb-status #solver-status-text{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.tb-status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.tb-status.loading .dot{background:var(--warn);animation:pulse 1.4s infinite}
+.tb-status.ready .dot{background:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.tb-status.error .dot{background:var(--danger)}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,181,71,0.6)}
+  50%{box-shadow:0 0 0 6px rgba(255,181,71,0)}
+}
+
+.tb-tabs{display:flex;gap:2px;padding:3px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+.tb-tab{
+  padding:6px 14px;
+  background:transparent;border:0;border-radius:5px;
+  color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:all .2s ease;
+}
+.tb-tab:hover{color:var(--text)}
+.tb-tab.active{
+  background:var(--accent-dim);color:var(--accent);
+  box-shadow:inset 0 0 0 1px rgba(0,255,156,0.25);
+}
+
+.tb-presets{display:flex;align-items:center;gap:6px}
+.tb-preset{
+  padding:6px 11px;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:6px;
+  color:var(--muted);font-family:inherit;font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .2s ease;
+}
+.tb-preset:hover{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
+
+.tb-run{
+  padding:9px 22px;
+  background:var(--accent);color:var(--on-accent);
+  border:0;border-radius:8px;
+  font-family:inherit;font-size:13.5px;font-weight:700;
+  cursor:pointer;transition:all .2s ease;
+  display:flex;align-items:center;gap:8px;
+}
+.tb-run::before{
+  content:'';width:0;height:0;
+  border-left:7px solid var(--on-accent);
+  border-top:5px solid transparent;border-bottom:5px solid transparent;
+}
+.tb-run:hover:not(:disabled){background:var(--accent-2);box-shadow:0 4px 16px var(--accent-glow);transform:translateY(-1px)}
+.tb-run:disabled{opacity:0.5;cursor:not-allowed;background:var(--muted);color:var(--bg-2)}
+.tb-run:disabled::before{border-left-color:var(--bg-2)}
+.tb-run .spinner{
+  width:12px;height:12px;border-radius:50%;
+  border:2px solid rgba(0,26,16,0.3);border-top-color:var(--on-accent);
+  animation:spin .7s linear infinite;display:none;
+}
+.tb-run.running .spinner{display:inline-block}
+.tb-run.running::before{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* CSV export button (lives in metrics-footer) */
+.metrics-csv{
+  margin-left:auto;
+  padding:5px 14px;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:5px;
+  color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
+  letter-spacing:0.05em;
+  cursor:pointer;transition:all .2s ease;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.metrics-csv::before{
+  content:'↓';font-size:12px;line-height:1;
+}
+.metrics-csv:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.metrics-csv:disabled{opacity:0.35;cursor:not-allowed}
+
+/* ===== Layout ===== */
+.app{
+  flex:1 1 auto;min-height:0;
+  display:grid;
+  grid-template-columns:340px 1fr;
+  gap:0;
+  background:var(--bg);
+  overflow:hidden;
+}
+.app::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse at center, black 0%, transparent 70%);
+  z-index:0;
+}
+
+/* ===== Left: form ===== */
+.panel-form{
+  position:relative;z-index:1;
+  border-right:1px solid var(--border);
+  background:var(--bg-2);
+  overflow-y:auto;
+  padding:18px;
+  display:flex;flex-direction:column;gap:14px;
+}
+.panel-form h3{
+  font-size:11px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.07em;
+  margin:6px 0 -2px;
+  font-family:'JetBrains Mono',monospace;
+}
+
+/* Fields */
+.solver-field{display:flex;flex-direction:column;gap:5px}
+.solver-field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.solver-field label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.05em;
+}
+.solver-field input{
+  padding:8px 10px;
+  background:var(--code-bg);
+  border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12.5px;
+  outline:none;transition:border-color .2s;
+}
+.solver-field input:focus{border-color:var(--accent)}
+.solver-field input::-webkit-inner-spin-button,
+.solver-field input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+/* Layer table */
+.solver-layers-wrap{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:6px;
+}
+.solver-layer-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:11.5px;table-layout:fixed}
+.solver-layer-table thead th{
+  text-align:left;padding:5px 4px;
+  color:var(--muted);font-weight:500;
+  border-bottom:1px solid var(--border);
+  text-transform:uppercase;letter-spacing:0.04em;font-size:10px;
+}
+.solver-layer-table tbody td{padding:3px 2px}
+.solver-layer-table tbody td:first-child{color:var(--muted);text-align:center;width:18px;font-size:10px}
+.solver-layer-table colgroup col.col-k{width:22px}
+.solver-layer-table input{
+  width:100%;padding:4px 5px;min-width:0;
+  background:var(--code-bg);
+  border:1px solid var(--border);border-radius:4px;
+  color:var(--text);font-family:inherit;font-size:11px;outline:none;
+}
+.solver-layer-table input:focus{border-color:var(--accent)}
+.solver-layer-actions{display:flex;gap:6px;margin-top:6px}
+.solver-layer-actions button{
+  padding:4px 10px;
+  background:var(--code-bg);
+  border:1px solid var(--border);border-radius:5px;
+  color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;
+  cursor:pointer;transition:all .2s ease;
+}
+.solver-layer-actions button:hover:not(:disabled){border-color:var(--accent);color:var(--text)}
+.solver-layer-actions button:disabled{opacity:0.4;cursor:not-allowed}
+
+/* ===== Right: viewport (3D + plots + metrics footer) ===== */
+.panel-view{
+  position:relative;z-index:1;
+  display:grid;
+  grid-template-rows:minmax(260px,1fr) minmax(260px,1fr) 38px;
+  gap:1px;background:var(--border);
+  overflow:hidden;
+}
+.viewport-3d{
+  position:relative;
+  background:radial-gradient(ellipse at center, #0c1815 0%, #07090a 70%);
+  overflow:hidden;
+}
+#scene-canvas{display:block;width:100%;height:100%}
+.viewport-3d-overlay{
+  position:absolute;top:14px;left:14px;
+  display:flex;flex-direction:column;gap:4px;
+  pointer-events:none;
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--muted);
+  background:rgba(7,9,10,0.6);
+  backdrop-filter:blur(8px);
+  border:1px solid var(--border);border-radius:6px;
+  padding:8px 12px;
+}
+.viewport-3d-overlay .lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em}
+.viewport-3d-overlay .val{color:var(--accent);font-weight:600}
+.viewport-3d-legend{
+  position:absolute;bottom:14px;left:14px;right:14px;
+  display:flex;flex-wrap:wrap;gap:10px;
+  pointer-events:none;
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--muted);
+}
+.viewport-3d-legend .item{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(7,9,10,0.7);
+  backdrop-filter:blur(8px);
+  border:1px solid var(--border);border-radius:5px;
+  padding:4px 9px;
+}
+.viewport-3d-legend .swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+.viewport-plots{
+  position:relative;
+  background:var(--bg);
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1px;
+}
+.viewport-plot{
+  background:var(--code-bg);
+  position:relative;
+  min-height:240px;
+}
+.viewport-plot-empty{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:12px;
+  font-family:'JetBrains Mono',monospace;
+  text-align:center;padding:20px;
+}
+.viewport-plot[data-pane]:not(.active){display:none}
+.viewport-plot-tabs{
+  position:absolute;top:10px;right:10px;z-index:5;
+  display:flex;gap:4px;
+}
+.viewport-plot-tabs span{
+  padding:4px 10px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  color:var(--muted);
+  background:var(--bar-bg);
+  border:1px solid var(--border);border-radius:4px;
+  text-transform:uppercase;letter-spacing:0.05em;
+}
+
+.metrics-footer{
+  display:flex;align-items:center;gap:14px;
+  padding:0 12px 0 16px;
+  background:var(--bg-2);
+  border-top:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;
+  color:var(--muted);
+  overflow-x:auto;white-space:nowrap;
+}
+.metrics-footer .m{display:inline-flex;align-items:center;gap:6px}
+.metrics-footer .m b{color:var(--accent);font-weight:600}
+.metrics-footer .m[data-tab-rcs],
+.metrics-footer .m[data-tab-sweep]{display:inline-flex}
+body:not(.tab-sweep) .metrics-footer .m[data-tab-sweep]{display:none}
+body.tab-sweep .metrics-footer .m[data-tab-rcs]{display:none}
+
+/* Sweep tab visibility */
+[data-tab-sweep]{display:none}
+body.tab-sweep [data-tab-rcs]{display:none}
+body.tab-sweep [data-tab-sweep]{display:block}
+
+/* ===== Mobile / narrow ===== */
+@media (max-width: 980px){
+  body{overflow:auto;display:block}
+  .app-bar,.toolbar{position:static}
+  .toolbar{flex-wrap:nowrap;overflow-x:auto;padding:6px 12px;height:auto;flex:0 0 auto}
+  .tb-ribbon{margin:0;gap:10px}
+  .tb-status{min-width:auto}
+  .tb-tab{padding:6px 10px;font-size:12px}
+  .tb-preset{padding:5px 9px;font-size:11.5px}
+  .tb-group-label{font-size:9px}
+  .app{
+    grid-template-columns:1fr;
+    height:auto;
+    min-height:calc(100vh - 56px - 54px);
+    overflow:visible;
+  }
+  .panel-form{
+    border-right:0;border-bottom:1px solid var(--border);
+    max-height:none;overflow-y:visible;
+  }
+  .panel-view{grid-template-rows:auto auto auto}
+  .viewport-3d{height:60vw;min-height:260px}
+  .viewport-plots{grid-template-columns:1fr;grid-template-rows:auto auto}
+  .viewport-plot{min-height:260px}
+  .app-bar .crumb,.app-bar .sep{display:none}
+}
+/* ===== Phones / narrow: stack the ribbon toolbar vertically ===== */
+@media (max-width: 760px){
+  .toolbar{
+    display:flex;flex-direction:column;align-items:stretch;
+    height:auto;gap:10px;padding:10px 12px;
+    overflow:visible;white-space:normal;
+  }
+  .tb-status{width:100%;max-width:none;justify-content:flex-start}
+  .tb-ribbon{
+    width:100%;flex-wrap:wrap;justify-content:center;gap:10px 14px;
+  }
+  .tb-divider{display:none}
+  .tb-group{flex:0 0 auto}
+  .tb-tabs{flex-wrap:wrap;justify-content:center}
+  /* "Запуск" group (last in the ribbon) takes a full-width row */
+  .tb-ribbon .tb-group:last-child{flex:1 1 100%;width:100%}
+  .tb-ribbon .tb-group:last-child .tb-group-controls{width:100%}
+  .tb-run{width:100%;justify-content:center;padding:11px 22px}
+  /* parameters panel + scrollable layer table on tight widths */
+  .panel-form{padding:16px}
+  .solver-layers-wrap{overflow-x:auto}
+  .solver-layer-table{min-width:300px}
+}
+@media (max-width: 540px){
+  .app-bar{padding:0 12px;gap:8px}
+  .app-bar .btn-link{padding:6px 10px;font-size:12px}
+  .app-bar a.brand{font-size:14px}
+  .tb-label{display:none}
+}
+
+/* guard against accidental horizontal page scroll on phones */
+@media (max-width: 980px){
+  body{overflow-x:hidden}
+}
+</style>
+</head>
+<body>
+
+<header class="app-bar">
+  <a class="brand" href="index.html">
+    <span class="brand-mark"></span>
+    Green<span>Tensor</span>
+  </a>
+  <span class="sep">/</span>
+  <span class="crumb">solver · web calculator</span>
+  <div class="right">
+    <a class="btn-link" href="index.html">← Лендинг</a>
+    <a class="btn-link" href="guides.html">Guides</a>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему" title="Светлая / тёмная тема">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <a class="btn-cta" href="https://github.com/Den1sovDm1triy/GreenTensor" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</header>
+
+<!-- ============ TOOLBAR (HFSS-style ribbon) ============ -->
+<div class="toolbar" role="toolbar">
+
+  <div class="tb-status loading" id="solver-status">
+    <span class="dot"></span>
+    <span id="solver-status-text">Инициализация…</span>
+    <span class="progress" id="solver-status-progress"></span>
+  </div>
+
+  <!-- Centered ribbon: Режим | Пресеты | Запуск -->
+  <div class="tb-ribbon">
+
+    <div class="tb-group">
+      <div class="tb-group-controls">
+        <div class="tb-tabs" role="tablist">
+          <button class="tb-tab active" data-tab="rcs" role="tab" aria-selected="true">Бистатическая ЭПР</button>
+          <button class="tb-tab" data-tab="sweep" role="tab" aria-selected="false">Свип k₀a</button>
+        </div>
+      </div>
+      <span class="tb-group-label">Режим</span>
+    </div>
+
+    <div class="tb-divider"></div>
+
+    <div class="tb-group">
+      <div class="tb-group-controls">
+        <div class="tb-presets">
+          <button class="tb-preset" data-preset="luneburg4">Люнеберг · 4</button>
+          <button class="tb-preset" data-preset="luneburg9">Люнеберг · 9</button>
+          <button class="tb-preset" data-preset="metal">Металл</button>
+          <button class="tb-preset" data-preset="head">Голова</button>
+        </div>
+      </div>
+      <span class="tb-group-label">Пресеты</span>
+    </div>
+
+    <div class="tb-divider"></div>
+
+    <div class="tb-group">
+      <div class="tb-group-controls">
+        <button type="button" class="tb-run" id="solver-run" disabled>
+          <span class="spinner"></span>
+          <span id="solver-run-text">Загрузка движка…</span>
+        </button>
+      </div>
+      <span class="tb-group-label">Запуск</span>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="app">
+
+  <!-- ============ LEFT: parameters only ============ -->
+  <aside class="panel-form">
+
+    <h3>Параметры волны</h3>
+    <div class="solver-field-row">
+      <div class="solver-field">
+        <label for="solver-k0">k₀ · радиус</label>
+        <input type="number" id="solver-k0" value="5" step="0.1" min="0.1">
+      </div>
+      <div class="solver-field">
+        <label for="solver-toch">toch · ряд</label>
+        <input type="number" id="solver-toch" value="10" step="1" min="4" max="20">
+      </div>
+    </div>
+    <div class="solver-field" id="solver-rcs-only" data-tab-rcs>
+      <label for="solver-phi">φ азимут (рад)</label>
+      <input type="number" id="solver-phi" value="1.5708" step="0.0001">
+    </div>
+
+    <div data-tab-sweep>
+      <h3>Параметры свипа</h3>
+      <div class="solver-field-row">
+        <div class="solver-field">
+          <label for="sweep-start">k₀a start</label>
+          <input type="number" id="sweep-start" value="0.25" step="0.05" min="0.05">
+        </div>
+        <div class="solver-field">
+          <label for="sweep-stop">k₀a stop</label>
+          <input type="number" id="sweep-stop" value="5.0" step="0.1" min="0.1">
+        </div>
+      </div>
+      <div class="solver-field">
+        <label for="sweep-step">k₀a step</label>
+        <input type="number" id="sweep-step" value="0.05" step="0.01" min="0.01">
+      </div>
+    </div>
+
+    <h3>Структура сферы (изнутри наружу)</h3>
+    <div class="solver-layers-wrap">
+      <table class="solver-layer-table" id="solver-layers">
+        <thead>
+          <tr>
+            <th>k</th>
+            <th>aₖ/R</th>
+            <th>ε′</th>
+            <th>ε″</th>
+            <th>μ′</th>
+            <th>μ″</th>
+          </tr>
+        </thead>
+        <tbody id="solver-layers-body"></tbody>
+      </table>
+      <div class="solver-layer-actions">
+        <button type="button" id="solver-add-layer">+ слой</button>
+        <button type="button" id="solver-del-layer">− слой</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ============ RIGHT: 3D + plots ============ -->
+  <section class="panel-view">
+
+    <div class="viewport-3d">
+      <canvas id="scene-canvas"></canvas>
+      <div class="viewport-3d-overlay">
+        <div><span class="lbl">Слоёв · </span><span class="val" id="ov-n">—</span></div>
+        <div><span class="lbl">k₀ · </span><span class="val" id="ov-k0">—</span></div>
+        <div><span class="lbl">ε</span><sub class="lbl">центр</sub> · <span class="val" id="ov-eps">—</span></div>
+      </div>
+      <div class="viewport-3d-legend" id="scene-legend"></div>
+    </div>
+
+    <div class="viewport-plots">
+
+      <!-- RCS plots -->
+      <div class="viewport-plot active" data-pane="rcs-teta" data-tab-rcs id="rcs-plot-teta">
+        <div class="viewport-plot-tabs"><span>E_θ (dB)</span></div>
+        <div class="viewport-plot-empty">Полярная диаграмма E_θ — нажмите «Рассчитать»</div>
+      </div>
+      <div class="viewport-plot active" data-pane="rcs-phi" data-tab-rcs id="rcs-plot-phi">
+        <div class="viewport-plot-tabs"><span>E_φ (dB)</span></div>
+        <div class="viewport-plot-empty">Полярная диаграмма E_φ — нажмите «Рассчитать»</div>
+      </div>
+
+      <!-- Sweep plots -->
+      <div class="viewport-plot active" data-pane="sweep-sigma" data-tab-sweep id="sweep-plot-sigma">
+        <div class="viewport-plot-tabs"><span>σ_s, σ_θ, σ_φ</span></div>
+        <div class="viewport-plot-empty">σ_s, σ_θ, σ_φ от k₀a</div>
+      </div>
+      <div class="viewport-plot active" data-pane="sweep-rp" data-tab-sweep id="sweep-plot-rp">
+        <div class="viewport-plot-tabs"><span>σ_r, σ_p</span></div>
+        <div class="viewport-plot-empty">Радиолокационный и попутный коэффициенты</div>
+      </div>
+
+    </div>
+
+    <div class="metrics-footer">
+      <span class="m" data-tab-rcs>время <b id="rcs-m-time">—</b></span>
+      <span class="m" data-tab-rcs>N <b id="rcs-m-n">—</b></span>
+      <span class="m" data-tab-rcs>toch <b id="rcs-m-toch">—</b></span>
+      <span class="m" data-tab-sweep>время <b id="sweep-m-time">—</b></span>
+      <span class="m" data-tab-sweep>точек <b id="sweep-m-pts">—</b></span>
+      <span class="m" data-tab-sweep>max σ_s <b id="sweep-m-max">—</b></span>
+      <button type="button" class="metrics-csv" id="solver-export" disabled title="Экспорт результата в CSV">CSV</button>
+    </div>
+
+  </section>
+
+</div>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="app-rcs.js" defer></script>
+
+<script>
+/* Theme toggle (light default, shared via localStorage 'gt-theme') */
+(function(){
+  var KEY='gt-theme';
+  var btn=document.getElementById('theme-toggle');
+  function setMeta(t){var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='light'?'#f4f7f6':'#07090a');}
+  setMeta(document.documentElement.getAttribute('data-theme')==='light'?'light':'dark');
+  if(btn){
+    btn.addEventListener('click',function(){
+      var cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+      var next=cur==='light'?'dark':'light';
+      document.documentElement.setAttribute('data-theme',next);
+      try{localStorage.setItem(KEY,next);}catch(e){}
+      setMeta(next);
+      window.dispatchEvent(new Event('gt-theme-change'));
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

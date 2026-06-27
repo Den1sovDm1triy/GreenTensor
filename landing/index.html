@@ -1,0 +1,2396 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('gt-theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'light');}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreenTensor — расчёт рассеяния ЭМ-волн на многослойных сферах</title>
+<meta name="description" content="GreenTensor — open-source Python-библиотека для расчёта рассеяния электромагнитных волн на многослойных сферических структурах методом тензорных функций Грина. Линзы Люнеберга, ЭПР, диаграммы направленности.">
+<meta name="theme-color" content="#f4f7f6">
+
+<!-- Favicons -->
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #07090a;
+  --bg-2: #0c1311;
+  --surface: #0f1815;
+  --surface-2: #15211c;
+  --border: #1d2d27;
+  --text: #d8efe5;
+  --muted: #6f8a82;
+  --accent: #00ff9c;
+  --accent-2: #21d68a;
+  --accent-dim: rgba(0, 255, 156, 0.12);
+  --accent-glow: rgba(0, 255, 156, 0.35);
+  --danger: #ff6b6b;
+  --code-bg: #0a1411;
+  --max-w: 1180px;
+  /* themeable tokens (overridden in light theme) */
+  --on-accent: #001a10;
+  --nav-bg: rgba(7,9,10,0.6);
+  --nav-bg-scrolled: rgba(7,9,10,0.85);
+  --nav-menu-bg: rgba(7,9,10,0.96);
+  --grid-line: rgba(0,255,156,0.04);
+  --code-fg: #cce8d8;
+  color-scheme: dark;
+}
+
+/* =========================================================
+   LIGHT THEME — overrides the dark :root above
+   ========================================================= */
+html[data-theme="light"]{
+  --bg: #f4f7f6;
+  --bg-2: #e9efed;
+  --surface: #ffffff;
+  --surface-2: #eef3f1;
+  --border: #d9e2de;
+  --text: #0e1f18;
+  --muted: #586b63;
+  --accent: #047857;
+  --accent-2: #059669;
+  --accent-dim: rgba(4,120,87,0.10);
+  --accent-glow: rgba(4,120,87,0.22);
+  --danger: #d64545;
+  --code-bg: #f6f8f7;
+  --on-accent: #ffffff;
+  --nav-bg: rgba(255,255,255,0.72);
+  --nav-bg-scrolled: rgba(255,255,255,0.90);
+  --nav-menu-bg: rgba(255,255,255,0.97);
+  --grid-line: rgba(4,120,87,0.05);
+  --code-fg: #2f3b36;
+  color-scheme: light;
+}
+/* light-mode code syntax (One Light palette) */
+html[data-theme="light"] .tk-kw{color:#a626a4}
+html[data-theme="light"] .tk-fn{color:#4078f2}
+html[data-theme="light"] .tk-str{color:#50a14f}
+html[data-theme="light"] .tk-num{color:#986801}
+html[data-theme="light"] .tk-com{color:#9aa0a6}
+html[data-theme="light"] .tk-cls{color:#c18401}
+html[data-theme="light"] .tk-var{color:#383a42}
+/* hero word-gradient — keep within readable emeralds on white */
+html[data-theme="light"] h1 span{background:linear-gradient(135deg,var(--accent),var(--accent-2) 70%,#0fae72);-webkit-background-clip:text;background-clip:text}
+/* matplotlib plots have white backgrounds — show them natively in light mode */
+html[data-theme="light"] .diagram-img{background:#fff}
+html[data-theme="light"] .diagram-img img{filter:none}
+html[data-theme="light"] .diagram-img::after{opacity:0}
+html[data-theme="light"] .member.legacy .member-avatar{background:var(--surface-2)}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ------- Background grid ------- */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse at top, black 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ------- Navigation ------- */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:18px 32px;
+  backdrop-filter:blur(14px);
+  background:var(--nav-bg);
+  border-bottom:1px solid transparent;
+  transition:border-color .3s ease, background .3s ease;
+}
+nav.scrolled{border-bottom-color:var(--border);background:var(--nav-bg-scrolled)}
+.nav-wrap{
+  max-width:var(--max-w);margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+}
+.logo{
+  display:flex;align-items:center;gap:10px;
+  font-weight:700;font-size:18px;letter-spacing:-0.02em;
+  text-decoration:none;color:var(--text);
+}
+.logo-mark{
+  width:28px;height:28px;border-radius:7px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:grid;place-items:center;
+  box-shadow:0 0 24px var(--accent-glow);
+  position:relative;
+}
+.logo-mark::after{
+  content:'';position:absolute;inset:6px;
+  border:1.5px solid var(--bg);border-radius:50%;
+}
+.logo-mark::before{
+  content:'';position:absolute;inset:11px;
+  background:var(--bg);border-radius:50%;
+}
+.logo span{color:var(--accent)}
+.nav-links{display:flex;gap:22px;align-items:center;flex-wrap:nowrap}
+.nav-links a{
+  color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;
+  transition:color .2s ease;white-space:nowrap;
+}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{
+  padding:9px 18px;border-radius:8px;
+  background:var(--accent);color:var(--on-accent) !important;
+  font-weight:600 !important;font-size:14px;
+  transition:all .2s ease;
+}
+.nav-cta:hover{background:var(--accent-2);transform:translateY(-1px);box-shadow:0 6px 20px var(--accent-glow)}
+
+/* ------- Mobile burger ------- */
+.nav-burger{
+  display:none;
+  width:40px;height:40px;
+  background:transparent;border:1px solid var(--border);border-radius:8px;
+  cursor:pointer;padding:0;
+  align-items:center;justify-content:center;
+  transition:border-color .2s ease, background .2s ease;
+}
+.nav-burger:hover{border-color:var(--accent);background:var(--accent-dim)}
+.nav-burger span{
+  display:block;width:18px;height:2px;background:var(--text);
+  position:relative;transition:transform .25s ease, opacity .2s ease;
+}
+.nav-burger span::before,
+.nav-burger span::after{
+  content:'';position:absolute;left:0;width:18px;height:2px;background:var(--text);
+  transition:transform .25s ease, top .25s ease;
+}
+.nav-burger span::before{top:-6px}
+.nav-burger span::after{top:6px}
+nav.menu-open .nav-burger span{background:transparent}
+nav.menu-open .nav-burger span::before{top:0;transform:rotate(45deg)}
+nav.menu-open .nav-burger span::after{top:0;transform:rotate(-45deg)}
+
+/* ------- Theme toggle ------- */
+.nav-links{margin-left:auto}
+.nav-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.theme-toggle{
+  width:40px;height:40px;flex-shrink:0;
+  display:inline-grid;place-items:center;
+  background:transparent;border:1px solid var(--border);border-radius:8px;
+  color:var(--muted);cursor:pointer;padding:0;
+  transition:border-color .2s ease, color .2s ease, background .2s ease;
+}
+.theme-toggle:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.theme-toggle svg{width:18px;height:18px;display:block}
+.theme-toggle .icon-moon{display:none}
+html[data-theme="light"] .theme-toggle .icon-sun{display:none}
+html[data-theme="light"] .theme-toggle .icon-moon{display:block}
+
+@media(max-width:768px){
+  .nav-burger{display:inline-flex}
+  .nav-links{
+    position:fixed;top:64px;left:0;right:0;
+    flex-direction:column;align-items:stretch;gap:0;
+    padding:16px 18px 24px;
+    background:var(--nav-menu-bg);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+    transform:translateY(-12px);opacity:0;pointer-events:none;
+    transition:transform .25s ease, opacity .2s ease;
+    max-height:calc(100vh - 64px);overflow-y:auto;
+  }
+  nav.menu-open .nav-links{transform:translateY(0);opacity:1;pointer-events:auto}
+  .nav-links a{
+    display:block;padding:14px 8px;
+    font-size:16px;color:var(--text);
+    border-bottom:1px solid var(--border);
+  }
+  .nav-links a:last-child{border-bottom:0}
+  .nav-cta{
+    margin-top:10px;text-align:center;
+    border-bottom:0 !important;
+  }
+}
+
+/* ------- Layout ------- */
+.container{max-width:var(--max-w);margin:0 auto;padding:0 32px;position:relative;z-index:1}
+
+/* ------- Hero ------- */
+.hero{
+  min-height:100vh;
+  position:relative;
+  display:flex;align-items:center;
+  padding:120px 32px 80px;
+  overflow:hidden;
+}
+#canvas-3d{
+  position:absolute;
+  top:0;right:0;
+  width:55%;height:100%;
+  z-index:0;
+  opacity:.95;
+  mask-image:radial-gradient(ellipse at center, black 40%, transparent 80%);
+}
+@media(max-width:980px){
+  #canvas-3d{width:100%;opacity:.35;mask-image:radial-gradient(ellipse at center, black 30%, transparent 75%)}
+}
+.hero-inner{position:relative;z-index:1;max-width:var(--max-w);margin:0 auto;width:100%}
+.hero-content{max-width:620px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;border-radius:99px;
+  background:var(--accent-dim);
+  border:1px solid rgba(0,255,156,0.25);
+  font-size:13px;font-weight:500;color:var(--accent);
+  margin-bottom:24px;
+}
+.hero-badge::before{
+  content:'';width:7px;height:7px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 12px var(--accent);
+  animation:pulse 2s infinite ease-in-out;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+h1{
+  font-size:clamp(40px,6vw,72px);
+  line-height:1.05;letter-spacing:-0.03em;
+  font-weight:800;margin-bottom:24px;
+}
+h1 span{
+  background:linear-gradient(135deg,var(--accent),var(--accent-2) 60%, #66ffc8);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero-sub{
+  font-size:clamp(17px,1.6vw,20px);color:var(--muted);
+  max-width:560px;margin-bottom:36px;line-height:1.6;
+}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:14px 24px;border-radius:10px;
+  font-weight:600;font-size:15px;text-decoration:none;
+  transition:all .2s ease;cursor:pointer;border:none;
+  font-family:inherit;
+}
+.btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-primary:hover{background:var(--accent-2);transform:translateY(-2px);box-shadow:0 10px 30px var(--accent-glow)}
+.btn-ghost{
+  background:transparent;color:var(--text);
+  border:1px solid var(--border);
+}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn svg{width:18px;height:18px}
+
+.hero-stats{
+  display:flex;gap:40px;margin-top:60px;flex-wrap:wrap;
+}
+.stat{display:flex;flex-direction:column}
+.stat-value{
+  font-size:28px;font-weight:700;color:var(--accent);
+  font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;
+}
+.stat-label{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* ------- Sections ------- */
+section{padding:100px 0;position:relative;z-index:1}
+.section-header{text-align:center;max-width:720px;margin:0 auto 60px}
+.section-tag{
+  display:inline-block;
+  font-size:13px;font-weight:600;
+  color:var(--accent);
+  text-transform:uppercase;letter-spacing:0.12em;
+  margin-bottom:14px;
+}
+h2{
+  font-size:clamp(30px,4vw,46px);
+  line-height:1.15;letter-spacing:-0.025em;
+  font-weight:700;margin-bottom:18px;
+}
+.section-sub{font-size:17px;color:var(--muted);line-height:1.6}
+
+/* ------- About ------- */
+.about{background:linear-gradient(180deg, transparent, var(--bg-2) 50%, transparent)}
+.about-grid{
+  display:grid;grid-template-columns:1.1fr 1fr;gap:60px;align-items:center;
+}
+@media(max-width:880px){.about-grid{grid-template-columns:1fr}}
+.about-text p{color:var(--muted);font-size:16px;margin-bottom:18px;line-height:1.75}
+.about-text p strong{color:var(--text);font-weight:600}
+.about-text p code{
+  font-family:'JetBrains Mono',monospace;font-size:14px;
+  color:var(--accent);background:var(--accent-dim);
+  padding:2px 7px;border-radius:5px;
+}
+.formula-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:32px;
+  position:relative;
+  overflow:hidden;
+}
+.formula-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+}
+.formula-card h4{
+  font-size:13px;font-weight:600;text-transform:uppercase;
+  letter-spacing:0.08em;color:var(--muted);margin-bottom:18px;
+}
+.formula{
+  font-family:'JetBrains Mono',monospace;font-size:15px;
+  line-height:1.9;color:var(--text);
+  white-space:pre-wrap;
+}
+.formula em{color:var(--accent);font-style:normal;font-weight:600}
+.formula-note{
+  margin-top:18px;font-size:13px;color:var(--muted);
+  padding-top:18px;border-top:1px dashed var(--border);
+}
+
+/* ------- Features grid ------- */
+.features-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:20px;
+}
+.feature{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:28px;
+  transition:all .25s ease;
+  position:relative;overflow:hidden;
+}
+.feature:hover{
+  border-color:rgba(0,255,156,0.3);
+  transform:translateY(-3px);
+}
+.feature::after{
+  content:'';position:absolute;
+  top:-1px;left:-1px;right:-1px;height:2px;
+  background:linear-gradient(90deg,var(--accent),transparent);
+  opacity:0;transition:opacity .25s ease;
+}
+.feature:hover::after{opacity:1}
+.feature-icon{
+  width:42px;height:42px;border-radius:10px;
+  background:var(--accent-dim);
+  display:grid;place-items:center;margin-bottom:18px;
+  color:var(--accent);
+}
+.feature-icon svg{width:22px;height:22px}
+.feature h3{
+  font-size:18px;font-weight:600;margin-bottom:8px;
+  letter-spacing:-0.01em;
+}
+.feature p{color:var(--muted);font-size:14.5px;line-height:1.65}
+
+/* ------- Tasks ------- */
+.tasks{background:linear-gradient(180deg, transparent, var(--bg-2) 50%, transparent)}
+.tasks-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:18px;
+}
+.task{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:24px;
+  display:flex;gap:16px;align-items:flex-start;
+  transition:all .2s ease;
+}
+.task:hover{border-color:rgba(0,255,156,0.3)}
+.task-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;font-weight:600;
+  color:var(--accent);
+  background:var(--accent-dim);
+  padding:4px 10px;border-radius:6px;
+  flex-shrink:0;
+}
+.task-body h4{font-size:16px;font-weight:600;margin-bottom:6px;letter-spacing:-0.01em}
+.task-body p{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* ------- Quickstart ------- */
+.quickstart-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:flex-start;
+}
+@media(max-width:880px){.quickstart-grid{grid-template-columns:1fr}}
+.steps{display:flex;flex-direction:column;gap:24px}
+.step{display:flex;gap:18px;align-items:flex-start}
+.step-num{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--accent-dim);color:var(--accent);
+  display:grid;place-items:center;
+  font-weight:700;font-size:15px;flex-shrink:0;
+  border:1px solid rgba(0,255,156,0.25);
+  font-family:'JetBrains Mono',monospace;
+}
+.step-body h4{font-size:17px;font-weight:600;margin-bottom:6px}
+.step-body p{color:var(--muted);font-size:14.5px;line-height:1.65;margin-bottom:10px}
+.code-inline{
+  font-family:'JetBrains Mono',monospace;font-size:13.5px;
+  background:var(--code-bg);
+  border:1px solid var(--border);
+  padding:9px 14px;border-radius:8px;
+  color:var(--accent);
+  display:inline-block;
+}
+
+/* ------- Code block ------- */
+.code-block{
+  background:var(--code-bg);
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+  position:relative;
+  font-family:'JetBrains Mono',monospace;
+}
+.code-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+}
+.code-dots{display:flex;gap:6px}
+.code-dots span{width:11px;height:11px;border-radius:50%}
+.code-dots span:nth-child(1){background:#ff5f57}
+.code-dots span:nth-child(2){background:#febc2e}
+.code-dots span:nth-child(3){background:#28c840}
+.code-filename{
+  font-size:12.5px;color:var(--muted);font-weight:500;
+}
+.code-copy{
+  background:transparent;border:1px solid var(--border);
+  color:var(--muted);font-size:12px;padding:5px 12px;border-radius:6px;
+  cursor:pointer;font-family:inherit;
+  transition:all .2s ease;
+}
+.code-copy:hover{border-color:var(--accent);color:var(--accent)}
+.code-copy.copied{color:var(--accent);border-color:var(--accent)}
+.code-block pre{
+  padding:22px;overflow-x:auto;
+  font-size:13.5px;line-height:1.75;
+  color:var(--code-fg);
+}
+.code-block code{font-family:inherit}
+.tk-kw{color:#ff79c6}
+.tk-fn{color:#50fa7b}
+.tk-str{color:#f1fa8c}
+.tk-num{color:#bd93f9}
+.tk-com{color:#5b6e64;font-style:italic}
+.tk-cls{color:#8be9fd}
+.tk-var{color:#e8f5ee}
+
+/* ------- Examples ------- */
+.examples-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:32px;
+}
+@media(max-width:980px){.examples-grid{grid-template-columns:1fr}}
+.example-info h3{
+  font-size:24px;font-weight:700;margin-bottom:14px;letter-spacing:-0.02em;
+}
+.example-info > p{color:var(--muted);font-size:15.5px;line-height:1.7;margin-bottom:24px}
+.example-params{
+  display:grid;grid-template-columns:auto 1fr;gap:8px 18px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:18px 22px;border-radius:10px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+}
+.example-params dt{color:var(--accent);font-weight:600}
+.example-params dd{color:var(--text)}
+
+/* ------- Publications ------- */
+.pubs-list{display:flex;flex-direction:column;gap:14px}
+.pub{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:22px 26px;
+  display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;
+  transition:all .2s ease;
+  text-decoration:none;color:inherit;
+}
+.pub:hover{border-color:rgba(0,255,156,0.3);transform:translateX(4px)}
+.pub-year{
+  font-family:'JetBrains Mono',monospace;
+  font-size:18px;font-weight:600;color:var(--accent);
+  min-width:54px;
+}
+.pub-info h4{font-size:15.5px;font-weight:600;line-height:1.45;margin-bottom:4px}
+.pub-info p{font-size:13px;color:var(--muted);line-height:1.5}
+.pub-link{color:var(--muted);transition:color .2s}
+.pub:hover .pub-link{color:var(--accent)}
+@media(max-width:660px){
+  .pub{grid-template-columns:1fr;gap:8px}
+  .pub-link{justify-self:start}
+}
+
+/* ------- Footer ------- */
+footer{
+  border-top:1px solid var(--border);
+  padding:60px 32px 40px;margin-top:60px;
+  background:var(--bg-2);
+}
+.footer-grid{
+  max-width:var(--max-w);margin:0 auto;
+  display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px;
+}
+@media(max-width:780px){.footer-grid{grid-template-columns:1fr 1fr}}
+.footer-brand p{color:var(--muted);font-size:14px;margin-top:14px;max-width:340px;line-height:1.6}
+.footer-col h5{
+  font-size:13px;font-weight:600;text-transform:uppercase;
+  letter-spacing:0.08em;color:var(--text);margin-bottom:16px;
+}
+.footer-col a{
+  display:block;color:var(--muted);text-decoration:none;
+  font-size:14px;padding:5px 0;transition:color .2s;
+}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{
+  max-width:var(--max-w);margin:40px auto 0;padding-top:24px;
+  border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  color:var(--muted);font-size:13px;flex-wrap:wrap;gap:14px;
+}
+
+/* ------- Reveal animation ------- */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .8s ease, transform .8s ease}
+.reveal.visible{opacity:1;transform:none}
+
+/* ------- Team ------- */
+.team-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
+  gap:18px;
+}
+.member{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:24px;
+  display:flex;flex-direction:column;gap:14px;
+  transition:all .25s ease;
+  position:relative;overflow:hidden;
+}
+.member.primary{
+  background:linear-gradient(180deg, var(--accent-dim), var(--surface) 70%);
+  border-color:rgba(0,255,156,0.30);
+}
+.member:hover{
+  border-color:rgba(0,255,156,0.3);
+  transform:translateY(-2px);
+}
+.member-top{
+  display:flex;align-items:flex-start;gap:14px;
+}
+.member-avatar{
+  width:48px;height:48px;border-radius:12px;
+  display:grid;place-items:center;
+  background:var(--accent-dim);
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  font-weight:700;font-size:15px;
+  letter-spacing:0.02em;
+  flex-shrink:0;
+  border:1px solid rgba(0,255,156,0.25);
+}
+.member.primary .member-avatar{
+  background:var(--accent);color:var(--on-accent);
+  box-shadow:0 0 24px var(--accent-glow);
+  border-color:transparent;
+}
+.member.legacy .member-avatar{
+  background:rgba(255,255,255,0.04);
+  color:var(--muted);
+  border-color:var(--border);
+}
+.member-info{display:flex;flex-direction:column;gap:2px}
+.member-name{
+  font-size:16px;font-weight:600;line-height:1.3;
+  letter-spacing:-0.01em;color:var(--text);
+}
+.member-role{
+  font-size:13px;color:var(--accent);font-weight:600;
+}
+.member.legacy .member-role{color:var(--muted)}
+.member-org{
+  font-size:12.5px;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+  margin-top:2px;
+}
+.member-desc{
+  font-size:13.5px;color:var(--muted);line-height:1.65;
+}
+.member-desc strong{color:var(--text);font-weight:600}
+.member-tags{
+  display:flex;flex-wrap:wrap;gap:6px;
+  margin-top:auto;padding-top:6px;
+}
+.member-tag{
+  font-size:11px;font-weight:500;
+  color:var(--muted);
+  padding:3px 9px;border-radius:99px;
+  background:var(--bg-2);
+  border:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;
+}
+.member-tag.accent{
+  color:var(--accent);
+  border-color:rgba(0,255,156,0.25);
+  background:var(--accent-dim);
+}
+.team-note{
+  margin-top:36px;
+  padding:24px 28px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  border-left:3px solid var(--accent);
+}
+.team-note h4{
+  font-size:13px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.10em;
+  color:var(--accent);
+  margin-bottom:12px;
+}
+.team-note p{
+  font-size:14.5px;color:var(--muted);line-height:1.7;
+}
+.team-note p + p{margin-top:10px}
+.team-note strong{color:var(--text);font-weight:600}
+
+/* ------- Diagrams gallery ------- */
+.diagrams-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:22px;
+}
+.diagram{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  transition:all .25s ease;
+}
+.diagram:hover{
+  border-color:rgba(0,255,156,0.30);
+  transform:translateY(-3px);
+}
+.diagram-img{
+  /* off-white tinted background instead of pure white */
+  background:linear-gradient(180deg, #f4f8f6 0%, #e6ecea 100%);
+  padding:22px 26px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+  /* SQUARE aspect ratio */
+  aspect-ratio: 1 / 1;
+  overflow:hidden;
+}
+.diagram-img img{
+  width:100%;height:100%;
+  display:block;
+  object-fit:contain;
+  position:relative;
+  z-index:1;
+  /* slight darken so plots aren't blinding on light bg */
+  filter:brightness(0.94) contrast(1.04);
+  transition:filter .3s ease;
+}
+.diagram-img::after{
+  /* dark translucent overlay on top — softens the bright matplotlib output */
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(ellipse at center, rgba(7,9,10,0.06) 0%, rgba(7,9,10,0.20) 100%),
+    rgba(7, 9, 10, 0.10);
+  z-index:2;
+  pointer-events:none;
+  transition:opacity .3s ease;
+}
+.diagram:hover .diagram-img::after{
+  /* on hover — lift the overlay slightly so user can inspect the plot */
+  opacity:0.45;
+}
+.diagram:hover .diagram-img img{
+  filter:brightness(1) contrast(1);
+}
+.diagram-info{
+  padding:18px 22px 22px;
+  border-top:1px solid var(--border);
+  display:flex;flex-direction:column;gap:8px;
+}
+.diagram-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:600;
+  color:var(--accent);
+  background:var(--accent-dim);
+  padding:3px 9px;border-radius:99px;
+  border:1px solid rgba(0,255,156,0.20);
+  align-self:flex-start;
+  letter-spacing:0.02em;
+}
+.diagram-info h3{
+  font-size:16px;font-weight:600;
+  letter-spacing:-0.01em;line-height:1.35;
+}
+.diagram-info p{
+  font-size:13.5px;color:var(--muted);line-height:1.6;
+}
+.diagram-meta{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;
+}
+.diagram-meta span{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--muted);
+  padding:3px 8px;border-radius:99px;
+  background:var(--bg-2);border:1px solid var(--border);
+}
+
+/* ------- Lens calculator (interactive) ------- */
+.calc{background:linear-gradient(180deg, transparent, var(--bg-2) 50%, transparent)}
+.calc-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:28px 30px;
+  position:relative;
+  overflow:hidden;
+}
+.calc-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+}
+.calc-ctrl-row{
+  display:flex;align-items:center;gap:24px;flex-wrap:wrap;
+  margin-bottom:20px;font-size:13.5px;color:var(--muted);
+}
+.calc-ctrl-group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.calc-ctrl-group > span{font-weight:500;letter-spacing:0.01em}
+.pill-group{display:flex;gap:6px;flex-wrap:wrap}
+.calc-pill{
+  padding:7px 14px;border-radius:99px;
+  border:1px solid var(--border);
+  background:var(--bg-2);
+  cursor:pointer;font-size:12.5px;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;font-weight:500;
+  transition:all .18s ease;letter-spacing:0.01em;
+}
+.calc-pill:hover{color:var(--text);border-color:rgba(0,255,156,0.25)}
+.calc-pill.active{
+  background:var(--accent-dim);
+  color:var(--accent);
+  border-color:rgba(0,255,156,0.35);
+  box-shadow:0 0 0 1px rgba(0,255,156,0.2);
+}
+.layer-slider{
+  -webkit-appearance:none;appearance:none;
+  width:160px;height:4px;border-radius:99px;
+  background:var(--border);outline:none;cursor:pointer;
+}
+.layer-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 12px var(--accent-glow);
+  cursor:pointer;border:2px solid var(--bg);
+  transition:transform .15s ease;
+}
+.layer-slider::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.layer-slider::-moz-range-thumb{
+  width:16px;height:16px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--bg);
+  cursor:pointer;
+}
+.calc-layer-val{
+  font-family:'JetBrains Mono',monospace;
+  font-weight:600;font-size:14px;min-width:24px;
+  color:var(--accent);letter-spacing:0.02em;
+}
+.calc-legend-row{
+  display:flex;gap:22px;flex-wrap:wrap;
+  font-size:12.5px;color:var(--muted);
+  margin-bottom:14px;padding-bottom:14px;
+  border-bottom:1px dashed var(--border);
+}
+.calc-leg-item{display:flex;align-items:center;gap:8px}
+.calc-chart-wrap{
+  position:relative;width:100%;height:340px;
+  background:var(--code-bg);
+  border:1px solid var(--border);
+  border-radius:10px;padding:16px;
+}
+.calc-metrics-row{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px;margin-top:18px;
+}
+.calc-metric{
+  background:var(--bg-2);
+  border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;text-align:center;
+  transition:border-color .2s ease;
+}
+.calc-metric:hover{border-color:rgba(0,255,156,0.25)}
+.calc-metric-val{
+  font-size:20px;font-weight:600;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--accent);letter-spacing:-0.01em;
+}
+.calc-metric-lbl{
+  font-size:11px;color:var(--muted);
+  margin-top:4px;text-transform:uppercase;
+  letter-spacing:0.06em;font-weight:500;
+}
+.calc-table-wrap{
+  margin-top:18px;
+  border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;
+}
+.calc-table-head{
+  padding:10px 16px;
+  background:var(--bg-2);
+  font-size:12px;font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.08em;
+  border-bottom:1px solid var(--border);
+}
+.calc-table-scroll{overflow-x:auto}
+.calc-layer-table{
+  width:100%;border-collapse:collapse;
+  font-size:13px;font-family:'JetBrains Mono',monospace;
+}
+.calc-layer-table th{
+  background:var(--code-bg);
+  font-weight:600;font-size:11px;
+  color:var(--muted);
+  padding:10px 14px;text-align:center;
+  border-bottom:1px solid var(--border);
+  font-family:'Inter',sans-serif;
+  text-transform:uppercase;letter-spacing:0.06em;
+  white-space:nowrap;
+}
+.calc-layer-table td{
+  padding:9px 14px;text-align:center;
+  border-bottom:1px solid var(--border);
+  color:var(--text);
+  white-space:nowrap;
+}
+.calc-layer-table tr:last-child td{border-bottom:none}
+.calc-layer-table tr:hover td{background:rgba(0,255,156,0.03)}
+.calc-eps-cell{color:var(--accent);font-weight:600}
+.calc-err-ok{color:var(--accent-2)}
+.calc-err-warn{color:#ffb547}
+.calc-note{
+  margin-top:18px;font-size:13.5px;color:var(--muted);
+  padding:14px 18px;
+  background:var(--bg-2);
+  border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;line-height:1.6;
+}
+.calc-note strong{color:var(--text);font-weight:600}
+.calc-note code{
+  font-family:'JetBrains Mono',monospace;font-size:12.5px;
+  color:var(--accent);background:var(--accent-dim);
+  padding:1px 7px;border-radius:5px;
+}
+@media(max-width:600px){
+  .calc-card{padding:20px 18px}
+  .calc-chart-wrap{height:280px;padding:10px}
+  .calc-ctrl-row{gap:14px}
+  .layer-slider{width:120px}
+}
+
+/* ------- Web-solver CTA ------- */
+.solver-cta{
+  margin-top:18px;
+  display:grid;grid-template-columns:1.4fr 1fr;gap:24px;align-items:center;
+  padding:32px;
+  background:linear-gradient(135deg, rgba(0,255,156,0.08), rgba(33,214,138,0.04));
+  border:1px solid var(--border);
+  border-radius:16px;
+  position:relative;overflow:hidden;
+}
+.solver-cta::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  opacity:0.5;
+}
+.solver-cta h3{
+  font-size:22px;font-weight:700;margin-bottom:10px;letter-spacing:-0.01em;
+}
+.solver-cta p{color:var(--muted);font-size:14.5px;line-height:1.6;margin-bottom:18px}
+.solver-cta-actions{display:flex;flex-wrap:wrap;gap:10px}
+.solver-cta-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:13px 22px;border-radius:10px;
+  background:var(--accent);color:var(--on-accent);
+  font-weight:700;font-size:14.5px;text-decoration:none;
+  transition:all .2s ease;
+}
+.solver-cta-btn:hover{background:var(--accent-2);transform:translateY(-1px);box-shadow:0 8px 24px var(--accent-glow)}
+.solver-cta-meta{
+  display:flex;flex-direction:column;gap:8px;
+  padding-left:24px;border-left:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--muted);
+}
+.solver-cta-meta b{color:var(--accent);font-weight:600}
+@media(max-width:880px){
+  .solver-cta{grid-template-columns:1fr;padding:24px}
+  .solver-cta-meta{padding-left:0;padding-top:18px;border-left:0;border-top:1px solid var(--border)}
+}
+
+
+/* tighten nav at narrow tablet sizes */
+@media(max-width:1080px) and (min-width:769px){
+  .nav-links{gap:20px}
+  .nav-links a{font-size:13px}
+}
+
+/* ------- Mobile fixes ------- */
+@media(max-width:768px){
+  nav{padding:12px 18px}
+  .nav-wrap{gap:12px}
+  section{padding:80px 0}
+  .hero{padding-top:110px;min-height:auto}
+  .hero h1{font-size:clamp(28px,9vw,44px);line-height:1.15}
+  .hero-sub{font-size:15px}
+  .hero-actions{flex-direction:column;align-items:stretch;width:100%}
+  .hero-actions .btn{justify-content:center;width:100%}
+  .hero-stats{grid-template-columns:1fr;gap:12px;margin-top:32px}
+  .stat{padding:18px 16px}
+  .features-grid{grid-template-columns:1fr;gap:16px}
+  .tasks-grid{grid-template-columns:1fr}
+  .examples-grid{grid-template-columns:1fr}
+  .pubs-list{gap:14px}
+  .pub{flex-direction:column;align-items:flex-start;gap:10px}
+  .pub-link{align-self:flex-end}
+  .footer-grid{grid-template-columns:1fr;gap:30px}
+  h2{font-size:clamp(24px,6vw,32px)}
+  .section-header{margin-bottom:40px}
+  .calc-ctrl-row{flex-direction:column;align-items:stretch;gap:14px}
+  .calc-ctrl-group{flex-wrap:wrap}
+  .calc-table-scroll{overflow-x:auto}
+  .calc-layer-table{min-width:560px}
+  .calc-metrics-row{grid-template-columns:repeat(2,1fr)}
+  .calc-legend-row{flex-direction:column;align-items:flex-start;gap:8px}
+}
+@media(max-width:600px){
+  nav{padding:10px 14px}
+  .container,section,.hero{padding-left:16px;padding-right:16px}
+  section{padding:60px 0}
+  .hero{padding-top:96px}
+  .formula-card{padding:20px}
+  .pub{padding:16px}
+  .cert{padding:18px}
+  .member{padding:18px}
+  .team-note{padding:18px 20px}
+  .calc-card{padding:18px 14px}
+  .calc-chart-wrap{height:260px;padding:8px}
+  .calc-metrics-row{grid-template-columns:1fr}
+}
+/* ------- Narrow phones (≤480px) ------- */
+@media(max-width:480px){
+  .container,section,.hero,footer{padding-left:14px;padding-right:14px}
+  .features-grid,.team-grid,.tasks-grid,.diagrams-grid{grid-template-columns:1fr}
+  .hero-actions .btn{font-size:14px;padding:13px 18px}
+  .hero-badge{font-size:12px}
+  .stat-value{font-size:24px}
+  .solver-cta{padding:20px 16px}
+  .solver-cta-actions{flex-direction:column}
+  .solver-cta-btn{width:100%;justify-content:center}
+  .calc-metrics-row{grid-template-columns:1fr}
+  .calc-card{padding:16px 13px}
+  .footer-bottom{flex-direction:column;align-items:flex-start;gap:8px}
+  .diagram-img{padding:14px 16px}
+  .code-block pre{padding:16px;font-size:12.5px}
+}
+/* keep images from forcing horizontal overflow */
+img{max-width:100%}
+</style>
+</head>
+<body>
+
+<!-- ========== NAV ========== -->
+<nav id="nav">
+  <div class="nav-wrap">
+    <a href="#top" class="logo">
+      <span class="logo-mark"></span>
+      Green<span>Tensor</span>
+    </a>
+    <div class="nav-links" id="nav-links">
+      <a href="#about">Библиотека</a>
+      <a href="#features">Возможности</a>
+      <a href="#quickstart">Старт</a>
+      <a href="#validation">Валидация</a>
+      <a href="#calculator">Линзы</a>
+      <a href="solver.html">Расчётчик →</a>
+      <a href="guides.html">Guides</a>
+      <a href="#publications">Публикации</a>
+      <a href="#team">Команда</a>
+      <a class="nav-cta" href="https://github.com/Den1sovDm1triy/GreenTensor" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему" title="Светлая / тёмная тема">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="nav-burger" id="nav-burger" aria-label="Меню" aria-expanded="false" aria-controls="nav-links">
+        <span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ========== HERO ========== -->
+<section class="hero" id="top">
+  <canvas id="canvas-3d"></canvas>
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-badge">v0.2.0 · Python · MIT</div>
+      <h1>Электромагнитное рассеяние<br>на <span>многослойных сферах</span></h1>
+      <p class="hero-sub">
+        Open-source Python-библиотека для быстрого расчёта рассеяния, ЭПР и диаграмм направленности
+        линз Люнеберга и сферических структур методом тензорных функций Грина.
+        В <strong style="color:var(--text)">10³–10⁴ раз быстрее</strong>, чем full-wave решатели на МКЭ.
+      </p>
+      <div class="hero-actions">
+        <a href="#quickstart" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          Быстрый старт
+        </a>
+        <a href="https://github.com/Den1sovDm1triy/GreenTensor" target="_blank" rel="noopener" class="btn btn-ghost">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55v-2.05c-3.2.7-3.87-1.36-3.87-1.36-.52-1.34-1.27-1.7-1.27-1.7-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.69 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.15 1.18.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.19-1.49 3.15-1.18 3.15-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.06.78 2.13v3.16c0 .31.21.66.79.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+          Star on GitHub
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-value">10³–10⁴×</span>
+          <span class="stat-label">ускорение vs МКЭ</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">N слоёв</span>
+          <span class="stat-label">произвольная структура</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">Python 3.9+</span>
+          <span class="stat-label">numpy, scipy, matplotlib</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== ABOUT ========== -->
+<section class="about" id="about">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">О библиотеке</span>
+      <h2>Тензорные функции Грина для слоистых сфер</h2>
+      <p class="section-sub">
+        Универсальный аппарат электромагнитного анализа, реализованный
+        в виде open-source пакета и пригодный для интеграции в среды моделирования.
+      </p>
+    </div>
+    <div class="about-grid">
+      <div class="about-text reveal">
+        <p>
+          <strong>GreenTensor</strong> решает задачи рассеяния, дифракции и излучения
+          электромагнитных волн на сферически-симметричных структурах с произвольным
+          количеством диэлектрических и магнитных слоёв.
+        </p>
+        <p>
+          В основе лежит разложение поля по сферическим гармоникам и
+          <strong>рекуррентный пересчёт направленных импедансов</strong>
+          <code>Z̄ₙ(rₗ)</code> и <code>Ȳₙ(rₗ)</code> от центра сферы наружу через все слои —
+          это позволяет получить аналитически замкнутое решение без объёмной 3D-сетки.
+        </p>
+        <p>
+          Метод исторически развит школой Б.А. Панченко
+          (плоский → цилиндрический → сферический случай) и в этой реализации
+          обобщает триадный подход в едином TGF-фреймворке.
+          Хорошо подходит для <strong>проектирования антенн</strong>,
+          <strong>верификации full-wave решателей</strong> и
+          <strong>параметрических исследований</strong>.
+        </p>
+      </div>
+      <div class="formula-card reveal">
+        <h4>Тензор Грина в сферических координатах</h4>
+<div class="formula">Γᵢⱼ = <em>−j</em>/(4π·r·r') · Σₘ εₘ cos(m(φ−φ')) ×
+       Σₙ <em>(2n+1)</em>/(n(n+1)) · ((n−m)!)/((n+m)!) ×
+       (Gᵢⱼᴱ · jgᵢⱼ + Gᵢⱼᴴ · jfᵢⱼ)</div>
+        <div class="formula-note">
+          <code>Gᵢⱼᴱ</code>, <code>Gᵢⱼᴴ</code> — электрический и магнитный
+          тензорные компоненты;
+          <code>gᵢⱼ</code>, <code>fᵢⱼ</code> — характеристические части
+          (радиальные решения через сферические функции Бесселя и Ханкеля).
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== FEATURES ========== -->
+<section id="features">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Возможности</span>
+      <h2>Что внутри библиотеки</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+        </div>
+        <h3>Многослойные сферы</h3>
+        <p>Произвольное число слоёв с независимыми <code style="color:var(--accent)">ε</code> и <code style="color:var(--accent)">μ</code>, включая комплексные значения для потерь.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h2l3-9 4 18 3-9h6"/></svg>
+        </div>
+        <h3>Бистатическая ЭПР</h3>
+        <p>Полные диаграммы рассеяния по углам θ и φ для VV- и HH-поляризаций. Расчёт за секунды.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v8l5 3"/><path d="M3 12c0-5 4-9 9-9 4 0 8 3 9 7"/><path d="M21 12c0 5-4 9-9 9-4 0-8-3-9-7"/></svg>
+        </div>
+        <h3>Параметрический свип</h3>
+        <p>Перебор по электрическому размеру <code style="color:var(--accent)">k₀a</code>, толщинам и проницаемостям — для оптимизации.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-7"/></svg>
+        </div>
+        <h3>Встроенная визуализация</h3>
+        <p>Полярные диаграммы, кросс-сечения, сравнение с эталонами (HFSS, аналитика) на matplotlib.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg>
+        </div>
+        <h3>Аналитическая прозрачность</h3>
+        <p>Каждый шаг — формула, не «чёрный ящик». Удобно для верификации и научных публикаций.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+        </div>
+        <h3>Открытый код, MIT</h3>
+        <p>Свободно использовать, форкать, встраивать в коммерческие пайплайны. Без лицензионных ограничений.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== TASKS ========== -->
+<section class="tasks" id="tasks">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Применения</span>
+      <h2>Какие задачи решает GreenTensor</h2>
+      <p class="section-sub">
+        От проектирования антенн до бионаучных приложений — везде, где есть слоистая сфера.
+      </p>
+    </div>
+    <div class="tasks-grid">
+      <div class="task reveal">
+        <span class="task-num">01</span>
+        <div class="task-body">
+          <h4>Линзы Люнеберга</h4>
+          <p>Расчёт антенных характеристик: усиление, КНД, фокусировка, апертурное распределение для классической и модифицированных линз.</p>
+        </div>
+      </div>
+      <div class="task reveal">
+        <span class="task-num">02</span>
+        <div class="task-body">
+          <h4>Радиолокационная ЭПР</h4>
+          <p>Моностатическая и бистатическая ЭПР сферических объектов и пассивных отражателей в широком диапазоне частот.</p>
+        </div>
+      </div>
+      <div class="task reveal">
+        <span class="task-num">03</span>
+        <div class="task-body">
+          <h4>Антенны с круговой поляризацией</h4>
+          <p>Многослойные сферические антенны для СВЧ-диапазона, расчёт поляризационных характеристик и кросс-поляризации.</p>
+        </div>
+      </div>
+      <div class="task reveal">
+        <span class="task-num">04</span>
+        <div class="task-body">
+          <h4>Дифракция на покрытиях</h4>
+          <p>Сферы с диэлектрическими и поглощающими покрытиями, проводящие ядра, оценка маскировочных свойств.</p>
+        </div>
+      </div>
+      <div class="task reveal">
+        <span class="task-num">05</span>
+        <div class="task-body">
+          <h4>Компактные отражатели для БПЛА</h4>
+          <p>Широкополосные пассивные отражатели на базе линз Люнеберга для малых беспилотных платформ.</p>
+        </div>
+      </div>
+      <div class="task reveal">
+        <span class="task-num">06</span>
+        <div class="task-body">
+          <h4>Биоэлектромагнетика</h4>
+          <p>Рассеяние на модели головы человека (многослойная сферическая аппроксимация) — публикация USBEREIT 2024.</p>
+        </div>
+      </div>
+      <div class="task reveal">
+        <span class="task-num">07</span>
+        <div class="task-body">
+          <h4>Верификация HFSS / CST</h4>
+          <p>Эталонные расчёты для валидации full-wave решателей на канонических задачах с известным решением.</p>
+        </div>
+      </div>
+      <div class="task reveal">
+        <span class="task-num">08</span>
+        <div class="task-body">
+          <h4>Гибридные модели</h4>
+          <p>Использование как быстрого модуля внутри пайплайнов системного проектирования антенных решёток.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== QUICK START ========== -->
+<section id="quickstart">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Быстрый старт</span>
+      <h2>От clone до первой диаграммы рассеяния — 5 минут</h2>
+    </div>
+    <div class="quickstart-grid">
+      <div class="steps reveal">
+        <div class="step">
+          <span class="step-num">1</span>
+          <div class="step-body">
+            <h4>Установить из PyPI</h4>
+            <p>Все зависимости (numpy, scipy, matplotlib) подтянутся автоматически.</p>
+            <span class="code-inline">pip install GreenTensor</span>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <div class="step-body">
+            <h4>Или склонировать репозиторий с примерами</h4>
+            <p>Готовые скрипты в каталоге <code style="color:var(--accent);font-family:'JetBrains Mono',monospace">examples/</code>.</p>
+            <span class="code-inline">git clone https://github.com/Den1sovDm1triy/GreenTensor.git</span>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <div class="step-body">
+            <h4>Запустить эталонный расчёт</h4>
+            <p>Бистатическая ЭПР 4-слойной линзы Люнеберга (k₀a&nbsp;=&nbsp;5).</p>
+            <span class="code-inline">python "Luneburg Lens Bistatic RCS.py"</span>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">4</span>
+          <div class="step-body">
+            <h4>Открыть в Google Colab</h4>
+            <p>Без локальной установки — нажать «Open in Colab» в README репозитория.</p>
+            <a href="https://github.com/Den1sovDm1triy/GreenTensor" target="_blank" rel="noopener" class="btn btn-ghost" style="padding:8px 16px;font-size:14px;margin-top:4px">
+              Открыть GitHub →
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="reveal">
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><span></span><span></span><span></span></div>
+            <span class="code-filename">install.sh</span>
+            <button class="code-copy" data-copy="pip install GreenTensor">Копировать</button>
+          </div>
+<pre><code><span class="tk-com"># Установка через PyPI</span>
+<span class="tk-fn">pip</span> install GreenTensor
+
+<span class="tk-com"># Или из исходников с примерами</span>
+git clone <span class="tk-str">https://github.com/Den1sovDm1triy/GreenTensor.git</span>
+<span class="tk-kw">cd</span> GreenTensor
+
+<span class="tk-com"># Зависимости: numpy ≥1.24, scipy ≥1.10, matplotlib ≥3.5</span>
+<span class="tk-fn">pip</span> install -r requirements.txt
+
+<span class="tk-com"># Запуск примера №1 — бистатическая ЭПР линзы Люнеберга</span>
+<span class="tk-kw">cd</span> <span class="tk-str">"examples/Example 1 - Luneburg Lens Bistatic RCS"</span>
+<span class="tk-fn">python</span> <span class="tk-str">"Luneburg Lens Bistatic RCS.py"</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== EXAMPLE ========== -->
+<section style="background:linear-gradient(180deg, transparent, var(--bg-2) 50%, transparent)">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Пример расчёта</span>
+      <h2>4-слойная линза Люнеберга, k₀a&nbsp;=&nbsp;5</h2>
+      <p class="section-sub">
+        Сравнение с результатами Greenwood &amp; Jin (1999) — точное соответствие на бистатической ЭПР.
+      </p>
+    </div>
+    <div class="examples-grid">
+      <div class="example-info reveal">
+        <h3>Постановка задачи</h3>
+        <p>
+          Дискретизованная линза Люнеберга — сфера, разбитая на 4 концентрических слоя
+          с убывающей диэлектрической проницаемостью наружу.
+          Закон <code style="color:var(--accent);font-family:'JetBrains Mono',monospace">n(r/a) = √(2 − (r/a)²)</code>
+          обеспечивает идеальную фокусировку плоской волны в точку на противоположной стороне.
+        </p>
+        <h3 style="font-size:18px;margin-bottom:14px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">Параметры</h3>
+        <dl class="example-params">
+          <dt>k₀</dt>           <dd>5 (электрический радиус)</dd>
+          <dt>n_layers</dt>     <dd>4 (последний — воздух)</dd>
+          <dt>радиусы a</dt>    <dd>[0.53, 0.75, 0.93, 1.0]</dd>
+          <dt>ε по слоям</dt>   <dd>[1.86, 1.57, 1.28, 1.0]</dd>
+          <dt>μ по слоям</dt>   <dd>[1, 1, 1, 1]</dd>
+          <dt>точность</dt>     <dd>toch = 10 (порядок ряда)</dd>
+        </dl>
+        <p style="margin-top:24px;padding-top:24px;border-top:1px dashed var(--border);font-size:14px">
+          <strong style="color:var(--text)">Результат:</strong> две полярные диаграммы
+          (VV-pol и HH-pol) бистатической ЭПР в дБ, расчёт занимает менее секунды на ноутбуке.
+        </p>
+      </div>
+      <div class="reveal">
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><span></span><span></span><span></span></div>
+            <span class="code-filename">luneburg_bistatic_rcs.py</span>
+            <button class="code-copy" data-copy='import math, numpy as np&#10;from greentensor import calc&#10;&#10;k0 = 5; toch = 10; n = 4&#10;a   = [0.53, 0.75, 0.93, 1.0]&#10;eps = [1.86, 1.57, 1.28, 1.0]&#10;miy = [1, 1, 1, 1]'>Копировать</button>
+          </div>
+<pre><code><span class="tk-kw">import</span> math
+<span class="tk-kw">import</span> numpy <span class="tk-kw">as</span> np
+<span class="tk-kw">import</span> scipy.special
+<span class="tk-kw">import</span> matplotlib.pyplot <span class="tk-kw">as</span> plt
+
+<span class="tk-com"># --- Геометрия и материалы ---</span>
+<span class="tk-var">k0</span>   = <span class="tk-num">5</span>           <span class="tk-com"># электрический размер k₀·a</span>
+<span class="tk-var">toch</span> = <span class="tk-num">10</span>          <span class="tk-com"># порядок ряда сферических гармоник</span>
+<span class="tk-var">n</span>    = <span class="tk-num">4</span>           <span class="tk-com"># число слоёв (последний — воздух)</span>
+
+<span class="tk-var">a</span>    = [<span class="tk-num">0.53</span>, <span class="tk-num">0.75</span>, <span class="tk-num">0.93</span>, <span class="tk-num">1.0</span>]
+<span class="tk-var">eps</span>  = [<span class="tk-num">1.86</span>, <span class="tk-num">1.57</span>, <span class="tk-num">1.28</span>, <span class="tk-num">1.0</span>]
+<span class="tk-var">miy</span>  = [<span class="tk-num">1</span>, <span class="tk-num">1</span>, <span class="tk-num">1</span>, <span class="tk-num">1</span>]
+
+<span class="tk-com"># --- Запуск расчёта ---</span>
+<span class="tk-com"># Рекуррентно считаются Z̄ₙ(rₗ), Ȳₙ(rₗ) изнутри наружу,</span>
+<span class="tk-com"># затем коэффициенты Mₙ, Nₙ и финальные θ/φ-компоненты поля.</span>
+
+<span class="tk-var">teta</span>     = np.linspace(<span class="tk-num">0.01</span>, <span class="tk-num">2</span>*math.pi, <span class="tk-num">720</span>)
+<span class="tk-var">sigma_t</span>  = <span class="tk-cls">compute_bistatic_rcs</span>(k0, a, eps, miy, toch, teta, pol=<span class="tk-str">'VV'</span>)
+<span class="tk-var">sigma_p</span>  = <span class="tk-cls">compute_bistatic_rcs</span>(k0, a, eps, miy, toch, teta, pol=<span class="tk-str">'HH'</span>)
+
+<span class="tk-com"># --- Полярные диаграммы рассеяния ---</span>
+<span class="tk-var">fig</span>, axs = plt.subplots(<span class="tk-num">1</span>, <span class="tk-num">2</span>, figsize=(<span class="tk-num">10</span>, <span class="tk-num">5</span>),
+                        subplot_kw={<span class="tk-str">'projection'</span>: <span class="tk-str">'polar'</span>})
+axs[<span class="tk-num">0</span>].plot(teta, <span class="tk-num">10</span>*np.log10(sigma_t), color=<span class="tk-str">'#00ff9c'</span>)
+axs[<span class="tk-num">0</span>].set_title(<span class="tk-str">'Bistatic RCS, dB · VV-pol'</span>)
+axs[<span class="tk-num">1</span>].plot(teta, <span class="tk-num">10</span>*np.log10(sigma_p), color=<span class="tk-str">'#21d68a'</span>)
+axs[<span class="tk-num">1</span>].set_title(<span class="tk-str">'Bistatic RCS, dB · HH-pol'</span>)
+plt.show()</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== VALIDATION ========== -->
+<section id="validation">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Валидация</span>
+      <h2>Результаты расчётов и сравнение с HFSS</h2>
+      <p class="section-sub">
+        Открытые тесты на 4-слойной линзе Люнеберга. GreenTensor сходится
+        с full-wave решателем Ansys HFSS на главных лепестках до долей
+        децибела и воспроизводит классические результаты Greenwood &amp; Jin (1999).
+        Все скрипты и CSV-данные — в каталоге <code style="color:var(--accent);font-family:'JetBrains Mono',monospace;background:var(--accent-dim);padding:1px 6px;border-radius:4px">examples/</code> репозитория.
+      </p>
+    </div>
+
+    <div class="diagrams-grid">
+
+      <article class="diagram reveal">
+        <div class="diagram-img">
+          <img src="diagrams/compare_hfss_phi0.png" alt="GreenTensor vs HFSS — φ=0°, бистатическая диаграмма рассеяния линзы Люнеберга">
+        </div>
+        <div class="diagram-info">
+          <span class="diagram-tag">GREENTENSOR vs HFSS · φ = 0°</span>
+          <h3>4-слойная линза Люнеберга — главная плоскость</h3>
+          <p>
+            Бистатическая диаграмма рассеяния в E-плоскости. Аналитическая
+            кривая GreenTensor (оранжевая) совпадает с full-wave Ansys HFSS
+            (синий пунктир) на главном лепестке и ближних боковых до уровня −40 дБ.
+          </p>
+          <div class="diagram-meta">
+            <span>4 слоя</span><span>k₀a = 5</span><span>VV-pol</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="diagram reveal">
+        <div class="diagram-img">
+          <img src="diagrams/gt_polar_result.png" alt="GreenTensor — VV/HH полярные диаграммы рассеяния">
+        </div>
+        <div class="diagram-info">
+          <span class="diagram-tag">GREENTENSOR · ВЫВОД</span>
+          <h3>Полные полярные диаграммы — VV и HH</h3>
+          <p>
+            Чистый вывод библиотеки: бистатическая ЭПР для двух поляризаций
+            одновременно. Расчёт всей пары — менее секунды на ноутбуке для
+            <code style="color:var(--accent);font-family:'JetBrains Mono',monospace">toch = 10</code>
+            (порядок сферических гармоник).
+          </p>
+          <div class="diagram-meta">
+            <span>VV + HH</span><span>720 точек</span><span>&lt; 1 с</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="diagram reveal">
+        <div class="diagram-img">
+          <img src="diagrams/bistatic_rcs_k5.png" alt="Сравнение с эталонными данными Greenwood & Jin (1999)">
+        </div>
+        <div class="diagram-info">
+          <span class="diagram-tag">ЛИТЕРАТУРНАЯ ВАЛИДАЦИЯ</span>
+          <h3>Сравнение с Greenwood &amp; Jin (1999)</h3>
+          <p>
+            Кардиоидная диаграмма рассеяния линзы Люнеберга при k₀a&nbsp;=&nbsp;5.
+            Сплошная кривая — GreenTensor, кружки — эталон из статьи
+            <em>«A novel efficient algorithm for scattering from a multilayer
+            sphere»</em> (Greenwood &amp; Jin, IEEE TAP 1999).
+          </p>
+          <div class="diagram-meta">
+            <span>k₀a = 5</span><span>4 слоя</span><span>IEEE TAP 1999</span>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ========== LENS CALCULATOR ========== -->
+<section class="calc" id="calculator">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Интерактивный расчёт</span>
+      <h2>Калькулятор слоистого профиля линз</h2>
+      <p class="section-sub">
+        Выберите тип градиентной линзы, задайте число слоёв&nbsp;<em style="color:var(--accent);font-style:normal;font-family:'JetBrains Mono',monospace">L</em> —
+        и получите оптимизированное минимаксное приближение профиля&nbsp;<em style="color:var(--accent);font-style:normal;font-family:'JetBrains Mono',monospace">ε(r)</em>,
+        радиусы концентрических оболочек и долю воздуха для 3D-печати по модели Максвелла–Гарнетта.
+      </p>
+    </div>
+
+    <div class="calc-card reveal">
+
+      <div class="calc-ctrl-row">
+        <div class="calc-ctrl-group">
+          <span>Тип линзы</span>
+          <div class="pill-group" id="lens-pills">
+            <button class="calc-pill active" data-lens="luneburg">Люнеберга</button>
+            <button class="calc-pill" data-lens="fisheye">Maxwell Fish-Eye</button>
+            <button class="calc-pill" data-lens="eaton">Eaton–Luneburg</button>
+            <button class="calc-pill" data-lens="halfpower">Half-Power</button>
+          </div>
+        </div>
+        <div class="calc-ctrl-group" style="margin-left:auto;">
+          <span>Слоёв&nbsp;<em style="color:var(--accent);font-style:normal;font-family:'JetBrains Mono',monospace">L</em>&nbsp;=</span>
+          <input type="range" min="1" max="12" step="1" value="4" id="layer-slider" class="layer-slider">
+          <span id="layer-val" class="calc-layer-val">4</span>
+        </div>
+      </div>
+
+      <div class="calc-legend-row">
+        <div class="calc-leg-item">
+          <div style="width:28px;height:2.5px;border-radius:1px;background:var(--accent);"></div>
+          <span>Непрерывный профиль&nbsp;ε(r)</span>
+        </div>
+        <div class="calc-leg-item">
+          <div style="width:28px;height:0;border-top:2.5px dashed #ffb547;"></div>
+          <span>Ступенчатое приближение</span>
+        </div>
+        <div class="calc-leg-item">
+          <div style="width:28px;height:10px;background:rgba(0,255,156,0.10);border:1px solid rgba(0,255,156,0.25);border-radius:2px;"></div>
+          <span>Ошибка аппроксимации</span>
+        </div>
+      </div>
+
+      <div class="calc-chart-wrap">
+        <canvas id="lensChart"></canvas>
+      </div>
+
+      <div class="calc-metrics-row">
+        <div class="calc-metric"><div class="calc-metric-val" id="m-emax">—</div><div class="calc-metric-lbl">ε_max (центр)</div></div>
+        <div class="calc-metric"><div class="calc-metric-val" id="m-emin">—</div><div class="calc-metric-lbl">ε_min (край)</div></div>
+        <div class="calc-metric"><div class="calc-metric-val" id="m-delta">—</div><div class="calc-metric-lbl">Δε / слой</div></div>
+        <div class="calc-metric"><div class="calc-metric-val" id="m-err">—</div><div class="calc-metric-lbl">Max ошибка</div></div>
+        <div class="calc-metric"><div class="calc-metric-val" id="m-vmax">—</div><div class="calc-metric-lbl">V_air, слой 1</div></div>
+      </div>
+
+      <div class="calc-table-wrap">
+        <div class="calc-table-head">Параметры слоёв · оптимизированное минимаксное приближение</div>
+        <div class="calc-table-scroll">
+          <table class="calc-layer-table" id="layer-table">
+            <thead>
+              <tr>
+                <th>k</th>
+                <th>r_вн, мм</th>
+                <th>r_нар, мм</th>
+                <th>r_нар / R</th>
+                <th>ε_k</th>
+                <th>V_air (МГ)</th>
+                <th>Δε</th>
+              </tr>
+            </thead>
+            <tbody id="layer-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="calc-note">
+        Расчёт использует <strong>модель Максвелла–Гарнетта</strong> с матрицей&nbsp;<code>ε_m = 2.67</code>
+        (PLA / ABS), <code>tan&nbsp;δ = 0.009</code>. Радиус линзы фиксирован на&nbsp;<code>R = 36.5&nbsp;мм</code>
+        (типичный размер для X-диапазона). Полученные параметры — стартовая геометрия для
+        full-wave-расчёта в&nbsp;GreenTensor: вектор&nbsp;<code>a = [r₁/R … rₗ/R]</code> и&nbsp;<code>eps = [ε₁ … εₗ]</code>
+        напрямую подставляются в&nbsp;<code>compute_bistatic_rcs(...)</code>.
+      </div>
+
+    </div>
+
+    <!-- Call-to-action: open the standalone web solver -->
+    <div class="solver-cta reveal" id="solver-cta">
+      <div>
+        <h3>Открыть веб-расчётчик</h3>
+        <p>
+          Полный <strong style="color:var(--text)">RCSCalculator</strong> и <strong style="color:var(--text)">ScatteringCalculator</strong>
+          в отдельном окне с 3D-редактором задачи: задаёте слои сферы — структура отрисовывается в реальном времени,
+          расчёт идёт локально через Pyodide (CPython + numpy + scipy в WebAssembly).
+        </p>
+        <div class="solver-cta-actions">
+          <a class="solver-cta-btn" href="solver.html">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            Запустить расчётчик
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/Den1sovDm1triy/GreenTensor#web-solver" target="_blank" rel="noopener">Документация</a>
+        </div>
+      </div>
+      <div class="solver-cta-meta">
+        <div>движок · <b>Pyodide 0.27</b> (CPython 3.12 + numpy + scipy)</div>
+        <div>первая загрузка · <b>~10–12 МБ</b>, далее офлайн из кеша</div>
+        <div>расчёт · <b>локально</b>, без бэкенда, данные не уходят</div>
+        <div>ядро · <b>тот же calc.py</b>, что и десктопная библиотека</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ========== PUBLICATIONS ========== -->
+<section id="publications">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Научная база</span>
+      <h2>Публикации в IEEE и Scopus</h2>
+      <p class="section-sub">
+        Метод и библиотека описаны в рецензируемых изданиях. Цитируйте при использовании.
+      </p>
+    </div>
+    <div class="pubs-list">
+      <a class="pub reveal" href="https://ieeexplore.ieee.org/document/10615009" target="_blank" rel="noopener">
+        <span class="pub-year">2024</span>
+        <div class="pub-info">
+          <h4>GreenTensor Electromagnetic Library for Calculate Scattering on Multilayer Spherical Structures</h4>
+          <p>Denisov D.V., Skumatenko I.O., Fadeev V.O., Shesterov M.A. · IEEE EDM 2024 · DOI: 10.1109/EDM61683.2024.10615009</p>
+        </div>
+        <span class="pub-link">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+        </span>
+      </a>
+      <a class="pub reveal" href="https://ieeexplore.ieee.org/document/10584060" target="_blank" rel="noopener">
+        <span class="pub-year">2024</span>
+        <div class="pub-info">
+          <h4>GreenTensor Electromagnetic Library for Calculating Scattering Patterns on a Human Head Model</h4>
+          <p>Denisov D.V., Skumatenko I.O., Shesterov M.A. · IEEE USBEREIT 2024 · DOI: 10.1109/USBEREIT61901.2024.10584060</p>
+        </div>
+        <span class="pub-link">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+        </span>
+      </a>
+      <a class="pub reveal" href="https://ieeexplore.ieee.org/document/7346364" target="_blank" rel="noopener">
+        <span class="pub-year">2015</span>
+        <div class="pub-info">
+          <h4>Fast analysis of Luneburg lens radiation by Green's function method</h4>
+          <p>Panchenko B.A., Ponomarev O.P., Denisov D.V. · EuRAD / EuMC 2015 · DOI: 10.1109/EuRAD.2015.7346364</p>
+        </div>
+        <span class="pub-link">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+        </span>
+      </a>
+      <div class="pub reveal" style="cursor:default">
+        <span class="pub-year">2017</span>
+        <div class="pub-info">
+          <h4>Антенные характеристики линз Люнеберга в режиме круговой поляризации</h4>
+          <p>Денисов Д.В. · Монография · LAP Lambert · 200 стр. · ISBN 978-3-330-02152-5</p>
+        </div>
+        <span class="pub-link" style="opacity:.4">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== TEAM ========== -->
+<section id="team">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Команда</span>
+      <h2>Разработчики и научное сопровождение</h2>
+      <p class="section-sub">
+        GreenTensor — результат работы школы радиофизики УрФУ
+        и преемственности от трёх поколений исследователей.
+        Здесь — основные участники, упомянутые в коммитах и научных публикациях.
+      </p>
+    </div>
+
+    <div class="team-grid">
+
+      <article class="member primary reveal">
+        <div class="member-top">
+          <div class="member-avatar">ДД</div>
+          <div class="member-info">
+            <span class="member-name">Денисов Дмитрий Вадимович</span>
+            <span class="member-role">Lead developer · автор архитектуры</span>
+            <span class="member-org">УрФУ · к.т.н., доцент</span>
+          </div>
+        </div>
+        <p class="member-desc">
+          Автор библиотеки и постановки задачи. <strong>Кандидатская
+          диссертация (НГТУ, 2015)</strong> по антенным характеристикам линз
+          Люнеберга при круговой поляризации; готовится <strong>докторская
+          по специальности 2.2.14</strong>. Реализовал TGF-аппарат от
+          скриптов 2015 г. до open-source-пакета.
+        </p>
+        <div class="member-tags">
+          <span class="member-tag accent">Lead</span>
+          <span class="member-tag">17 ВАК</span>
+          <span class="member-tag">10 Scopus/WoS</span>
+          <span class="member-tag">Монография 2017</span>
+        </div>
+      </article>
+
+      <article class="member reveal">
+        <div class="member-top">
+          <div class="member-avatar">СИ</div>
+          <div class="member-info">
+            <span class="member-name">Скуматенко Илья Олегович</span>
+            <span class="member-role">Co-developer</span>
+            <span class="member-org">УрФУ · аспирант</span>
+          </div>
+        </div>
+        <p class="member-desc">
+          Соразработчик библиотеки. Соавтор <strong>обеих ключевых
+          IEEE-публикаций 2024</strong>: EDM (multilayer scattering) и
+          USBEREIT (human head model). Также участник работы 2016 г.
+          «Тензорные функции Грина для слоистых сферических структур»
+          (Вестник СибГУТИ).
+        </p>
+        <div class="member-tags">
+          <span class="member-tag">IEEE EDM 2024</span>
+          <span class="member-tag">IEEE USBEREIT 2024</span>
+        </div>
+      </article>
+
+      <article class="member reveal">
+        <div class="member-top">
+          <div class="member-avatar">ФВ</div>
+          <div class="member-info">
+            <span class="member-name">Фадеев Виктор Олегович</span>
+            <span class="member-role">Co-author</span>
+            <span class="member-org">УрФУ</span>
+          </div>
+        </div>
+        <p class="member-desc">
+          Соавтор первой публикации о библиотеке —
+          <strong>IEEE EDM 2024</strong>: «GreenTensor Electromagnetic
+          Library for Calculate Scattering on Multilayer Spherical
+          Structures», DOI 10.1109/EDM61683.2024.10615009.
+          Участник тестирования и валидации.
+        </p>
+        <div class="member-tags">
+          <span class="member-tag">IEEE EDM 2024</span>
+        </div>
+      </article>
+
+      <article class="member reveal">
+        <div class="member-top">
+          <div class="member-avatar">ШМ</div>
+          <div class="member-info">
+            <span class="member-name">Шестеров Михаил Алексеевич</span>
+            <span class="member-role">Co-author</span>
+            <span class="member-org">УрФУ</span>
+          </div>
+        </div>
+        <p class="member-desc">
+          Соавтор обеих публикаций по библиотеке (<strong>IEEE EDM 2024</strong>
+          и <strong>IEEE USBEREIT 2024</strong>). Внёс вклад в применение
+          GreenTensor к биоэлектромагнитной задаче — расчёт диаграмм
+          рассеяния на многослойной сферической модели головы человека.
+        </p>
+        <div class="member-tags">
+          <span class="member-tag">IEEE EDM 2024</span>
+          <span class="member-tag">IEEE USBEREIT 2024</span>
+        </div>
+      </article>
+
+      <article class="member reveal">
+        <div class="member-top">
+          <div class="member-avatar">КД</div>
+          <div class="member-info">
+            <span class="member-name">Кусайкин Дмитрий Валерьевич</span>
+            <span class="member-role">Co-author / соавтор свидетельства</span>
+            <span class="member-org">УрФУ · к.т.н.</span>
+          </div>
+        </div>
+        <p class="member-desc">
+          Соавтор <strong>свидетельства № 2023688035</strong> об интеграции
+          с Ansys HFSS и серии работ по 5G MIMO-OFDM с многолучевыми линзовыми
+          антеннами. Совместно ведёт направление 3D-печати линз Люнеберга
+          (обзор IEEE 2024, Изв. ВУЗов. Радиоэлектроника).
+        </p>
+        <div class="member-tags">
+          <span class="member-tag">5G MIMO</span>
+          <span class="member-tag">3D-печать</span>
+          <span class="member-tag">Ansys HFSS</span>
+        </div>
+      </article>
+
+      <article class="member legacy reveal">
+        <div class="member-top">
+          <div class="member-avatar">ПБ</div>
+          <div class="member-info">
+            <span class="member-name">Панченко Борис Алексеевич</span>
+            <span class="member-role">Научное наследие · in memoriam</span>
+            <span class="member-org">УрФУ · д.т.н., профессор</span>
+          </div>
+        </div>
+        <p class="member-desc">
+          Основоположник применения <strong>тензорных функций Грина</strong>
+          для слоистых сферических структур. Научный руководитель
+          кандидатской Денисова. Соавтор <strong>монографии 2017 г.</strong>,
+          публикаций EuRAD/EuMC 2015 и свидетельства № 2017616708 —
+          фундамент, на котором построена библиотека.
+        </p>
+        <div class="member-tags">
+          <span class="member-tag">EuRAD/EuMC 2015</span>
+          <span class="member-tag">Монография 2017</span>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="team-note reveal">
+      <h4>Школа и преемственность</h4>
+      <p>
+        Метод тензорных функций Грина для сферически-слоистых структур
+        развит школой <strong>Б. А. Панченко</strong> (Екатеринбург) на базе
+        кафедры ВЧСРТ УрФУ. Современная open-source-реализация продолжает
+        линию <em>плоский → цилиндрический → сферический случай</em>,
+        обобщая триадный подход в едином TGF-фреймворке.
+      </p>
+      <p>
+        Контакты для научного сотрудничества:
+        <a href="mailto:dv.denisov@urfu.ru" style="color:var(--accent);text-decoration:none">dv.denisov@urfu.ru</a>.
+        Pull-request'ы и issues — через
+        <a href="https://github.com/Den1sovDm1triy/GreenTensor" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">GitHub-репозиторий</a>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== FOOTER ========== -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="#top" class="logo" style="margin-bottom:4px">
+        <span class="logo-mark"></span>Green<span style="color:var(--accent)">Tensor</span>
+      </a>
+      <p>
+        Open-source Python-библиотека для электромагнитного анализа
+        многослойных сферических структур методом тензорных функций Грина.
+      </p>
+    </div>
+    <div class="footer-col">
+      <h5>Проект</h5>
+      <a href="https://github.com/Den1sovDm1triy/GreenTensor" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://greentensor.readthedocs.io" target="_blank" rel="noopener">Документация</a>
+      <a href="https://github.com/Den1sovDm1triy/GreenTensor/issues" target="_blank" rel="noopener">Issues</a>
+      <a href="#quickstart">Быстрый старт</a>
+    </div>
+    <div class="footer-col">
+      <h5>Разделы</h5>
+      <a href="#about">О библиотеке</a>
+      <a href="#features">Возможности</a>
+      <a href="#tasks">Задачи</a>
+      <a href="#validation">Валидация</a>
+      <a href="#calculator">Калькулятор линз</a>
+      <a href="#publications">Публикации</a>
+      <a href="#team">Команда</a>
+    </div>
+    <div class="footer-col">
+      <h5>Команда</h5>
+      <a href="mailto:dv.denisov@urfu.ru">Денисов Д. В.</a>
+      <a href="#team">Скуматенко И. О.</a>
+      <a href="#team">Фадеев В. О.</a>
+      <a href="#team">Шестеров М. А.</a>
+      <a href="#team">Кусайкин Д. В.</a>
+      <a href="https://urfu.ru" target="_blank" rel="noopener">УрФУ →</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2024–2026 GreenTensor Team · MIT License</span>
+    <span>Радиофизика · СВЧ · Антенные системы</span>
+  </div>
+</footer>
+
+<!-- ========== Lens calculator (Chart.js) ========== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function () {
+  const LENS_RADIUS_MM = 36.5;
+  const LENS = {
+    luneburg: {
+      label: 'Линза Люнеберга',
+      eps: x => 2 - x*x,
+      emax: 2.0, emin: 1.0,
+      optR: (k, L) => Math.sqrt(2*k / (2*L + 1)),
+      optE: (k, L) => 2 - (2*k - 1) / (2*L + 1)
+    },
+    fisheye: {
+      label: 'Maxwell Fish-Eye',
+      eps: x => 4 / Math.pow(1 + x*x, 2),
+      emax: 4.0, emin: 1.0,
+      optR: (k, L) => k / L,
+      optE: (k, L) => { const xm = (k - 0.5) / L; return 4 / Math.pow(1 + xm*xm, 2); }
+    },
+    eaton: {
+      label: 'Eaton–Luneburg',
+      eps: x => { const xc = Math.max(x, 0.12); return 2/xc - 1; },
+      emax: null, emin: 1.0,
+      optR: (k, L) => k / L,
+      optE: (k, L) => { const xm = Math.max((k - 0.5) / L, 0.12); return 2/xm - 1; }
+    },
+    halfpower: {
+      label: 'Half-Power (Бутта)',
+      eps: x => 1 + (1 - x*x),
+      emax: 2.0, emin: 1.0,
+      optR: (k, L) => Math.sqrt(k / L),
+      optE: (k, L) => { const xm = Math.sqrt((k - 0.5) / L); return 1 + (1 - xm*xm); }
+    }
+  };
+
+  // PLA/ABS matrix · Maxwell–Garnett inverse (analytic approximation)
+  const EPM = 2.67;
+  function mgInverse(et) {
+    const b = (EPM - et);
+    const denom = 0.2634 * et + 1.4065;
+    return Math.min(Math.max(b / denom, 0), 0.98);
+  }
+
+  let chart = null;
+  const ACCENT = '#00ff9c';
+  const ACCENT_DIM = 'rgba(0,255,156,0.10)';
+  const ACCENT_BORDER = 'rgba(0,255,156,0.0)';
+  const STEP = '#ffb547';
+  const GRID = 'rgba(0,255,156,0.06)';
+  const TICK = '#6f8a82';
+  const TEXT = '#d8efe5';
+
+  function buildChart(lensKey, L) {
+    const lens = LENS[lensKey];
+    const N = 200;
+    const xs = Array.from({length: N + 1}, (_, i) => i / N);
+    const contData = xs.map(x => ({ x, y: lens.eps(x) }));
+
+    const layers = [];
+    for (let k = 1; k <= L; k++) {
+      const r0 = lens.optR(k - 1, L);
+      const r1 = lens.optR(k, L);
+      const ek = lens.optE(k, L);
+      layers.push({ k, r0, r1, ek });
+    }
+
+    const stepData = [];
+    layers.forEach(({ r0, r1, ek }) => {
+      stepData.push({ x: r0, y: ek }, { x: r1, y: ek });
+    });
+    if (stepData.length) stepData.push({ x: 1, y: 1 });
+
+    const errData = [];
+    xs.forEach(x => {
+      const epsCont = lens.eps(x);
+      let epsStep = 1;
+      for (const { r0, r1, ek } of layers) {
+        if (x >= r0 && x <= r1) { epsStep = ek; break; }
+      }
+      errData.push({ x, y: Math.abs(epsCont - epsStep) });
+    });
+
+    const maxErr = Math.max(...errData.map(d => d.y));
+
+    const cfg = {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'Непрерывный',
+            data: contData,
+            borderColor: ACCENT,
+            borderWidth: 2.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.3,
+            order: 2
+          },
+          {
+            label: 'Ступенчатый',
+            data: stepData,
+            borderColor: STEP,
+            borderDash: [6, 4],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+            stepped: false,
+            order: 1
+          },
+          {
+            label: 'Ошибка',
+            data: errData,
+            borderColor: ACCENT_BORDER,
+            backgroundColor: ACCENT_DIM,
+            fill: true,
+            borderWidth: 0,
+            pointRadius: 0,
+            yAxisID: 'y2',
+            order: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 280 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0a1411',
+            borderColor: 'rgba(0,255,156,0.30)',
+            borderWidth: 1,
+            titleColor: TEXT,
+            bodyColor: TEXT,
+            titleFont: { family: 'JetBrains Mono, monospace', size: 12 },
+            bodyFont: { family: 'JetBrains Mono, monospace', size: 12 },
+            padding: 10,
+            callbacks: {
+              label: ctx => {
+                if (ctx.datasetIndex === 2) return `Ошибка: ${ctx.parsed.y.toFixed(4)}`;
+                return `ε = ${ctx.parsed.y.toFixed(3)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'linear', min: 0, max: 1,
+            title: { display: true, text: 'r / R', color: TICK, font: { size: 12, family: 'Inter, sans-serif' } },
+            grid: { color: GRID },
+            ticks: { color: TICK, stepSize: 0.1, font: { family: 'JetBrains Mono, monospace' } }
+          },
+          y: {
+            title: { display: true, text: 'Относительная проницаемость ε', color: TICK, font: { size: 12, family: 'Inter, sans-serif' } },
+            grid: { color: GRID },
+            ticks: { color: TICK, font: { family: 'JetBrains Mono, monospace' } },
+            min: 0.8
+          },
+          y2: {
+            position: 'right',
+            title: { display: true, text: '|Δε|', color: ACCENT, font: { size: 11, family: 'Inter, sans-serif' } },
+            grid: { display: false },
+            ticks: { color: 'rgba(0,255,156,0.55)', font: { family: 'JetBrains Mono, monospace' } },
+            min: 0,
+            max: Math.max(maxErr * 2, 0.1)
+          }
+        }
+      }
+    };
+
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById('lensChart'), cfg);
+
+    const emaxNum = (lens.emax !== null) ? lens.emax : lens.eps(0.1);
+    const emaxStr = (lens.emax !== null) ? lens.emax.toFixed(2) : ('≈ ' + lens.eps(0.1).toFixed(2));
+    document.getElementById('m-emax').textContent = emaxStr;
+    document.getElementById('m-emin').textContent = lens.emin.toFixed(2);
+    document.getElementById('m-delta').textContent = ((emaxNum - lens.emin) / L).toFixed(3);
+    document.getElementById('m-err').textContent = (maxErr * 100).toFixed(1) + '%';
+
+    const vmax = layers.length ? mgInverse(layers[0].ek) : 0;
+    document.getElementById('m-vmax').textContent = (vmax * 100).toFixed(1) + '%';
+
+    const tbody = document.getElementById('layer-tbody');
+    tbody.innerHTML = '';
+    layers.forEach(({ k, r0, r1, ek }) => {
+      const vMG = mgInverse(ek);
+      const epsStep = lens.optE(k, L);
+      const epsMid = lens.eps((r0 + r1) / 2);
+      const errPct = ((epsStep - epsMid) / epsMid * 100);
+      const errClass = Math.abs(errPct) > 3 ? 'calc-err-warn' : 'calc-err-ok';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${k}</td>
+        <td>${(r0 * LENS_RADIUS_MM).toFixed(2)}</td>
+        <td>${(r1 * LENS_RADIUS_MM).toFixed(2)}</td>
+        <td>${r1.toFixed(3)}</td>
+        <td class="calc-eps-cell">${ek.toFixed(3)}</td>
+        <td>${(vMG * 100).toFixed(1)}%</td>
+        <td class="${errClass}">${errPct >= 0 ? '+' : ''}${errPct.toFixed(1)}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  let curLens = 'luneburg';
+  let curL = 4;
+
+  document.querySelectorAll('#lens-pills .calc-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#lens-pills .calc-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      curLens = btn.dataset.lens;
+      buildChart(curLens, curL);
+    });
+  });
+
+  const slider = document.getElementById('layer-slider');
+  slider.addEventListener('input', e => {
+    curL = parseInt(e.target.value, 10);
+    document.getElementById('layer-val').textContent = curL;
+    buildChart(curLens, curL);
+  });
+
+  // Build on first scroll into view (lazy) — Chart.js loaded via cached CDN
+  function init() {
+    if (window.Chart) buildChart(curLens, curL);
+    else setTimeout(init, 80);
+  }
+  // Defer until page settles
+  if (document.readyState === 'complete') init();
+  else window.addEventListener('load', init);
+})();
+</script>
+
+<!-- ========== Three.js scene ========== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* === Reveal-on-scroll === */
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      io.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+/* === Nav scroll state === */
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+/* === Mobile burger menu === */
+(function(){
+  const burger = document.getElementById('nav-burger');
+  const links = document.getElementById('nav-links');
+  if (!burger || !links) return;
+  function close(){ nav.classList.remove('menu-open'); burger.setAttribute('aria-expanded','false'); }
+  burger.addEventListener('click', () => {
+    const open = nav.classList.toggle('menu-open');
+    burger.setAttribute('aria-expanded', String(open));
+  });
+  links.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+  window.addEventListener('resize', () => { if (window.innerWidth > 768) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
+
+/* === Copy buttons === */
+document.querySelectorAll('.code-copy').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const text = btn.dataset.copy || '';
+    try {
+      await navigator.clipboard.writeText(text);
+      const orig = btn.textContent;
+      btn.textContent = '✓ Скопировано';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1600);
+    } catch(e) { btn.textContent = '✗ Ошибка'; }
+  });
+});
+
+/* === Three.js: multi-layer Luneburg sphere with EM scattering === */
+(function () {
+  if (typeof THREE === 'undefined') return;
+  const canvas = document.getElementById('canvas-3d');
+  if (!canvas) return;
+
+  // Theme-aware palette — bright neon on dark, deeper emeralds on light
+  function palette() {
+    const light = document.documentElement.getAttribute('data-theme') === 'light';
+    return light ? {
+      shells: [0x10b981, 0x0ea571, 0x059669, 0x047857],
+      shellBase: 0.34, shellStep: 0.10,
+      accent: 0x059669, glow: 0.05, ring: 0.55,
+      incident: 0.60, scatterPeak: 0.42, particle: 0.55,
+      particleBlend: THREE.NormalBlending,
+    } : {
+      shells: [0x66ffc8, 0x3df0a8, 0x21d68a, 0x00ff9c],
+      shellBase: 0.10, shellStep: 0.07,
+      accent: 0x00ff9c, glow: 0.04, ring: 0.60,
+      incident: 0.55, scatterPeak: 0.35, particle: 0.70,
+      particleBlend: THREE.AdditiveBlending,
+    };
+  }
+  let P = palette();
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+  camera.position.set(0, 0, 6.5);
+
+  function resize() {
+    const r = canvas.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return;
+    renderer.setSize(r.width, r.height, false);
+    camera.aspect = r.width / r.height;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const root = new THREE.Group();
+  scene.add(root);
+
+  // Multi-layer Luneburg sphere — concentric wireframe shells
+  const layerRadii = [0.53, 0.75, 0.93, 1.0];
+  const layerColors = [0x66ffc8, 0x3df0a8, 0x21d68a, 0x00ff9c];
+  const shells = [];
+  layerRadii.forEach((rr, i) => {
+    const geo = new THREE.SphereGeometry(rr * 1.6, 32, 24);
+    const mat = new THREE.MeshBasicMaterial({
+      color: layerColors[i],
+      wireframe: true,
+      transparent: true,
+      opacity: 0.10 + i * 0.07,
+    });
+    const m = new THREE.Mesh(geo, mat);
+    root.add(m);
+    shells.push(m);
+  });
+
+  // Outer glowing sphere
+  const glowGeo = new THREE.SphereGeometry(1.0 * 1.6, 64, 48);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0x00ff9c, transparent: true, opacity: 0.04, wireframe: false
+  });
+  root.add(new THREE.Mesh(glowGeo, glowMat));
+
+  // Equatorial ring (highlight)
+  const ringGeo = new THREE.TorusGeometry(1.0 * 1.6, 0.005, 8, 128);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff9c, transparent: true, opacity: 0.6 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  root.add(ring);
+
+  // Incident plane wave — animated rings along -Z axis
+  const incidentRings = [];
+  for (let i = 0; i < 6; i++) {
+    const g = new THREE.RingGeometry(0.18, 0.20, 64);
+    const m = new THREE.MeshBasicMaterial({
+      color: 0x00ff9c, transparent: true, opacity: 0.5, side: THREE.DoubleSide
+    });
+    const r = new THREE.Mesh(g, m);
+    r.position.z = -3 + i * 0.5;
+    scene.add(r);
+    incidentRings.push(r);
+  }
+
+  // Scattered wave — expanding spherical shell
+  const scatterRings = [];
+  for (let i = 0; i < 3; i++) {
+    const g = new THREE.SphereGeometry(2.0, 32, 24);
+    const m = new THREE.MeshBasicMaterial({
+      color: 0x00ff9c, transparent: true, opacity: 0.18,
+      wireframe: true,
+    });
+    const r = new THREE.Mesh(g, m);
+    r.userData.phase = (i / 3) * Math.PI * 2;
+    scene.add(r);
+    scatterRings.push(r);
+  }
+
+  // Particle field — scattered "rays"
+  const particleCount = 220;
+  const positions = new Float32Array(particleCount * 3);
+  const angles = new Float32Array(particleCount * 2);
+  const speeds = new Float32Array(particleCount);
+  for (let i = 0; i < particleCount; i++) {
+    const phi = Math.random() * Math.PI * 2;
+    const cosTheta = 2 * Math.random() - 1;
+    const sinTheta = Math.sqrt(1 - cosTheta * cosTheta);
+    angles[i * 2] = Math.atan2(sinTheta * Math.sin(phi), sinTheta * Math.cos(phi));
+    angles[i * 2 + 1] = Math.acos(cosTheta);
+    speeds[i] = 0.4 + Math.random() * 0.8;
+    positions[i * 3] = 0;
+    positions[i * 3 + 1] = 0;
+    positions[i * 3 + 2] = 0;
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const pMat = new THREE.PointsMaterial({
+    color: 0x00ff9c,
+    size: 0.025,
+    transparent: true,
+    opacity: 0.9,
+    blending: THREE.AdditiveBlending,
+  });
+  const particles = new THREE.Points(pGeo, pMat);
+  scene.add(particles);
+
+  // Mouse parallax
+  let mouseX = 0, mouseY = 0;
+  window.addEventListener('mousemove', (e) => {
+    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+  });
+
+  let prefersReduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clock = new THREE.Clock();
+
+  // Re-tint every material when the theme changes
+  function applyTheme() {
+    P = palette();
+    shells.forEach((s, i) => s.material.color.setHex(P.shells[i]));
+    glowMat.color.setHex(P.accent); glowMat.opacity = P.glow;
+    ringMat.color.setHex(P.accent); ringMat.opacity = P.ring;
+    incidentRings.forEach(r => r.material.color.setHex(P.accent));
+    scatterRings.forEach(r => r.material.color.setHex(P.accent));
+    pMat.color.setHex(P.accent); pMat.blending = P.particleBlend; pMat.needsUpdate = true;
+  }
+  applyTheme();
+  window.addEventListener('gt-theme-change', applyTheme);
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+
+    // Smooth root rotation + mouse parallax
+    root.rotation.y += prefersReduce ? 0.0005 : 0.003;
+    root.rotation.x += prefersReduce ? 0 : 0.0006;
+    root.rotation.x += (mouseY * 0.25 - root.rotation.x) * 0.03;
+    root.rotation.y += (mouseX * 0.25 - root.rotation.y) * 0.005;
+
+    // Layer shells — counter-rotate slowly
+    shells.forEach((s, i) => {
+      s.rotation.y = -root.rotation.y * (0.5 + i * 0.2);
+      s.rotation.x = root.rotation.x * (0.3 + i * 0.15);
+      s.material.opacity = P.shellBase + i * P.shellStep + Math.sin(t * 1.2 + i) * 0.03;
+    });
+
+    // Incident rings — march toward sphere, recycle
+    incidentRings.forEach((r, i) => {
+      r.position.z += 0.025;
+      if (r.position.z > 0) r.position.z = -3.2;
+      r.material.opacity = P.incident - Math.abs(r.position.z) * 0.12;
+      r.rotation.z = t * 0.4;
+    });
+
+    // Scattered shells — expand & fade
+    scatterRings.forEach((r, i) => {
+      const phase = (t * 0.5 + r.userData.phase) % 2;
+      const scale = 0.6 + phase * 1.6;
+      r.scale.set(scale, scale, scale);
+      r.material.opacity = Math.max(0, P.scatterPeak * (1 - phase / 2));
+      r.rotation.y = t * 0.15;
+    });
+
+    // Particles — scatter outward from center
+    const pos = particles.geometry.attributes.position.array;
+    for (let i = 0; i < particleCount; i++) {
+      const phase = ((t * speeds[i] * 0.3) + i * 0.05) % 1;
+      const radius = phase * 3.5;
+      const a1 = angles[i * 2];
+      const a2 = angles[i * 2 + 1];
+      pos[i * 3]     = Math.cos(a1) * Math.sin(a2) * radius;
+      pos[i * 3 + 1] = Math.cos(a2) * radius;
+      pos[i * 3 + 2] = Math.sin(a1) * Math.sin(a2) * radius;
+    }
+    particles.geometry.attributes.position.needsUpdate = true;
+    pMat.opacity = P.particle + Math.sin(t * 1.5) * 0.2;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
+
+<!-- ========== Theme toggle ========== -->
+<script>
+(function(){
+  var KEY='gt-theme';
+  var btn=document.getElementById('theme-toggle');
+  function setMeta(t){var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='light'?'#f4f7f6':'#07090a');}
+  setMeta(document.documentElement.getAttribute('data-theme')==='light'?'light':'dark');
+  if(btn){
+    btn.addEventListener('click',function(){
+      var cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+      var next=cur==='light'?'dark':'light';
+      document.documentElement.setAttribute('data-theme',next);
+      try{localStorage.setItem(KEY,next);}catch(e){}
+      setMeta(next);
+      window.dispatchEvent(new Event('gt-theme-change'));
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

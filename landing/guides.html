@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('gt-theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'light');}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreenTensor Guides — постановка задач и туториалы</title>
+<meta name="description" content="Документация GreenTensor: какие задачи решает библиотека, как задавать геометрию многослойной сферы и источник излучения, готовые туториалы по линзе Люнеберга, металлической сфере и биомедицинской модели.">
+<meta name="theme-color" content="#f4f7f6">
+
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg: #07090a;
+  --bg-2: #0c1311;
+  --surface: #0f1815;
+  --surface-2: #15211c;
+  --border: #1d2d27;
+  --text: #d8efe5;
+  --muted: #6f8a82;
+  --accent: #00ff9c;
+  --accent-2: #21d68a;
+  --accent-dim: rgba(0, 255, 156, 0.12);
+  --accent-glow: rgba(0, 255, 156, 0.35);
+  --warn: #ffb547;
+  --danger: #ff6b6b;
+  --code-bg: #0a1411;
+  --max-w: 1180px;
+  /* themeable tokens (overridden in light theme) */
+  --on-accent: #001a10;
+  --bar-bg: rgba(7,9,10,0.85);
+  --grid-line: rgba(0,255,156,0.03);
+  color-scheme: dark;
+}
+
+/* =========================================================
+   LIGHT THEME
+   ========================================================= */
+html[data-theme="light"]{
+  --bg: #f4f7f6;
+  --bg-2: #eef3f1;
+  --surface: #ffffff;
+  --surface-2: #e9efed;
+  --border: #d9e2de;
+  --text: #0e1f18;
+  --muted: #586b63;
+  --accent: #047857;
+  --accent-2: #059669;
+  --accent-dim: rgba(4,120,87,0.10);
+  --accent-glow: rgba(4,120,87,0.22);
+  --warn: #b7791f;
+  --danger: #d64545;
+  --code-bg: #f6f8f7;
+  --on-accent: #ffffff;
+  --bar-bg: rgba(255,255,255,0.85);
+  --grid-line: rgba(4,120,87,0.05);
+  color-scheme: light;
+}
+/* light-mode code syntax */
+html[data-theme="light"] pre .kw{color:#a626a4}
+html[data-theme="light"] pre .fn{color:#4078f2}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);color:var(--text);
+  line-height:1.7;-webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse at top, black 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* ===== Top bar ===== */
+.app-bar{
+  position:sticky;top:0;left:0;right:0;z-index:50;
+  height:60px;
+  display:flex;align-items:center;
+  padding:0 24px;gap:16px;
+  background:var(--bar-bg);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.app-bar a.brand{
+  display:flex;align-items:center;gap:10px;
+  text-decoration:none;color:var(--text);
+  font-weight:700;font-size:17px;letter-spacing:-0.02em;
+}
+.brand-mark{
+  width:26px;height:26px;border-radius:7px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  position:relative;box-shadow:0 0 18px var(--accent-glow);
+}
+.brand-mark::after{content:'';position:absolute;inset:5px;border:1.5px solid var(--bg);border-radius:50%}
+.brand-mark::before{content:'';position:absolute;inset:9px;background:var(--bg);border-radius:50%}
+.brand span{color:var(--accent)}
+.app-bar .sep{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px}
+.app-bar .crumb{
+  font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.05em;
+}
+.app-bar .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+.app-bar .btn-link{
+  padding:8px 14px;border-radius:7px;
+  font-size:13px;color:var(--muted);text-decoration:none;
+  border:1px solid transparent;transition:all .2s ease;white-space:nowrap;
+}
+.app-bar .btn-link:hover{color:var(--text);border-color:var(--border);background:var(--bg-2)}
+.app-bar .btn-cta{
+  padding:8px 14px;border-radius:7px;
+  background:var(--accent);color:var(--on-accent);
+  font-weight:600;font-size:13px;text-decoration:none;
+  transition:all .2s ease;white-space:nowrap;
+}
+.app-bar .btn-cta:hover{background:var(--accent-2);box-shadow:0 4px 14px var(--accent-glow)}
+.app-bar .theme-toggle{
+  width:34px;height:34px;flex-shrink:0;
+  display:inline-grid;place-items:center;padding:0;
+  background:transparent;border:1px solid var(--border);border-radius:7px;
+  color:var(--muted);cursor:pointer;
+  transition:border-color .2s ease, color .2s ease, background .2s ease;
+}
+.app-bar .theme-toggle:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.app-bar .theme-toggle svg{width:16px;height:16px;display:block}
+.theme-toggle .icon-moon{display:none}
+html[data-theme="light"] .theme-toggle .icon-sun{display:none}
+html[data-theme="light"] .theme-toggle .icon-moon{display:block}
+
+/* Mobile burger */
+.menu-burger{
+  display:none;width:40px;height:40px;
+  background:transparent;border:1px solid var(--border);border-radius:8px;
+  cursor:pointer;align-items:center;justify-content:center;
+  margin-left:auto;
+}
+.menu-burger span,.menu-burger span::before,.menu-burger span::after{
+  display:block;width:18px;height:2px;background:var(--text);
+  position:relative;transition:transform .2s ease;
+}
+.menu-burger span::before,.menu-burger span::after{content:'';position:absolute;left:0}
+.menu-burger span::before{top:-6px}
+.menu-burger span::after{top:6px}
+
+/* ===== Layout ===== */
+.docs{
+  max-width:var(--max-w);
+  margin:0 auto;
+  padding:32px 28px 80px;
+  position:relative;z-index:1;
+  display:grid;
+  grid-template-columns:240px 1fr;
+  gap:48px;
+  align-items:start;
+}
+
+/* ===== Sidebar TOC ===== */
+.toc{
+  position:sticky;top:80px;
+  max-height:calc(100vh - 100px);
+  overflow-y:auto;
+  padding-right:8px;
+}
+.toc-title{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;
+  padding:8px 0;border-bottom:1px solid var(--border);
+  margin-bottom:8px;
+}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc nav a{
+  padding:7px 10px;
+  font-size:13.5px;color:var(--muted);text-decoration:none;
+  border-radius:6px;border-left:2px solid transparent;
+  transition:all .15s ease;line-height:1.4;
+}
+.toc nav a:hover{background:var(--bg-2);color:var(--text)}
+.toc nav a.active{
+  color:var(--accent);background:var(--accent-dim);
+  border-left-color:var(--accent);
+}
+.toc nav .toc-section{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  color:var(--muted);opacity:0.6;
+  padding:14px 10px 4px;text-transform:uppercase;letter-spacing:0.05em;
+}
+
+/* ===== Main content ===== */
+.content{min-width:0}
+.content > h1{
+  font-size:clamp(32px, 4vw, 44px);
+  font-weight:800;letter-spacing:-0.02em;
+  margin-bottom:14px;
+}
+.content > h1 + p.lead{
+  font-size:17px;color:var(--muted);line-height:1.7;
+  margin-bottom:32px;max-width:680px;
+}
+.content section{
+  margin:48px 0;
+  scroll-margin-top:80px;
+}
+.content section > h2{
+  font-size:28px;font-weight:700;letter-spacing:-0.01em;
+  margin-bottom:14px;
+  display:flex;align-items:baseline;gap:14px;
+}
+.content section > h2::before{
+  content:counter(section, decimal-leading-zero);
+  font-family:'JetBrains Mono',monospace;
+  font-size:14px;font-weight:600;
+  color:var(--accent);
+  letter-spacing:0.05em;
+}
+.content{counter-reset:section}
+.content section{counter-increment:section}
+.content section > h3{
+  font-size:18px;font-weight:600;
+  margin:28px 0 10px;color:var(--text);
+}
+.content section > h4{
+  font-size:14.5px;font-weight:600;
+  margin:18px 0 6px;color:var(--text);
+  font-family:'JetBrains Mono',monospace;
+}
+.content p{margin:10px 0;color:var(--text)}
+.content section > p:first-of-type{font-size:15.5px}
+.content em{color:var(--accent);font-style:italic}
+.content strong{color:var(--text);font-weight:600}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content ul,.content ol{margin:10px 0 10px 24px;color:var(--text)}
+.content li{margin:4px 0}
+
+code{
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  color:var(--accent);
+  background:var(--accent-dim);
+  padding:2px 7px;border-radius:5px;
+}
+pre{
+  font-family:'JetBrains Mono',monospace;font-size:13.5px;
+  background:var(--code-bg);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:18px 20px;
+  margin:14px 0;
+  overflow-x:auto;
+  line-height:1.6;
+  position:relative;
+}
+pre code{
+  color:var(--text);background:transparent;
+  padding:0;border-radius:0;font-size:13.5px;
+}
+pre .comment{color:var(--muted);font-style:italic}
+pre .kw{color:#ff6b9d}
+pre .str{color:var(--accent)}
+pre .num{color:var(--warn)}
+pre .fn{color:#79c0ff}
+
+/* Callout box */
+.note{
+  display:flex;gap:14px;
+  padding:16px 18px;
+  background:var(--bg-2);
+  border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;
+  margin:18px 0;
+}
+.note.warn{border-left-color:var(--warn)}
+.note.tip{border-left-color:var(--accent-2)}
+.note .icon{
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  color:var(--accent);font-weight:700;
+  flex-shrink:0;
+}
+.note.warn .icon{color:var(--warn)}
+.note.tip .icon{color:var(--accent-2)}
+.note .body{color:var(--text);font-size:14.5px;line-height:1.65}
+.note .body code{font-size:12.5px}
+
+/* Definition table */
+.params{
+  margin:18px 0;
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+}
+.params table{width:100%;border-collapse:collapse}
+.params th,.params td{
+  padding:10px 14px;
+  text-align:left;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+}
+.params th{
+  background:var(--bg-2);
+  color:var(--muted);
+  font-size:11.5px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.05em;
+  font-family:'JetBrains Mono',monospace;
+}
+.params tr:last-child td{border-bottom:0}
+.params td:first-child{
+  font-family:'JetBrains Mono',monospace;
+  color:var(--accent);font-size:13px;
+  width:160px;
+  white-space:nowrap;
+}
+.params td:nth-child(2){
+  font-size:13.5px;
+  color:var(--text);
+}
+.params td.typ{
+  font-family:'JetBrains Mono',monospace;
+  color:var(--muted);font-size:12px;
+  width:120px;
+}
+
+/* Formula box */
+.formula{
+  background:var(--code-bg);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:18px 22px;
+  margin:14px 0;
+  font-family:'JetBrains Mono',monospace;font-size:14px;
+  color:var(--text);
+  text-align:center;
+  line-height:2;
+}
+
+/* Tutorial card */
+.tutorial-card{
+  margin:14px 0 20px;
+  padding:20px 22px;
+  background:linear-gradient(135deg, rgba(0,255,156,0.06), rgba(33,214,138,0.02));
+  border:1px solid var(--border);
+  border-radius:12px;
+  position:relative;
+}
+.tutorial-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  opacity:0.4;
+}
+.tutorial-card .tag{
+  display:inline-block;
+  padding:3px 10px;
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  background:var(--accent-dim);color:var(--accent);
+  border-radius:4px;letter-spacing:0.05em;text-transform:uppercase;font-weight:600;
+  margin-bottom:6px;
+}
+
+/* Run-in-solver button */
+.run-in-solver{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:8px;
+  background:var(--accent);color:var(--on-accent) !important;
+  font-weight:600;font-size:13.5px;text-decoration:none !important;
+  margin-top:8px;
+  transition:all .2s ease;
+}
+.run-in-solver:hover{background:var(--accent-2);transform:translateY(-1px);box-shadow:0 6px 20px var(--accent-glow)}
+
+/* Two-column compact info */
+.cols-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+
+/* Anchor link */
+.content h2 a.anchor,
+.content h3 a.anchor{
+  opacity:0;color:var(--accent);
+  text-decoration:none;font-size:0.85em;
+  margin-left:8px;transition:opacity .15s;
+}
+.content h2:hover a.anchor,.content h3:hover a.anchor{opacity:1}
+
+/* Mobile */
+@media (max-width: 900px){
+  .docs{grid-template-columns:1fr;gap:24px;padding:20px 16px 60px}
+  .toc{
+    position:static;max-height:none;overflow:visible;
+    background:var(--bg-2);
+    border:1px solid var(--border);border-radius:10px;
+    padding:14px;
+  }
+  .toc.collapsed nav{display:none}
+  .toc-title{
+    cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+    padding:0;margin:0;border:0;
+  }
+  .toc-title::after{content:'▾';color:var(--accent)}
+  .toc.collapsed .toc-title::after{content:'▸'}
+  .content > h1{font-size:28px}
+  .content section > h2{font-size:22px}
+  .params td:first-child{width:auto;white-space:normal}
+  .cols-2{grid-template-columns:1fr}
+  pre{font-size:12px;padding:14px 16px}
+  .app-bar{padding:0 14px;gap:8px}
+  .app-bar .crumb,.app-bar .sep{display:none}
+  .app-bar .btn-link,.app-bar .btn-cta{padding:6px 11px;font-size:12px}
+  .app-bar a.brand{font-size:15px}
+}
+
+/* ===== Phones (≤560px) ===== */
+@media (max-width: 560px){
+  .docs{padding:18px 13px 50px;gap:18px}
+  .app-bar{padding:0 12px;gap:6px}
+  .app-bar a.brand{font-size:14px}
+  .app-bar .right{gap:6px}
+  .app-bar .btn-link,.app-bar .btn-cta{padding:6px 9px;font-size:11.5px}
+  /* brand logo already links home → drop the redundant "← Лендинг" button */
+  .app-bar .right .btn-link:first-child{display:none}
+  .content > h1{font-size:24px}
+  .content > h1 + p.lead{font-size:15.5px;margin-bottom:24px}
+  .content section{margin:36px 0}
+  .content section > h2{font-size:19px;gap:10px}
+  .content section > h2::before{font-size:12px}
+  .content section > h3{font-size:16px}
+  /* allow wide tables / formulas to scroll instead of overflowing the page */
+  .params{overflow-x:auto}
+  .formula{overflow-x:auto;text-align:left;padding:14px 16px;font-size:13px;line-height:1.8}
+  pre{font-size:11.5px;padding:12px 14px}
+  .note{padding:13px 14px;gap:10px}
+  .tutorial-card{padding:16px 16px}
+  .run-in-solver{width:100%;justify-content:center}
+}
+
+/* guard against accidental horizontal overflow on small screens */
+body{overflow-x:hidden}
+img{max-width:100%}
+</style>
+</head>
+<body>
+
+<header class="app-bar">
+  <a class="brand" href="index.html">
+    <span class="brand-mark"></span>
+    Green<span>Tensor</span>
+  </a>
+  <span class="sep">/</span>
+  <span class="crumb">guides · документация</span>
+  <div class="right">
+    <a class="btn-link" href="index.html">← Лендинг</a>
+    <a class="btn-link" href="solver.html">Расчётчик</a>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему" title="Светлая / тёмная тема">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <a class="btn-cta" href="https://github.com/Den1sovDm1triy/GreenTensor" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</header>
+
+<main class="docs">
+
+  <!-- ============ TOC ============ -->
+  <aside class="toc" id="toc">
+    <div class="toc-title">Содержание</div>
+    <nav id="toc-nav">
+      <span class="toc-section">Основы</span>
+      <a href="#intro">Введение</a>
+      <a href="#tasks">Какие задачи</a>
+      <a href="#geometry">Геометрия задачи</a>
+      <a href="#source">Источник излучения</a>
+      <a href="#materials">Материальные свойства</a>
+      <a href="#accuracy">Точность расчёта</a>
+
+      <span class="toc-section">Туториалы</span>
+      <a href="#t-luneburg">1 · Линза Люнеберга</a>
+      <a href="#t-metal">2 · Металлическая сфера</a>
+      <a href="#t-head">3 · Модель головы</a>
+      <a href="#t-sweep">4 · Параметрический свип</a>
+
+      <span class="toc-section">Использование</span>
+      <a href="#api">Python API</a>
+      <a href="#websolver">Веб-расчётчик</a>
+      <a href="#limits">Ограничения и теория</a>
+      <a href="#refs">Литература и ссылки</a>
+    </nav>
+  </aside>
+
+  <!-- ============ CONTENT ============ -->
+  <article class="content">
+
+    <h1>GreenTensor · документация</h1>
+    <p class="lead">
+      Открытая Python-библиотека для расчёта рассеяния электромагнитных волн на многослойных
+      сферически-симметричных структурах методом тензорных функций Грина (TGF). Это руководство
+      описывает класс задач, формат входных данных и содержит готовые туториалы.
+    </p>
+
+    <!-- ===== INTRO ===== -->
+    <section id="intro">
+      <h2>Введение</h2>
+      <p>
+        <strong>GreenTensor</strong> решает задачу рассеяния плоской ЭМ-волны на сфере, состоящей
+        из произвольного числа концентрических слоёв с независимыми диэлектрической&nbsp;<code>ε</code>
+        и магнитной&nbsp;<code>μ</code> проницаемостями. В основе лежит разложение поля по сферическим
+        гармоникам и <strong>рекуррентный пересчёт направленных импедансов</strong>&nbsp;
+        <code>Z̄ₙ(rₗ)</code> и&nbsp;<code>Ȳₙ(rₗ)</code> от центра наружу через все слои — это даёт
+        аналитически замкнутое решение без объёмной 3D-сетки.
+      </p>
+
+      <h3>Когда библиотека уместна</h3>
+      <ul>
+        <li>Структура <strong>сферически-симметрична</strong> (в полярной/сферической системе координат не зависит от θ и φ).</li>
+        <li>Слои <strong>локально однородны и изотропны</strong> (ε, μ — комплексные скаляры).</li>
+        <li>Среда <strong>линейная</strong> (нет нелинейных эффектов, насыщения, гистерезиса).</li>
+        <li>Источник — <strong>плоская волна</strong> (или произвольный набор плоских волн через суперпозицию).</li>
+      </ul>
+
+      <h3>Когда взять что-то другое</h3>
+      <ul>
+        <li>Не сфера: куб, цилиндр, произвольная форма → MoM, FEM, FDTD (HFSS, CST, Comsol, Meep).</li>
+        <li>Анизотропные/ферритовые материалы → full-wave решатели с тензорными ε, μ.</li>
+        <li>Связь с другими телами рядом → метод GMT (gigantic moment of T-matrix) или MoM.</li>
+      </ul>
+
+      <div class="note tip">
+        <span class="icon">+</span>
+        <div class="body">
+          <strong>Главное преимущество.</strong> Для своего класса задач метод даёт результат в
+          <strong>10³–10⁴ раз быстрее</strong>, чем full-wave решатели на МКЭ — потому что не
+          дискретизируется объём. Хорошо подходит для верификации MoM/FEM-кодов.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TASKS ===== -->
+    <section id="tasks">
+      <h2>Какие задачи можно решать</h2>
+      <p>
+        Библиотека предоставляет два класса:
+        <code>RCSCalculator</code> — расчёт диаграммы рассеяния на одной частоте,
+        и <code>ScatteringCalculator</code> — параметрический свип по электрическому размеру.
+      </p>
+
+      <h3>2.1 Бистатическая ЭПР (RCS) на одной частоте</h3>
+      <p>
+        Для заданных&nbsp;<code>k₀a</code> и структуры слоёв возвращает амплитудно-угловую
+        зависимость рассеянного поля по углу&nbsp;θ от 0° до 360° для:
+      </p>
+      <ul>
+        <li>линейной поляризации: <code>E_θ(θ)</code> и <code>E_φ(θ)</code>;</li>
+        <li>круговой поляризации: со-поляризованная&nbsp;<code>E_op</code> и кросс-поляризованная&nbsp;<code>E_kp</code>.</li>
+      </ul>
+      <p>
+        Все четыре результата нормированы в&nbsp;dB к собственному максимуму. Из них пересчитывается
+        бистатическое сечение рассеяния в дБ:&nbsp;
+        <code>σ_dB(θ) = 10·log₁₀(4π·|E(θ)|²/|E_inc|²)</code>.
+      </p>
+
+      <h3>2.2 Параметрический свип по&nbsp;k₀a</h3>
+      <p>
+        Для одной фиксированной структуры слоёв возвращает интегральные сечения как функции
+        электрического размера. Это удобно для:
+      </p>
+      <ul>
+        <li>оценки резонансов на разных частотах;</li>
+        <li>выбора оптимального диапазона частот для линз и поглотителей;</li>
+        <li>построения «частотной подписи» цели (Mie-резонансы).</li>
+      </ul>
+
+      <div class="params">
+        <table>
+          <thead><tr><th>Величина</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td>σ_s</td><td>Полное сечение рассеяния (Total Scattering Cross-Section).</td></tr>
+            <tr><td>σ_θ, σ_φ</td><td>Парциальные вклады по поляризациям&nbsp;θ&nbsp;и&nbsp;φ.</td></tr>
+            <tr><td>σ_r</td><td>Радиолокационное (back-scatter) сечение, θ = 180°.</td></tr>
+            <tr><td>σ_p</td><td>Сечение в попутном направлении, θ = 0°.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>2.3 Типовые приложения</h3>
+      <div class="cols-2">
+        <div class="tutorial-card">
+          <span class="tag">Антенны</span>
+          <h4>Линза Люнеберга</h4>
+          <p>Ступенчатое приближение градиентного профиля&nbsp;ε(r), оценка ширины луча и уровня
+          боковых лепестков. Подходит для оптимизации числа слоёв при 3D-печати.</p>
+        </div>
+        <div class="tutorial-card">
+          <span class="tag">Радиолокация</span>
+          <h4>ЭПР металлических сфер</h4>
+          <p>Эталонная задача для верификации (Mie-теория) и градуировки калибровочных целей
+          радиолокатора.</p>
+        </div>
+        <div class="tutorial-card">
+          <span class="tag">Биомедицина</span>
+          <h4>Модель головы человека</h4>
+          <p>Многослойная модель «мозг – череп – кожа» для оценки SAR и валидации полевых решателей
+          в задачах bio-EM на 1–6&nbsp;ГГц.</p>
+        </div>
+        <div class="tutorial-card">
+          <span class="tag">Метаматериалы</span>
+          <h4>Поглотители Salisbury / Jaumann</h4>
+          <p>Ступенчатые многослойные диэлектрические покрытия с потерями для оценки ослабления в
+          обратном направлении в широком диапазоне.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== GEOMETRY ===== -->
+    <section id="geometry">
+      <h2>Геометрия задачи</h2>
+      <p>
+        Структура задаётся вектором радиусов&nbsp;<code>a = [a₁, a₂, …, aₙ]</code>,
+        где&nbsp;<code>aₖ</code> — внешний радиус&nbsp;<em>k</em>-го слоя в безразмерных единицах
+        (нормированных на радиус внешней оболочки). Длина вектора&nbsp;<code>n</code> совпадает
+        с количеством слоёв в&nbsp;<code>eps</code> и&nbsp;<code>miy</code>.
+      </p>
+
+      <div class="formula">
+        a = [a₁ &lt; a₂ &lt; … &lt; aₙ]<br>
+        aₙ = 1 (внешний радиус сферы) <br>
+        n ≥ 2 (минимум — один материал + вакуум)
+      </div>
+
+      <h3>3.1 Соглашения</h3>
+      <ul>
+        <li><strong>Изнутри наружу.</strong> Первый элемент&nbsp;<code>a[0]</code> — внутренний слой
+          (ядро), последний&nbsp;<code>a[-1] = 1</code> — внешний (вакуум).</li>
+        <li><strong>Безразмерность.</strong> Все радиусы делятся на&nbsp;<code>R</code> — внешний
+          радиус сферы. Электрический размер&nbsp;<code>k₀a</code> — это волновое число&nbsp;<code>k₀</code>
+          умноженное на&nbsp;<code>R</code>; он передаётся как параметр расчёта, а не зашит в
+          геометрию.</li>
+        <li><strong>Строгая монотонность.</strong>&nbsp;<code>aₖ &lt; aₖ₊₁</code>, без совпадающих
+          радиусов.</li>
+        <li><strong>Внешний слой = вакуум.</strong> Удобное соглашение API; реализация рассчитывает
+          поля над сферой как над «слоем&nbsp;n+1 = свободное пространство».</li>
+      </ul>
+
+      <h3>3.2 Примеры</h3>
+      <h4>Однородная сфера (простейший случай)</h4>
+<pre><code><span class="comment"># PEC-сфера радиуса R: 2 слоя — металл + внешний вакуум.</span>
+a   = [<span class="num">0.999</span>, <span class="num">1.0</span>]                <span class="comment"># внутренний радиус почти равен внешнему</span>
+eps = [-<span class="num">1.7e7j</span>, <span class="num">1.0</span>]              <span class="comment"># большое мнимое ε ≈ PEC; внешний слой — вакуум</span>
+miy = [<span class="num">1.0</span>,    <span class="num">1.0</span>]
+</code></pre>
+
+      <h4>Линза Люнеберга, 4 слоя</h4>
+<pre><code>a   = [<span class="num">0.53</span>, <span class="num">0.75</span>, <span class="num">0.93</span>, <span class="num">1.00</span>]  <span class="comment"># границы слоёв изнутри наружу</span>
+eps = [<span class="num">1.86</span>, <span class="num">1.57</span>, <span class="num">1.28</span>, <span class="num">1.00</span>]  <span class="comment"># падение ε(r) от центра к краю</span>
+miy = [<span class="num">1.0</span>,  <span class="num">1.0</span>,  <span class="num">1.0</span>,  <span class="num">1.0</span>]   <span class="comment"># немагнитные материалы</span>
+</code></pre>
+
+      <h4>Биомедицинская модель головы (3 слоя, ~1 ГГц)</h4>
+<pre><code>a   = [<span class="num">0.85</span>,    <span class="num">0.92</span>,   <span class="num">1.00</span>]   <span class="comment"># внутренний/мозг, череп, кожа+вакуум</span>
+eps = [<span class="num">45-13j</span>, <span class="num">11-2j</span>, <span class="num">1.0</span>]    <span class="comment"># комплексные ε при ~1 ГГц</span>
+miy = [<span class="num">1.0</span>,    <span class="num">1.0</span>,   <span class="num">1.0</span>]
+</code></pre>
+
+      <div class="note warn">
+        <span class="icon">!</span>
+        <div class="body">
+          <strong>Частая ошибка.</strong> Не задавайте все&nbsp;<code>a</code> числами в метрах
+          или миллиметрах — это нарушит нормировку. Радиусы безразмерные:&nbsp;
+          <code>aₖ = rₖ / R</code>, где&nbsp;<code>R</code> — внешний радиус. Само значение&nbsp;
+          <code>R</code> появляется только через параметр расчёта&nbsp;<code>k₀ = k·R</code>.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SOURCE ===== -->
+    <section id="source">
+      <h2>Источник излучения</h2>
+      <p>
+        Источник — <strong>плоская монохроматическая ЭМ-волна</strong>, падающая вдоль оси&nbsp;
+        <em>z</em>&nbsp;(<code>θ_inc = 0°</code>). Сферическая симметрия задачи позволяет ограничиться
+        одним направлением падения — диаграмма рассеяния по углу&nbsp;θ от 0° до 360° даёт
+        исчерпывающее описание.
+      </p>
+
+      <div class="formula">
+        E<sub>inc</sub>(r) = E₀ · ê · exp(−<em>j</em>·k₀·z),&nbsp;&nbsp;|E₀| = 1
+      </div>
+
+      <h3>4.1 Электрический размер&nbsp;k₀a</h3>
+      <p>
+        Это безразмерная связка волнового числа и геометрии. Через неё сразу видно режим:
+      </p>
+      <div class="params">
+        <table>
+          <thead><tr><th>Режим</th><th>Условие</th><th>Поведение</th></tr></thead>
+          <tbody>
+            <tr><td>Рэлей</td><td>k₀a &lt; 0.5</td><td>Сечение растёт как (k₀a)⁴, рассеяние почти изотропное.</td></tr>
+            <tr><td>Mie / резонанс</td><td>0.5 ≤ k₀a ≤ 10</td><td>Острые резонансы, главные лепестки в&nbsp;θ&nbsp;= 0° и 180°.</td></tr>
+            <tr><td>Геометрическая оптика</td><td>k₀a &gt; 10</td><td>Лучевая картина, сечение → πa² + дифракционные поправки.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>В коде&nbsp;<code>k₀a</code> подаётся как параметр <code>k0</code> (он уже включает множитель&nbsp;<em>R</em>):</p>
+<pre><code>rcs = RCSCalculator(k0=<span class="num">5</span>, toch=<span class="num">10</span>, n=<span class="num">4</span>, a=a, eps=eps, miy=miy)
+</code></pre>
+
+      <h3>4.2 Поляризация</h3>
+      <p>Падающая волна разложена по двум каноническим базисам — программа считает все одновременно:</p>
+      <ul>
+        <li><strong>Линейная.</strong>&nbsp;<code>E_θ</code> (TM, вертикальная поляризация),&nbsp;
+          <code>E_φ</code> (TE, горизонтальная).</li>
+        <li><strong>Круговая.</strong> Со-поляризованная (op, опорная) и кросс-поляризованная (kp).
+          Удобно для оценки деполяризации.</li>
+      </ul>
+
+      <h3>4.3 Параметр&nbsp;φ (азимут)</h3>
+      <p>
+        Управляет ориентацией плоскости наблюдения для линейной поляризации. По умолчанию&nbsp;
+        <code>φ = π/2</code>&nbsp;(плоскость&nbsp;<em>yz</em>), что соответствует стандартному
+        E-плану / H-плану измерений в антенной технике. Менять обычно не требуется — для
+        сферически-симметричных задач все азимутальные плоскости эквивалентны с точностью до
+        переименования&nbsp;<code>E_θ ↔ E_φ</code>.
+      </p>
+
+      <div class="note">
+        <span class="icon">i</span>
+        <div class="body">
+          Если нужны диаграммы для других плоскостей или сложного источника (фокусированный
+          гауссов пучок, токовая антенна) — раскладывайте источник по плоским волнам и
+          суммируйте результаты по принципу суперпозиции.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MATERIALS ===== -->
+    <section id="materials">
+      <h2>Материальные свойства</h2>
+      <p>
+        Каждый слой описывается комплексными скалярными&nbsp;<code>ε</code> и&nbsp;<code>μ</code>
+        в гауссовой нормировке (относительные проницаемости):
+      </p>
+      <div class="formula">
+        ε = ε′ − <em>j</em>·ε″,&nbsp;&nbsp;&nbsp;μ = μ′ − <em>j</em>·μ″<br>
+        tan&nbsp;δ = ε″ / ε′
+      </div>
+
+      <h3>5.1 Знак мнимой части</h3>
+      <p>
+        Используется соглашение&nbsp;<code>e<sup>+jωt</sup></code>: положительная мнимая часть
+        соответствует <strong>усилению</strong>, отрицательная — <strong>потерям</strong>
+        (физически нормальные материалы). Для металла принимаем&nbsp;<code>ε″ &lt; 0</code>
+        и большую по модулю; для вакуума&nbsp;<code>ε″ = 0</code>.
+      </p>
+
+      <h3>5.2 Типовые значения</h3>
+      <div class="params">
+        <table>
+          <thead><tr><th>Материал</th><th>ε</th><th>μ</th><th>Комментарий</th></tr></thead>
+          <tbody>
+            <tr><td>Вакуум / воздух</td><td>1.0</td><td>1.0</td><td>Внешний слой <strong>обязательно</strong>.</td></tr>
+            <tr><td>PLA / ABS (3D-печать)</td><td>2.67 − 0.024<em>j</em></td><td>1.0</td><td>Матрица для линз с переменной плотностью.</td></tr>
+            <tr><td>Тефлон (PTFE)</td><td>2.1</td><td>1.0</td><td>Низкие потери в СВЧ.</td></tr>
+            <tr><td>Феррит (NiZn)</td><td>12 − 0.5<em>j</em></td><td>15 − 5<em>j</em></td><td>Магнитные потери.</td></tr>
+            <tr><td>PEC (эталонный металл)</td><td>−1.7·10⁷<em>j</em></td><td>1.0</td><td>Аппроксимация идеального проводника.</td></tr>
+            <tr><td>Алюминий @ 10&nbsp;ГГц</td><td>1 − 1.7·10⁷<em>j</em></td><td>1.0</td><td>Реальная Drude-модель.</td></tr>
+            <tr><td>Биоткани @ 1&nbsp;ГГц</td><td>10–60 − (1–15)<em>j</em></td><td>1.0</td><td>Зависит от типа ткани (Gabriel, IFAC).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>5.3 Соглашения по&nbsp;μ</h3>
+      <p>
+        Для немагнитных материалов всегда&nbsp;<code>μ = 1 + 0<em>j</em></code> — это покрывает 99% задач
+        в СВЧ. Магнитные слои (ферриты, гиромагнетики при работе вне резонанса) подаются как
+        обычные комплексные скаляры.
+      </p>
+
+      <div class="note warn">
+        <span class="icon">!</span>
+        <div class="body">
+          <strong>Анизотропию библиотека не поддерживает.</strong> Если у материала&nbsp;ε тензор
+          (например, феррит во внешнем поле или одноосный кристалл), TGF-метод в текущем виде
+          не применим — нужен full-wave решатель.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ACCURACY ===== -->
+    <section id="accuracy">
+      <h2>Точность расчёта</h2>
+      <p>
+        Поле раскладывается в ряд по сферическим гармоникам. Параметр&nbsp;<code>toch</code>
+        определяет количество удерживаемых членов. Слишком маленький&nbsp;<code>toch</code> —
+        ряд не сходится; слишком большой — растут численные погрешности и время расчёта.
+      </p>
+
+      <h3>6.1 Эмпирическое правило</h3>
+      <div class="formula">
+        toch ≈ k₀a + 4·(k₀a)<sup>1/3</sup> + 2&nbsp;&nbsp;&nbsp;<em>(критерий Wiscombe)</em>
+      </div>
+
+      <div class="params">
+        <table>
+          <thead><tr><th>k₀a</th><th>Минимум&nbsp;toch</th><th>Рекомендуется</th></tr></thead>
+          <tbody>
+            <tr><td>≤ 1</td><td>4</td><td>6</td></tr>
+            <tr><td>1–3</td><td>6</td><td>8</td></tr>
+            <tr><td>3–6</td><td>8</td><td>10</td></tr>
+            <tr><td>6–10</td><td>12</td><td>15</td></tr>
+            <tr><td>10–20</td><td>18</td><td>22</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>6.2 Как проверить сходимость</h3>
+      <p>
+        Сделайте два расчёта при&nbsp;<code>toch</code> и&nbsp;<code>toch + 4</code>. Если уровни
+        главных лепестков диаграммы совпадают на&nbsp;0.5&nbsp;dB — точности достаточно. Если
+        расходятся — увеличивайте.
+      </p>
+
+      <div class="note tip">
+        <span class="icon">+</span>
+        <div class="body">
+          В веб-расчётчике начинайте с&nbsp;<code>toch = 10</code>. Для линз Люнеберга с&nbsp;
+          k₀a = 5 этого хватает. Для крупных металлических сфер (k₀a &gt; 10) — поднимайте до 18–22.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TUTORIAL: LUNEBURG ===== -->
+    <section id="t-luneburg">
+      <h2>Туториал · Линза Люнеберга</h2>
+      <p>
+        Цель — рассчитать диаграмму направленности 4-слойной 3D-печатной линзы Люнеберга при&nbsp;
+        k₀a = 5 (рабочий X-диапазон) и оценить положение главного луча и уровень боковых лепестков.
+      </p>
+
+      <h3>Постановка</h3>
+      <p>
+        Идеальная линза Люнеберга имеет градиентный профиль&nbsp;<code>ε(r) = 2 − (r/R)²</code>.
+        Для 3D-печати его аппроксимируем 4 ступенчатыми слоями постоянного&nbsp;ε. Радиусы и
+        проницаемости подобраны методом минимаксного приближения профиля.
+      </p>
+
+      <div class="params">
+        <table>
+          <thead><tr><th>Параметр</th><th>Значение</th></tr></thead>
+          <tbody>
+            <tr><td>k₀</td><td>5 (k₀ · R, X-диапазон)</td></tr>
+            <tr><td>toch</td><td>10</td></tr>
+            <tr><td>n</td><td>4 (3 слоя + вакуум)</td></tr>
+            <tr><td>a</td><td>[0.53, 0.75, 0.93, 1.00]</td></tr>
+            <tr><td>eps</td><td>[1.86, 1.57, 1.28, 1.00]</td></tr>
+            <tr><td>miy</td><td>[1, 1, 1, 1]</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Запуск в Python</h3>
+<pre><code><span class="kw">from</span> greentensor <span class="kw">import</span> RCSCalculator
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+rcs = <span class="fn">RCSCalculator</span>(
+    k0=<span class="num">5</span>, toch=<span class="num">10</span>, n=<span class="num">4</span>,
+    a=[<span class="num">0.53</span>, <span class="num">0.75</span>, <span class="num">0.93</span>, <span class="num">1.0</span>],
+    eps=[<span class="num">1.86</span>, <span class="num">1.57</span>, <span class="num">1.28</span>, <span class="num">1.0</span>],
+    miy=[<span class="num">1</span>, <span class="num">1</span>, <span class="num">1</span>, <span class="num">1</span>],
+)
+rcs.<span class="fn">run_calculation</span>()
+rcs.<span class="fn">plot_results</span>()  <span class="comment"># полярная и декартова диаграммы</span>
+</code></pre>
+
+      <h3>Запуск в браузере</h3>
+      <p>Откройте веб-расчётчик и выберите пресет «Люнеберг·4»:</p>
+      <a class="run-in-solver" href="solver.html#preset=luneburg4">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        Запустить «Люнеберг·4» в расчётчике
+      </a>
+
+      <h3>Что должно получиться</h3>
+      <ul>
+        <li>Главный луч в направлении&nbsp;<code>θ ≈ 0°</code> (попутное направление).</li>
+        <li>Уровень боковых лепестков&nbsp;<strong>около −15…−18&nbsp;dB</strong>.</li>
+        <li>Симметрия диаграммы относительно оси падения.</li>
+        <li>Время расчёта в браузере — 0.5–0.7 секунды.</li>
+      </ul>
+
+      <h3>Что менять для эксперимента</h3>
+      <ul>
+        <li><strong>Число слоёв:</strong> сравните 4 vs 9 слоёв — увидите, как падает уровень боковых лепестков.</li>
+        <li><strong>k₀a:</strong> при&nbsp;<code>k₀a = 2</code> главный луч расширяется, при&nbsp;<code>k₀a = 10</code> — сужается.</li>
+        <li><strong>Потери:</strong> добавьте&nbsp;<code>ε″ = 0.024</code> (типичные потери PLA) — амплитуда упадёт примерно на 0.3&nbsp;dB на слой.</li>
+      </ul>
+    </section>
+
+    <!-- ===== TUTORIAL: METAL ===== -->
+    <section id="t-metal">
+      <h2>Туториал · Металлическая сфера</h2>
+      <p>
+        Эталонная задача для верификации: ЭПР сплошной металлической сферы должна совпадать с
+        классическим решением Mie. Используется как калибровочная цель в радиолокации.
+      </p>
+
+      <h3>PEC-аппроксимация</h3>
+      <p>
+        В TGF-формализме идеальный проводник задаётся материалом с очень большой по модулю
+        мнимой&nbsp;ε. Эмпирически достаточно&nbsp;<code>|ε″| ≈ 10⁷</code> — дальнейшее увеличение
+        не меняет результат, только ускоряет численные переполнения.
+      </p>
+
+      <div class="params">
+        <table>
+          <thead><tr><th>Параметр</th><th>Значение</th></tr></thead>
+          <tbody>
+            <tr><td>k₀</td><td>0.5 (Рэлеевский режим)</td></tr>
+            <tr><td>n</td><td>3</td></tr>
+            <tr><td>a</td><td>[0.1, 0.2, 1.0]</td></tr>
+            <tr><td>eps</td><td>[−1.7·10⁷<em>j</em>, −1.7·10⁷<em>j</em>, 1.0]</td></tr>
+            <tr><td>miy</td><td>[1, 1, 1]</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <a class="run-in-solver" href="solver.html#preset=metal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        Запустить «Металлическая сфера»
+      </a>
+
+      <h3>Сравнение с теорией Mie</h3>
+      <p>
+        Проверьте полное сечение через свип:&nbsp;
+        <code>ScatteringCalculator(toch=10, k0a_start=0.25, k0a_stop=5, k0a_step=0.05)</code>.
+        Должны увидеть классические Mie-резонансы:
+      </p>
+      <ul>
+        <li>при&nbsp;<code>k₀a ≈ 1.0</code> — первый локальный максимум (резонанс электрический);</li>
+        <li>при&nbsp;<code>k₀a ≈ 1.4</code> — следующий пик (магнитодипольный);</li>
+        <li>сходимость к&nbsp;<code>σ_geo = π·a²</code>&nbsp;(реальный размер) при&nbsp;<code>k₀a → ∞</code>.</li>
+      </ul>
+    </section>
+
+    <!-- ===== TUTORIAL: HEAD ===== -->
+    <section id="t-head">
+      <h2>Туториал · Биомедицинская модель головы</h2>
+      <p>
+        Трёхслойная сферическая модель «мозг – череп – кожа» позволяет быстро прикинуть
+        диаграмму рассеяния головы на частоте 1&nbsp;ГГц — типичная задача для проверки
+        SAR-моделей и сертификации сотовых антенн.
+      </p>
+
+      <div class="params">
+        <table>
+          <thead><tr><th>Слой</th><th>Радиус (норм.)</th><th>ε при 1&nbsp;ГГц</th><th>Источник</th></tr></thead>
+          <tbody>
+            <tr><td>Мозг</td><td>0–0.85</td><td>45 − 13<em>j</em></td><td>Gabriel (1996)</td></tr>
+            <tr><td>Череп</td><td>0.85–0.92</td><td>11 − 2<em>j</em></td><td>Gabriel (1996)</td></tr>
+            <tr><td>Кожа + воздух</td><td>0.92–1.00</td><td>1.0</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Постановка</h3>
+<pre><code>rcs = <span class="fn">RCSCalculator</span>(
+    k0=<span class="num">2.0</span>, toch=<span class="num">10</span>, n=<span class="num">3</span>,
+    a=[<span class="num">0.85</span>, <span class="num">0.92</span>, <span class="num">1.0</span>],
+    eps=[<span class="num">45</span>-<span class="num">13j</span>, <span class="num">11</span>-<span class="num">2j</span>, <span class="num">1.0</span>],
+    miy=[<span class="num">1</span>, <span class="num">1</span>, <span class="num">1</span>],
+)
+rcs.<span class="fn">run_calculation</span>()
+</code></pre>
+
+      <a class="run-in-solver" href="solver.html#preset=head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        Запустить «Модель головы»
+      </a>
+
+      <h3>На что обратить внимание</h3>
+      <ul>
+        <li>Сильное затухание во влажных тканях — диаграмма «мягкая», без острых лепестков.</li>
+        <li>Паразитное back-scatter резонирует на размерах кратно длине волны в мозге (
+          <code>λ_brain ≈ λ₀ / √Re(ε) ≈ 0.15·λ₀</code>).</li>
+        <li>Параметры&nbsp;ε сильно зависят от частоты — для расчёта на других частотах берите
+          из <a href="https://itis.swiss/virtual-population/tissue-properties/database/" target="_blank" rel="noopener">базы IT'IS</a>
+          или из таблиц Gabriel.</li>
+      </ul>
+
+      <div class="note warn">
+        <span class="icon">!</span>
+        <div class="body">
+          <strong>Это не SAR.</strong> Модель даёт <em>внешнее</em> рассеянное поле. Для расчёта
+          поглощённой мощности внутри тканей нужна другая постановка — поле внутри слоёв через те
+          же ряды Mie, но с пересчётом коэффициентов проникновения. В планах библиотеки.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TUTORIAL: SWEEP ===== -->
+    <section id="t-sweep">
+      <h2>Туториал · Параметрический свип k₀a</h2>
+      <p>
+        Когда нужно понять <em>как структура работает в полосе</em> — не на одной частоте, а на
+        диапазоне — используйте&nbsp;<code>ScatteringCalculator</code>. Он крутит&nbsp;
+        <code>k₀a</code> в заданном диапазоне и для каждой точки делает полный расчёт ЭПР.
+      </p>
+
+      <h3>Постановка</h3>
+<pre><code><span class="kw">from</span> greentensor <span class="kw">import</span> ScatteringCalculator, RCSCalculator
+
+sc = <span class="fn">ScatteringCalculator</span>(
+    toch=<span class="num">10</span>,
+    k0a_start=<span class="num">0.25</span>, k0a_stop=<span class="num">5.0</span>, k0a_step=<span class="num">0.05</span>,
+)
+<span class="comment"># подменяем дефолтную геометрию на свою (4-слойный Люнеберг):</span>
+sc.rcs_calculator = <span class="fn">RCSCalculator</span>(
+    toch=<span class="num">10</span>, n=<span class="num">4</span>,
+    a=[<span class="num">0.53</span>, <span class="num">0.75</span>, <span class="num">0.93</span>, <span class="num">1.0</span>],
+    eps=[<span class="num">1.86</span>, <span class="num">1.57</span>, <span class="num">1.28</span>, <span class="num">1.0</span>],
+    miy=[<span class="num">1</span>]*<span class="num">4</span>,
+)
+k0a, sigma_s, sigma_r, sigma_p, sigma_theta, sigma_phi = sc.<span class="fn">calculate</span>()
+</code></pre>
+
+      <h3>Что строить</h3>
+      <ul>
+        <li><code>σ_s(k₀a)</code> — общий уровень рассеяния. Резонансы видны как пики.</li>
+        <li><code>σ_r(k₀a)</code> — back-scatter. Главный практический показатель «заметности» цели.</li>
+        <li><code>σ_p(k₀a)</code> — forward. Полезно для линз/просветляющих покрытий: чем выше пропускание, тем выше&nbsp;σ_p.</li>
+        <li><code>σ_θ, σ_φ</code> — раздельно по поляризациям, видно, какая поляризация эффективнее рассеивается.</li>
+      </ul>
+
+      <h3>Сколько точек брать</h3>
+      <p>
+        Шаг&nbsp;<code>k₀a_step = 0.05</code> при диапазоне&nbsp;<code>0.25…5.0</code> даёт 96
+        точек — это около 30–60 секунд в браузере. Для предварительного просмотра уменьшите до
+        <code>0.1</code> (24 точки, 8–15 с). Для публикационных графиков —&nbsp;<code>0.02</code>
+        (240 точек, ~2 минуты).
+      </p>
+
+      <div class="note tip">
+        <span class="icon">+</span>
+        <div class="body">
+          В браузере свип запускается <strong>в основном потоке</strong>: страница на время
+          расчёта подвиснет. Если делаете много точек — переключитесь на десктопный Python.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== API ===== -->
+    <section id="api">
+      <h2>Python API · краткий справочник</h2>
+
+      <h3>Установка</h3>
+<pre><code><span class="comment"># из PyPI</span>
+pip install GreenTensor
+
+<span class="comment"># или из исходников с примерами</span>
+git clone https://github.com/Den1sovDm1triy/GreenTensor.git
+cd GreenTensor && pip install -e .
+</code></pre>
+
+      <h3>Импорт</h3>
+<pre><code><span class="kw">from</span> greentensor <span class="kw">import</span> RCSCalculator, ScatteringCalculator
+</code></pre>
+
+      <h3>RCSCalculator</h3>
+      <div class="params">
+        <table>
+          <thead><tr><th>Параметр</th><th>Тип</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td>k0</td><td class="typ">float</td><td>Электрический размер k₀·R.</td></tr>
+            <tr><td>toch</td><td class="typ">int</td><td>Число членов ряда (см. §6).</td></tr>
+            <tr><td>n</td><td class="typ">int</td><td>Количество слоёв (= len(a)).</td></tr>
+            <tr><td>phi</td><td class="typ">float</td><td>Азимут плоскости наблюдения, рад. По умолчанию π/2.</td></tr>
+            <tr><td>a</td><td class="typ">list[float]</td><td>Радиусы изнутри наружу, последний = 1.0.</td></tr>
+            <tr><td>eps</td><td class="typ">list[complex]</td><td>Диэлектрические проницаемости.</td></tr>
+            <tr><td>miy</td><td class="typ">list[complex]</td><td>Магнитные проницаемости.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Атрибуты результата (после run_calculation)</h4>
+      <div class="params">
+        <table>
+          <thead><tr><th>Атрибут</th><th>Тип</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td>teta</td><td class="typ">np.ndarray</td><td>Углы θ, рад, от −π до +π после нормировки.</td></tr>
+            <tr><td>DN_NORM_lin_dB_teta</td><td class="typ">np.ndarray</td><td>E_θ нормированная, dB.</td></tr>
+            <tr><td>DN_NORM_lin_dB_phi</td><td class="typ">np.ndarray</td><td>E_φ нормированная, dB.</td></tr>
+            <tr><td>DN_NORM_circle_dB_op</td><td class="typ">np.ndarray</td><td>Со-поляр. круговая, dB.</td></tr>
+            <tr><td>DN_NORM_circle_dB_kp</td><td class="typ">np.ndarray</td><td>Кросс-поляр. круговая, dB.</td></tr>
+            <tr><td>Mn, Nn</td><td class="typ">np.ndarray</td><td>Коэффициенты разложения (для своих визуализаций).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>ScatteringCalculator</h3>
+      <div class="params">
+        <table>
+          <thead><tr><th>Параметр</th><th>Тип</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td>toch</td><td class="typ">int</td><td>Число членов ряда.</td></tr>
+            <tr><td>k0a_start</td><td class="typ">float</td><td>Начало диапазона.</td></tr>
+            <tr><td>k0a_stop</td><td class="typ">float</td><td>Конец диапазона.</td></tr>
+            <tr><td>k0a_step</td><td class="typ">float</td><td>Шаг.</td></tr>
+            <tr><td>rcs_calculator</td><td class="typ">RCSCalculator</td><td>Доступ к нижележащему калькулятору; присвойте свой, чтобы задать произвольную геометрию.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Возврат calculate()</h4>
+      <p>Кортеж массивов длины&nbsp;<code>N = (k0a_stop − k0a_start) / k0a_step + 1</code>:&nbsp;
+      <code>(k0a, σ_s, σ_r, σ_p, σ_θ, σ_φ)</code>.</p>
+    </section>
+
+    <!-- ===== WEB SOLVER ===== -->
+    <section id="websolver">
+      <h2>Веб-расчётчик</h2>
+      <p>
+        Для быстрых проверок и демонстраций существует браузерная версия — она запускает
+        <strong>тот же&nbsp;<code>calc.py</code></strong>, что и десктопная библиотека, через
+        Pyodide (CPython + numpy + scipy в WebAssembly).
+      </p>
+      <a class="run-in-solver" href="solver.html">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        Открыть веб-расчётчик
+      </a>
+
+      <h3>Что отличается</h3>
+      <ul>
+        <li><strong>Никакой установки.</strong> Работает в любом современном браузере. Первая
+          загрузка ~10–12&nbsp;МБ (CPython + numpy + scipy), дальше всё из кеша.</li>
+        <li><strong>Локальный расчёт.</strong> Данные не уходят с устройства, можно работать
+          офлайн после первой загрузки.</li>
+        <li><strong>3D-редактор.</strong> Слои визуализируются в реальном времени —
+          цвет шара меняется по&nbsp;ε.</li>
+        <li><strong>Ограничение производительности.</strong> Pyodide примерно в 2–4 раза медленнее
+          десктопного CPython. Для свипа на 200+ точек удобнее Python локально.</li>
+      </ul>
+
+      <h3>Когда какой инструмент брать</h3>
+      <div class="cols-2">
+        <div class="tutorial-card">
+          <span class="tag">Веб-расчётчик</span>
+          <h4>Подходит для</h4>
+          <p>Демонстраций, обучения, разовых прикидок, экспорта CSV для отчётов, проверок гипотез
+          до полноценного эксперимента.</p>
+        </div>
+        <div class="tutorial-card">
+          <span class="tag">Python</span>
+          <h4>Подходит для</h4>
+          <p>Параметрических исследований, оптимизации (десятки тысяч расчётов), интеграции в
+          пайплайны, batch-ового сравнения с full-wave.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LIMITS ===== -->
+    <section id="limits">
+      <h2>Ограничения и теоретическая база</h2>
+
+      <h3>Что метод не умеет</h3>
+      <ul>
+        <li><strong>Несферические тела.</strong> Куб, цилиндр, эллипсоид — нужны MoM/FEM/FDTD.</li>
+        <li><strong>Анизотропные материалы.</strong> Тензорные ε, μ. См. метод
+          T-матрицы или объёмные методы.</li>
+        <li><strong>Переменные параметры внутри слоя.</strong> Каждый слой — однородный.
+          Градиент аппроксимируется ступенчато (увеличением числа слоёв).</li>
+        <li><strong>Близкое поле и резонансы внутри слоёв.</strong> Возвращается рассеянное поле в
+          дальней зоне. Поле внутри слоёв сейчас не выводится в публичном API.</li>
+        <li><strong>Несколько тел.</strong> Только одна сферически-симметричная структура. Для
+          систем тел нужен формализм многократного рассеяния (T-матрица).</li>
+      </ul>
+
+      <h3>Откуда взялся метод</h3>
+      <p>
+        Реализация продолжает линию работ школы&nbsp;<strong>Б.&nbsp;А.&nbsp;Панченко</strong>
+        (УрФУ, кафедра ВЧСРТ): плоский → цилиндрический → сферический случай в едином
+        TGF-фреймворке. Опорные источники:
+      </p>
+      <ul>
+        <li>Панченко Б.А. <em>Рассеяние и поглощение электромагнитных волн неоднородными
+          сферическими телами</em>. М.: Радиотехника, 2013.</li>
+        <li>Bohren C.F., Huffman D.R. <em>Absorption and Scattering of Light by Small Particles.</em> Wiley, 1983 — классическая Mie-теория, к которой сводится частный случай однородной сферы.</li>
+        <li>Greenwood A.D., Jin J.-M. <em>A novel efficient algorithm for scattering from a complex BOR using mixed FE and EBC.</em> IEEE Trans. AP, 1999 — для сравнения с гибридным методом.</li>
+      </ul>
+    </section>
+
+    <!-- ===== REFS ===== -->
+    <section id="refs">
+      <h2>Литература и ссылки</h2>
+
+      <h3>Публикации с использованием библиотеки</h3>
+      <ul>
+        <li>
+          Denisov D.V., Skumatenko I.O., Fadeev V.O., Shesterov M.A.
+          <em>GreenTensor Electromagnetic Library for Calculate Scattering on Multilayer
+          Spherical Structures.</em> IEEE EDM 2024.
+          <a href="https://ieeexplore.ieee.org/document/10615009" target="_blank" rel="noopener">DOI: 10.1109/EDM61683.2024.10615009</a>
+        </li>
+        <li>
+          Denisov D.V., Skumatenko I.O., Shesterov M.A.
+          <em>GreenTensor Electromagnetic Library for Calculating Scattering Patterns on a
+          Human Head Model.</em> IEEE USBEREIT 2024.
+          <a href="https://ieeexplore.ieee.org/document/10584060" target="_blank" rel="noopener">DOI: 10.1109/USBEREIT61901.2024.10584060</a>
+        </li>
+      </ul>
+
+      <h3>Исходники и данные</h3>
+      <ul>
+        <li><a href="https://github.com/Den1sovDm1triy/GreenTensor" target="_blank" rel="noopener">GitHub-репозиторий</a> — последняя версия, issues, pull requests.</li>
+        <li><a href="solver.html">Веб-расчётчик</a> — браузерный сольвер на этой же странице.</li>
+        <li><a href="https://itis.swiss/virtual-population/tissue-properties/database/" target="_blank" rel="noopener">IT'IS Database</a> — диэлектрические свойства биотканей в широком диапазоне.</li>
+        <li><a href="https://niremf.ifac.cnr.it/tissprop/" target="_blank" rel="noopener">IFAC Tissue Properties</a> — альтернативный источник по моделям Gabriel.</li>
+      </ul>
+
+      <h3>Связь</h3>
+      <p>
+        Вопросы и сотрудничество: <a href="mailto:dv.denisov@urfu.ru">dv.denisov@urfu.ru</a>.
+        Pull-request'ы и отчёты об ошибках —
+        <a href="https://github.com/Den1sovDm1triy/GreenTensor/issues" target="_blank" rel="noopener">через GitHub Issues</a>.
+      </p>
+    </section>
+
+  </article>
+</main>
+
+<script>
+/* === TOC: highlight current section on scroll === */
+(function(){
+  const toc = document.getElementById('toc');
+  const links = [...toc.querySelectorAll('nav a')];
+  const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const setActive = id => {
+    links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+  };
+  const io = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting).sort((a,b) => a.boundingClientRect.top - b.boundingClientRect.top);
+    if (visible.length) setActive(visible[0].target.id);
+  }, { rootMargin: '-20% 0% -65% 0%' });
+  sections.forEach(s => io.observe(s));
+
+  /* mobile collapse */
+  const title = toc.querySelector('.toc-title');
+  if (window.innerWidth <= 900) toc.classList.add('collapsed');
+  title.addEventListener('click', () => {
+    if (window.innerWidth <= 900) toc.classList.toggle('collapsed');
+  });
+})();
+
+/* === Solver preset deeplink: /solver.html#preset=XYZ === */
+/* (Обработка происходит в самом solver.html — там надо поддержать hash. Здесь просто оставляем ссылки.) */
+
+/* === Theme toggle (light default, shared via localStorage 'gt-theme') === */
+(function(){
+  var KEY='gt-theme';
+  var btn=document.getElementById('theme-toggle');
+  function setMeta(t){var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='light'?'#f4f7f6':'#07090a');}
+  setMeta(document.documentElement.getAttribute('data-theme')==='light'?'light':'dark');
+  if(btn){
+    btn.addEventListener('click',function(){
+      var cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+      var next=cur==='light'?'dark':'light';
+      document.documentElement.setAttribute('data-theme',next);
+      try{localStorage.setItem(KEY,next);}catch(e){}
+      setMeta(next);
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "GreenTensor",
+  "short_name": "GreenTensor",
+  "icons": [
+    { "src": "favicon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "favicon-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#00ff9c",
+  "background_color": "#07090a",
+  "display": "standalone",
+  "start_url": "/"
+}
