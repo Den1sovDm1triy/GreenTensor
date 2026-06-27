@@ -35,6 +35,7 @@ import test_finite_cylinder as fcyl  # noqa: E402
 import test_mg_correction as mg  # noqa: E402
 import test_ebcm as ebc  # noqa: E402
 import test_composite as cmp  # noqa: E402
+import test_rotation as rot  # noqa: E402
 
 
 def main() -> int:
@@ -159,6 +160,10 @@ def main() -> int:
         ("composite: single-primitive reduction", cmp.test_single_primitive_reduction),
         ("composite: energy conservation", cmp.test_composite_energy_conservation),
         ("composite: decoupling limit", cmp.test_composite_decoupling),
+        ("rotation: Wigner-d closed form", rot.test_wigner_d_closed_form),
+        ("rotation: sphere/axisym invariance", rot.test_sphere_and_axisym_invariance),
+        ("rotation: cross-section covariance", rot.test_rotation_covariance),
+        ("rotation: oriented scatterer in GMM", rot.test_oriented_scatterer_energy),
     ]
     failures = 0
     for name, fn in suite:

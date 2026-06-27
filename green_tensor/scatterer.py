@@ -71,20 +71,33 @@ class LayeredSphere:
 
 # --------------------------------------------------------------------------- #
 # Несферические EBCM-примитивы как рассеиватели GMM (полная T-матрица)
-# Ось симметрии ∥ z; произвольное положение поддержано (трансляция GMM),
-# произвольная ориентация — через вращение Вигнера-D (пока не реализовано).
+# Тело строится в собственной системе (ось симметрии ∥ z); произвольное ПОЛОЖЕНИЕ —
+# трансляция GMM; произвольная ОРИЕНТАЦИЯ — углы Эйлера euler=(α,β,γ), z-y-z, активный
+# поворот R=Rz(α)Ry(β)Rz(γ): T_global = D(α,β,γ)·T·D^† (vswf.rotate_tmatrix). Для
+# осесимметричного тела γ (поворот вокруг своей оси) — пустая операция.
 # --------------------------------------------------------------------------- #
-class Spheroid:
-    """Сфероид (ось ∥ z) как рассеиватель GMM через EBCM. eps скаляр — однородный;
-    eps список (изнутри наружу) + a_norm — слоистый (mu аналогично)."""
+def _oriented(T, nmax, euler):
+    """Применить ориентацию (углы Эйлера) к T-матрице тела (если поворот не нулевой)."""
+    a, b, g = euler
+    if a == 0.0 and b == 0.0 and g == 0.0:
+        return T
+    return vswf.rotate_tmatrix(T, nmax, a, b, g)
 
-    def __init__(self, position, a_eq: float, c_ax: float, eps, mu=1.0, *, a_norm=None):
+
+class Spheroid:
+    """Сфероид как рассеиватель GMM через EBCM. eps скаляр — однородный; eps список
+    (изнутри наружу) + a_norm — слоистый (mu аналогично). euler=(α,β,γ) — ориентация
+    оси симметрии (по умолчанию ∥ z)."""
+
+    def __init__(self, position, a_eq: float, c_ax: float, eps, mu=1.0, *,
+                 a_norm=None, euler=(0.0, 0.0, 0.0)):
         self.position = np.asarray(position, dtype=float)
         self.a_eq = float(a_eq)
         self.c_ax = float(c_ax)
         self.eps = eps
         self.mu = mu
         self.a_norm = a_norm
+        self.euler = tuple(float(x) for x in euler)
 
     def bounding_radius(self) -> float:
         return max(self.a_eq, self.c_ax)
@@ -95,9 +108,11 @@ class Spheroid:
             mu = self.mu if _is_layered(self.mu) else [self.mu] * len(self.eps)
             if self.a_norm is None:
                 raise ValueError("слоистый сфероид требует a_norm (границы слоёв, внешний=1)")
-            return ebcm.tmatrix_axisym_layered(curve, list(self.eps), list(mu),
-                                               list(self.a_norm), k, nmax)
-        return ebcm.tmatrix_axisym(curve, k, complex(self.eps), complex(self.mu), nmax)
+            T = ebcm.tmatrix_axisym_layered(curve, list(self.eps), list(mu),
+                                            list(self.a_norm), k, nmax)
+        else:
+            T = ebcm.tmatrix_axisym(curve, k, complex(self.eps), complex(self.mu), nmax)
+        return _oriented(T, nmax, self.euler)
 
 
 class FiniteCylinder:
@@ -105,13 +120,15 @@ class FiniteCylinder:
     ВНИМАНИЕ: острые рёбра ⇒ EBCM кромочно-ограничен (вытянутый аспект точнее; плоский
     расходится). См. ebcm.tmatrix_axisym_segments. Слоистость — через a_norm (гомотетия)."""
 
-    def __init__(self, position, radius: float, half_length: float, eps, mu=1.0, *, a_norm=None):
+    def __init__(self, position, radius: float, half_length: float, eps, mu=1.0, *,
+                 a_norm=None, euler=(0.0, 0.0, 0.0)):
         self.position = np.asarray(position, dtype=float)
         self.radius = float(radius)
         self.half_length = float(half_length)
         self.eps = eps
         self.mu = mu
         self.a_norm = a_norm
+        self.euler = tuple(float(x) for x in euler)
 
     def bounding_radius(self) -> float:
         return math.hypot(self.radius, self.half_length)
@@ -127,23 +144,27 @@ class FiniteCylinder:
 
             def builder(a):
                 return ebcm.surface_segments(ebcm.cylinder_segments(a * R, a * H), n_per, nphi)
-            return ebcm.tmatrix_layered(builder, list(self.eps), list(mu),
-                                        list(self.a_norm), k, nmax)
-        return ebcm.tmatrix_axisym_segments(ebcm.cylinder_segments(R, H),
-                                            k, complex(self.eps), complex(self.mu), nmax)
+            T = ebcm.tmatrix_layered(builder, list(self.eps), list(mu),
+                                     list(self.a_norm), k, nmax)
+        else:
+            T = ebcm.tmatrix_axisym_segments(ebcm.cylinder_segments(R, H),
+                                             k, complex(self.eps), complex(self.mu), nmax)
+        return _oriented(T, nmax, self.euler)
 
 
 class Cone:
     """Конечный круговой конус (ось ∥ z, базовый радиус R, высота L) — EBCM-рассеиватель GMM.
     Острая вершина + ребро основания; для умеренных конусов EBCM сходится хорошо."""
 
-    def __init__(self, position, radius: float, height: float, eps, mu=1.0, *, a_norm=None):
+    def __init__(self, position, radius: float, height: float, eps, mu=1.0, *,
+                 a_norm=None, euler=(0.0, 0.0, 0.0)):
         self.position = np.asarray(position, dtype=float)
         self.radius = float(radius)
         self.height = float(height)
         self.eps = eps
         self.mu = mu
         self.a_norm = a_norm
+        self.euler = tuple(float(x) for x in euler)
 
     def bounding_radius(self) -> float:
         # вершина z_a=3L/4, дно z=−L/4, радиус R: дальняя точка — вершина или ребро основания
@@ -160,7 +181,9 @@ class Cone:
 
             def builder(a):
                 return ebcm.surface_segments(ebcm.cone_segments(a * R, a * L), n_per, nphi)
-            return ebcm.tmatrix_layered(builder, list(self.eps), list(mu),
-                                        list(self.a_norm), k, nmax)
-        return ebcm.tmatrix_axisym_segments(ebcm.cone_segments(R, L),
-                                            k, complex(self.eps), complex(self.mu), nmax)
+            T = ebcm.tmatrix_layered(builder, list(self.eps), list(mu),
+                                     list(self.a_norm), k, nmax)
+        else:
+            T = ebcm.tmatrix_axisym_segments(ebcm.cone_segments(R, L),
+                                             k, complex(self.eps), complex(self.mu), nmax)
+        return _oriented(T, nmax, self.euler)
