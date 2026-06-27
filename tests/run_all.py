@@ -151,6 +151,8 @@ def main() -> int:
         ("EBCM layered coated sphere -> Mie", ebc.test_ebcm_layered_coated_sphere),
         ("EBCM layered reduction (identical=homog)", ebc.test_ebcm_layered_reduction),
         ("EBCM layered spheroid energy", ebc.test_ebcm_layered_spheroid_energy),
+        ("EBCM reciprocity (non-spheres)", ebc.test_ebcm_reciprocity),
+        ("EBCM layered cylinder guarded (honest warn)", ebc.test_ebcm_layered_cylinder_guarded),
         ("composite: single-primitive reduction", cmp.test_single_primitive_reduction),
         ("composite: energy conservation", cmp.test_composite_energy_conservation),
         ("composite: decoupling limit", cmp.test_composite_decoupling),

@@ -254,11 +254,97 @@ def test_ebcm_layered_spheroid_energy():
         assert bal < 2.5e-2, f"слоистый сфероид: энергобаланс {bal:.1e}"
 
 
+def _recip_amp(bodies, k, nmax, pairs):
+    """Физическая взаимность амплитуды рассеяния (конвенция-НЕзависимая):
+    S(k̂_i,p̂_i→k̂_s,p̂_s) = S(−k̂_s,p̂_s→−k̂_i,p̂_i). В отличие от симметрии элементов
+    сырой T в неунитарном базисе проекта (∮|M|²=n(n+1), завышает невязку ~×4), эта
+    проверка измеряет НАПРАВЛЕННУЮ корректность, которой энергобаланс НЕ покрывает.
+    Возвращает (медиана, макс) относительной невязки по набору пар направлений."""
+    from green_tensor import gmm as _g
+    Rf = 2000.0 / k
+    errs = []
+    for ki, pi, ks, ps in pairs:
+        _, c, _ = _g.solve_cluster(bodies, k, tuple(ki), tuple(pi), nmax)
+        A = (np.asarray(ps) @ _g.scattered_field(bodies, c, k, np.array([np.asarray(ks) * Rf]))[0]) * Rf
+        _, c2, _ = _g.solve_cluster(bodies, k, tuple(-np.asarray(ks)), tuple(ps), nmax)
+        B = (np.asarray(pi) @ _g.scattered_field(bodies, c2, k, np.array([-np.asarray(ki) * Rf]))[0]) * Rf
+        errs.append(abs(A - B) / max(abs(A), abs(B), 1e-30))
+    return float(np.median(errs)), float(max(errs))
+
+
+def test_ebcm_reciprocity():
+    """ВЗАИМНОСТЬ EBCM-несфер — направленная проверка корректности, которой энергобаланс
+    (оптическая теорема) структурно НЕ ловит (он самосогласован по построению c=T·d).
+    Гладкие тела (сфероид prolate/oblate, конус) и СКРУГЛЁННЫЙ цилиндр взаимны ~1e-3;
+    острые рёбра 90° цилиндра ломают взаимность (скругление рёбер — реализованная мера,
+    scatterer.FiniteCylinder edge_p)."""
+    from green_tensor.scatterer import Spheroid, Cone, FiniteCylinder
+    print("\n[11] EBCM взаимность (физическая, амплитуда рассеяния):")
+    rng = np.random.default_rng(7)
+
+    def perp(kh):
+        a = np.array([1.0, 0, 0]) if abs(kh[2]) > 0.9 else np.array([0, 0, 1.0])
+        p = np.cross(kh, a)
+        return p / np.linalg.norm(p)
+
+    def rdir():
+        v = rng.normal(size=3)
+        return v / np.linalg.norm(v)
+
+    pairs = []
+    for _ in range(6):
+        ki, ks = rdir(), rdir()
+        pairs.append((ki, perp(ki), ks, perp(ks)))
+
+    k, nmax = 2.0, 8
+    cases = [
+        ("spheroid prolate", [Spheroid([0, 0, 0], 0.4, 0.8, 2.25)], 1.0e-3),
+        ("spheroid oblate", [Spheroid([0, 0, 0], 0.8, 0.4, 2.25)], 1.0e-3),
+        ("cone", [Cone([0, 0, 0], 0.4, 0.8, 2.25)], 1.0e-3),
+        ("rounded cylinder", [FiniteCylinder([0, 0, 0], 0.3, 0.8, 2.25)], 3.0e-3),
+    ]
+    for tag, body, tol in cases:
+        med, mx = _recip_amp(body, k, nmax, pairs)
+        print(f"    {tag:18s}: median={med:.2e} max={mx:.2e} (tol median<{tol:.0e})")
+        assert med < tol, f"{tag}: взаимность нарушена (median={med:.1e})"
+
+    # регрессия: скругление рёбер ДОЛЖНО улучшать взаимность острого цилиндра
+    medS, _ = _recip_amp([FiniteCylinder([0, 0, 0], 0.3, 0.8, 2.25, edge_p=None)], k, nmax, pairs)
+    medR, _ = _recip_amp([FiniteCylinder([0, 0, 0], 0.3, 0.8, 2.25)], k, nmax, pairs)
+    print(f"    цилиндр острый median={medS:.2e}  скруглённый median={medR:.2e} (скругление лучше)")
+    assert medR < medS, "скругление рёбер должно улучшать взаимность цилиндра"
+
+
+def test_ebcm_layered_cylinder_guarded():
+    """РЕГРЕССИЯ/ЧЕСТНОСТЬ: слоистый конечный цилиндр через EBCM численно НЕУСТОЙЧИВ
+    (рекурсия Петерсона–Стрёма на острых сегментах: исходящие h_n на внутр. границах +
+    рёбра ⇒ унитарность нарушена в разы). Решатель ДОЛЖЕН предупреждать (UserWarning), а не
+    тихо возвращать нефизичную T. Для слоистого цилиндра используйте бесконечный ТФГ-решатель
+    LayeredCylinderSolver или однослойный (скруглённый) FiniteCylinder."""
+    import warnings
+    from green_tensor.scatterer import FiniteCylinder
+    print("\n[12] EBCM слоистый конечный цилиндр — честный guard:")
+    fc = FiniteCylinder([0, 0, 0], 0.3, 0.8, [3.0, 2.0], a_norm=[0.6, 1.0])
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        T = fc.t_matrix(2.0, 8)
+    modes = vswf.mode_list(8)
+    nn = np.array([n * (n + 1) for (n, m) in modes], float)
+    D = np.concatenate([nn, nn])
+    S = (np.sqrt(D)[:, None]) * T * (1.0 / np.sqrt(D)[None, :])
+    uni = np.linalg.norm(S.conj().T @ S + 0.5 * (S + S.conj().T)) / max(np.linalg.norm(S), 1e-30)
+    warned = any(issubclass(x.category, UserWarning) for x in w)
+    print(f"    унитарность |S†S+ReS|/|S| = {uni:.2f} (нефизично, ≫0); предупреждение={'да' if warned else 'НЕТ'}")
+    assert uni > 0.5, "ожидалась явная неустойчивость слоистого острого цилиндра"
+    assert warned, "слоистый конечный цилиндр (EBCM) должен предупреждать о неустойчивости"
+
+
 _TESTS = [test_ebcm_sphere_matches_mie, test_ebcm_magnetic_sphere_matches_mie,
           test_ebcm_sphere_cross_sections_vs_mie, test_ebcm_drop_in_cluster,
           test_ebcm_spheroid_energy_and_rayleigh, test_ebcm_cone_energy,
           test_ebcm_cylinder_energy, test_ebcm_layered_coated_sphere,
-          test_ebcm_layered_reduction, test_ebcm_layered_spheroid_energy]
+          test_ebcm_layered_reduction, test_ebcm_layered_spheroid_energy,
+          test_ebcm_reciprocity, test_ebcm_layered_cylinder_guarded]
 
 if __name__ == "__main__":
     ok = True
