@@ -34,6 +34,7 @@ import test_cylinder_layered as cyl_l  # noqa: E402
 import test_finite_cylinder as fcyl  # noqa: E402
 import test_mg_correction as mg  # noqa: E402
 import test_ebcm as ebc  # noqa: E402
+import test_composite as cmp  # noqa: E402
 
 
 def main() -> int:
@@ -155,6 +156,9 @@ def main() -> int:
         ("EBCM layered coated sphere -> Mie", ebc.test_ebcm_layered_coated_sphere),
         ("EBCM layered reduction (identical=homog)", ebc.test_ebcm_layered_reduction),
         ("EBCM layered spheroid energy", ebc.test_ebcm_layered_spheroid_energy),
+        ("composite: single-primitive reduction", cmp.test_single_primitive_reduction),
+        ("composite: energy conservation", cmp.test_composite_energy_conservation),
+        ("composite: decoupling limit", cmp.test_composite_decoupling),
     ]
     failures = 0
     for name, fn in suite:

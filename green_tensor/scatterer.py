@@ -18,6 +18,7 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 
+from . import ebcm
 from . import sphere_core
 from . import vswf
 
@@ -29,8 +30,17 @@ class Scatterer(Protocol):
     def bounding_radius(self) -> float: ...
 
     def t_vector(self, k: float, nmax: int) -> np.ndarray:
-        """Диагональный вектор T длины 2K (блоки M, затем N) для мод mode_list(nmax)."""
+        """Диагональный вектор T длины 2K (блоки M, затем N) для мод mode_list(nmax).
+
+        Несферические примитивы вместо этого реализуют :meth:`t_matrix` (полная
+        2K×2K матрица); gmm._full_t выбирает t_matrix, если он есть.
+        """
         ...
+
+
+def _is_layered(eps) -> bool:
+    """eps задаёт несколько слоёв (список/массив) или один однородный материал (скаляр)?"""
+    return np.iterable(eps) and not isinstance(eps, (str, bytes))
 
 
 class LayeredSphere:
@@ -57,3 +67,100 @@ class LayeredSphere:
         tM = np.array([-Nn[n - 1] for (n, m) in modes], dtype=complex)  # −b_n
         tN = np.array([-Mn[n - 1] for (n, m) in modes], dtype=complex)  # −a_n
         return np.concatenate([tM, tN])
+
+
+# --------------------------------------------------------------------------- #
+# Несферические EBCM-примитивы как рассеиватели GMM (полная T-матрица)
+# Ось симметрии ∥ z; произвольное положение поддержано (трансляция GMM),
+# произвольная ориентация — через вращение Вигнера-D (пока не реализовано).
+# --------------------------------------------------------------------------- #
+class Spheroid:
+    """Сфероид (ось ∥ z) как рассеиватель GMM через EBCM. eps скаляр — однородный;
+    eps список (изнутри наружу) + a_norm — слоистый (mu аналогично)."""
+
+    def __init__(self, position, a_eq: float, c_ax: float, eps, mu=1.0, *, a_norm=None):
+        self.position = np.asarray(position, dtype=float)
+        self.a_eq = float(a_eq)
+        self.c_ax = float(c_ax)
+        self.eps = eps
+        self.mu = mu
+        self.a_norm = a_norm
+
+    def bounding_radius(self) -> float:
+        return max(self.a_eq, self.c_ax)
+
+    def t_matrix(self, k: float, nmax: int) -> np.ndarray:
+        curve = ebcm.spheroid_curve(self.a_eq, self.c_ax)
+        if _is_layered(self.eps):
+            mu = self.mu if _is_layered(self.mu) else [self.mu] * len(self.eps)
+            if self.a_norm is None:
+                raise ValueError("слоистый сфероид требует a_norm (границы слоёв, внешний=1)")
+            return ebcm.tmatrix_axisym_layered(curve, list(self.eps), list(mu),
+                                               list(self.a_norm), k, nmax)
+        return ebcm.tmatrix_axisym(curve, k, complex(self.eps), complex(self.mu), nmax)
+
+
+class FiniteCylinder:
+    """Конечный круговой цилиндр (ось ∥ z, радиус R, полудлина H) — EBCM-рассеиватель GMM.
+    ВНИМАНИЕ: острые рёбра ⇒ EBCM кромочно-ограничен (вытянутый аспект точнее; плоский
+    расходится). См. ebcm.tmatrix_axisym_segments. Слоистость — через a_norm (гомотетия)."""
+
+    def __init__(self, position, radius: float, half_length: float, eps, mu=1.0, *, a_norm=None):
+        self.position = np.asarray(position, dtype=float)
+        self.radius = float(radius)
+        self.half_length = float(half_length)
+        self.eps = eps
+        self.mu = mu
+        self.a_norm = a_norm
+
+    def bounding_radius(self) -> float:
+        return math.hypot(self.radius, self.half_length)
+
+    def t_matrix(self, k: float, nmax: int) -> np.ndarray:
+        R, H = self.radius, self.half_length
+        if _is_layered(self.eps):
+            mu = self.mu if _is_layered(self.mu) else [self.mu] * len(self.eps)
+            if self.a_norm is None:
+                raise ValueError("слоистый цилиндр требует a_norm")
+            n_per = 2 * nmax + 6
+            nphi = 2 * nmax + 2
+
+            def builder(a):
+                return ebcm.surface_segments(ebcm.cylinder_segments(a * R, a * H), n_per, nphi)
+            return ebcm.tmatrix_layered(builder, list(self.eps), list(mu),
+                                        list(self.a_norm), k, nmax)
+        return ebcm.tmatrix_axisym_segments(ebcm.cylinder_segments(R, H),
+                                            k, complex(self.eps), complex(self.mu), nmax)
+
+
+class Cone:
+    """Конечный круговой конус (ось ∥ z, базовый радиус R, высота L) — EBCM-рассеиватель GMM.
+    Острая вершина + ребро основания; для умеренных конусов EBCM сходится хорошо."""
+
+    def __init__(self, position, radius: float, height: float, eps, mu=1.0, *, a_norm=None):
+        self.position = np.asarray(position, dtype=float)
+        self.radius = float(radius)
+        self.height = float(height)
+        self.eps = eps
+        self.mu = mu
+        self.a_norm = a_norm
+
+    def bounding_radius(self) -> float:
+        # вершина z_a=3L/4, дно z=−L/4, радиус R: дальняя точка — вершина или ребро основания
+        return max(0.75 * self.height, math.hypot(self.radius, 0.25 * self.height))
+
+    def t_matrix(self, k: float, nmax: int) -> np.ndarray:
+        R, L = self.radius, self.height
+        if _is_layered(self.eps):
+            mu = self.mu if _is_layered(self.mu) else [self.mu] * len(self.eps)
+            if self.a_norm is None:
+                raise ValueError("слоистый конус требует a_norm")
+            n_per = 2 * nmax + 6
+            nphi = 2 * nmax + 2
+
+            def builder(a):
+                return ebcm.surface_segments(ebcm.cone_segments(a * R, a * L), n_per, nphi)
+            return ebcm.tmatrix_layered(builder, list(self.eps), list(mu),
+                                        list(self.a_norm), k, nmax)
+        return ebcm.tmatrix_axisym_segments(ebcm.cone_segments(R, L),
+                                            k, complex(self.eps), complex(self.mu), nmax)
