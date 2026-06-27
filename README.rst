@@ -113,14 +113,13 @@ Project layout
      01_sphere.py       canonical exact sphere core (TGF/Mie) — math preserved
      mie_core.py        importable mirror of the sphere core
      tmatrix.py         diagonal T-matrix + cross sections
-     vswf.py            VSWF, Wigner-3j/Gaunt, closed-form translation (Cruzan)
-     scatterer.py       Scatterer protocol + LayeredSphere
+     vswf.py            VSWF, Wigner-3j/Gaunt, closed-form translation + Wigner-D rotation
+     scatterer.py       Scatterer protocol + LayeredSphere, Spheroid, FiniteCylinder, Cone
+     ebcm.py            rigorous full-wave EBCM/TGF T-matrix (non-spherical primitives)
      gmm.py             Generalized Multiparticle Mie assembly engine
-     ellipsoid.py,
-     spheroid.py,
-     cylinder.py,
-     cone.py            per-geometry analytic solvers
-     decompose.py       pack a body into non-overlapping spheres
+     ellipsoid.py       triaxial ellipsoid (quasi-static)
+     cylinder.py        infinite/layered/oblique cylinder (exact 2-D)
+     decompose.py       pack a body into non-overlapping spheres (fallback)
      solvers.py         unified public API (SphereSolver, ... , Cluster, solve_*)
      legacy/            archival original research scripts (not maintained)
    tests/               independent-arbiter test suite (run_all.py)
