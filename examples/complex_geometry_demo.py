@@ -22,11 +22,11 @@ import sys
 import numpy as np
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "green_tensor"))
+sys.path.insert(0, _ROOT)
 
-import decompose as dc
-import gmm
-from scatterer import LayeredSphere
+from green_tensor import decompose as dc  # noqa: E402
+from green_tensor import gmm  # noqa: E402
+from green_tensor.scatterer import LayeredSphere  # noqa: E402
 
 K = 1.0
 KHAT = [1.0, 0.0, 0.0]
