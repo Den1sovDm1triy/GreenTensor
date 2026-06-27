@@ -84,15 +84,21 @@ Quick start
    T = sphere.t_matrix(k=3.0)            # DiagonalTMatrix in the VSWF basis
    diagram = sphere.pattern(k=3.0)       # scattering diagram
 
+   # Rigorous full-wave non-spherical primitives (EBCM/TGF), assembled by GMM
+   spheroid = gt.Spheroid(position=(0, 0, 0), a_eq=0.4, c_ax=0.8, eps=2.25)
+   cone     = gt.Cone(position=(0, 0, 2.5), radius=0.35, height=0.8, eps=2.25,
+                      euler=(0.0, 0.5, 0.0))   # arbitrary orientation (Wigner-D)
+   gt.Cluster([spheroid, cone]).cross_sections(k=2.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=7)
+
    # Cluster of scatterers (GMM)
    s1 = gt.SphereSolver(0.5, [2.25], position=(-1, 0, 0)).as_scatterer()
    s2 = gt.SphereSolver(0.5, [2.25], position=(+1, 0, 0)).as_scatterer()
    gt.Cluster([s1, s2]).cross_sections(k=3.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=6)
 
-   # Complex geometry: cone -> non-overlapping spheres -> GMM
-   cone = gt.ConeSolver(apex=[0, 0, 0], axis=[0, 0, 1],
-                        half_angle=0.5, height=8.0, eps=[2.25])
-   scatterers, centers, radius = cone.decompose(spacing=2.0)
+   # Fallback for arbitrary bodies: decompose into non-overlapping spheres -> GMM
+   conesolver = gt.ConeSolver(apex=[0, 0, 0], axis=[0, 0, 1],
+                              half_angle=0.5, height=8.0, eps=[2.25])
+   scatterers, centers, radius = conesolver.decompose(spacing=2.0)
    gt.Cluster(scatterers).cross_sections(k=1.0, khat=(1, 0, 0), pol=(0, 0, 1), nmax=3)
 
 See ``examples/`` for end-to-end scripts (Luneburg/Maxwell lenses, complex geometry).
@@ -154,9 +160,28 @@ Built with Sphinx (``docs/``); hosted on `Read the Docs
 License
 -------
 
-MIT — see `LICENSE <LICENSE>`_.
+MIT — see `LICENSE <LICENSE>`_. © 2025–2026 D.V. Denisov, V.Ya. Noskov,
+I.O. Skumatenko (Ural Federal University). Every source file carries an
+``SPDX-License-Identifier: MIT`` header.
 
 Citation
 --------
 
-If you use GreenTensor in academic work, please cite the IEEE papers above.
+If you use GreenTensor in academic work, please cite both the software and the
+underlying IEEE publications. Machine-readable metadata lives in
+`CITATION.cff <CITATION.cff>`_ (GitHub's *“Cite this repository”* button).
+
+Software (BibTeX):
+
+.. code-block:: bibtex
+
+   @software{greentensor,
+     title   = {{GreenTensor}: analytic electromagnetic scattering on a layered-sphere core},
+     author  = {Denisov, Dmitriy V. and Noskov, Vitaliy Ya. and Skumatenko, Ilya O.},
+     version = {0.4.0},
+     year    = {2026},
+     license = {MIT},
+     url     = {https://github.com/Den1sovDm1triy/GreenTensor},
+   }
+
+Underlying methodology — the two IEEE papers linked at the top of this README.

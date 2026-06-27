@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: MIT
+# This CITATION.cff lets GitHub render a "Cite this repository" button and
+# provides machine-readable citation metadata (https://citation-file-format.github.io).
+cff-version: 1.2.0
+title: "GreenTensor: analytic electromagnetic scattering on a layered-sphere core"
+message: >-
+  If you use GreenTensor in academic work, please cite this software and the
+  underlying IEEE publications listed under "references".
+type: software
+authors:
+  - family-names: Denisov
+    given-names: Dmitriy V.
+    affiliation: "Ural Federal University, Yekaterinburg, Russia"
+    email: dv.denisov@urfu.ru
+  - family-names: Noskov
+    given-names: Vitaliy Ya.
+    affiliation: "Ural Federal University, Yekaterinburg, Russia"
+    email: v.y.noskov@urfu.ru
+  - family-names: Skumatenko
+    given-names: Ilya O.
+    affiliation: "Ural Federal University, Yekaterinburg, Russia"
+    email: ilya.skumatenko@urfu.ru
+version: "0.4.0"
+date-released: "2026-06-27"
+license: MIT
+repository-code: "https://github.com/Den1sovDm1triy/GreenTensor"
+url: "https://greentensor.readthedocs.io"
+abstract: >-
+  GreenTensor is a Python library for analytic electromagnetic-scattering analysis
+  on heterogeneous structures. Its mathematical core is the exact radially-layered-
+  sphere solution by the tensor Green's function (TGF / Mie) method. Non-spherical
+  bodies (spheroid, finite cylinder, cone, including layered) are solved rigorously
+  by the full-wave EBCM/TGF method and composed into complex geometry by a
+  Generalized Multiparticle Mie (GMM) engine, with complementary closed-form
+  analytics for the triaxial ellipsoid and the infinite/layered/oblique cylinder.
+keywords:
+  - electromagnetics
+  - electromagnetic scattering
+  - tensor Green's function
+  - Mie theory
+  - T-matrix
+  - EBCM
+  - generalized multiparticle Mie
+  - Luneburg lens
+  - radar cross section
+references:
+  # NOTE for maintainers: add the exact DOI, conference/venue and pages for each
+  # paper, and verify the per-paper author list. Year (2024) is from the IEEE
+  # catalog; the URL is the IEEE Xplore document.
+  - type: conference-paper
+    title: "GreenTensor: Efficient Electromagnetic Scattering Analysis on Heterogeneous Spherical Structures"
+    year: 2024
+    url: "https://ieeexplore.ieee.org/document/10615009"
+    authors:
+      - family-names: Denisov
+        given-names: Dmitriy V.
+      - family-names: Noskov
+        given-names: Vitaliy Ya.
+      - family-names: Skumatenko
+        given-names: Ilya O.
+  - type: conference-paper
+    title: "GreenTensor: A Python Library for Electromagnetic Wave Propagation Analysis"
+    year: 2024
+    url: "https://ieeexplore.ieee.org/document/10584060"
+    authors:
+      - family-names: Denisov
+        given-names: Dmitriy V.
+      - family-names: Noskov
+        given-names: Vitaliy Ya.
+      - family-names: Skumatenko
+        given-names: Ilya O.
