@@ -7,27 +7,30 @@ solvers — unified public API: one solver per geometry.
 RU: Каждый примитив семейства экспонируется как самостоятельный класс-решатель с
 единообразным интерфейсом (``cross_sections`` и т.п.) поверх уже проверенных ядер
 пакета. Классы НЕ содержат собственной математики — только связывают проверенные
-функции (01_sphere.py/tmatrix/ellipsoid/spheroid/cylinder/cone/gmm) в удобный объект.
+функции (01_sphere.py/tmatrix/ellipsoid/cylinder/decompose/gmm) в удобный объект.
 Для краткого вызова есть функции-обёртки ``solve_*``.
 
 EN: Each primitive of the family is exposed as a standalone solver class with a
 uniform interface (``cross_sections`` etc.) on top of the package's already-verified
 cores. The classes carry NO math of their own — they only wire the verified functions
-(01_sphere.py/tmatrix/ellipsoid/spheroid/cylinder/cone/gmm) into a convenient object.
+(01_sphere.py/tmatrix/ellipsoid/cylinder/decompose/gmm) into a convenient object.
 Thin ``solve_*`` wrapper functions are provided for one-line calls.
 
 Карта решателей / solver map (see GreenTensor_Theory.tex):
   * :class:`SphereSolver`    — слоистая сфера, точное ядро (Mie/TFG) / layered sphere, exact core;
-  * ``green_tensor.Spheroid`` — сфероид, строгий EBCM (в Cluster) / spheroid, rigorous EBCM (in Cluster);
   * :class:`EllipsoidSolver` — трёхосный эллипсоид, квазистатика / triaxial ellipsoid, quasi-static;
   * :class:`CylinderSolver`  — бесконечный цилиндр, точная 2D-аналитика / infinite cylinder, exact 2D;
-  * :class:`ConeSolver`      — конус через разложение в сферы + GMM / cone via sphere decomposition + GMM;
+  * :class:`LayeredCylinderSolver` — слоистый/косой бесконечный цилиндр (ТФГ) / layered/oblique infinite cylinder (TGF);
+  * :class:`ConeSolver`, :class:`FiniteCylinderSolver` — decompose-fallback (кластер сфер + GMM)
+    / decompose fallback (sphere cluster + GMM);
   * :class:`Cluster`         — сборка набора рассеивателей (GMM) / assembly of scatterers (GMM).
 
-RU: Полноволновые ветви сфероида/конечного цилиндра/конуса честно поднимают
-``NotImplementedError`` — заглушек-фейков нет.
-EN: Full-wave branches of spheroid/finite-cylinder/cone honestly raise
-``NotImplementedError`` — no fake stubs.
+RU: СТРОГИЕ полноволновые примитивы — ``green_tensor.{Spheroid, FiniteCylinder, Cone}``
+(метод EBCM/ТФГ); собираются через :class:`Cluster` (GMM) и дают точные сечения
+одиночного тела или кластера. Это основной путь для несферических тел.
+EN: The RIGOROUS full-wave primitives are ``green_tensor.{Spheroid, FiniteCylinder, Cone}``
+(EBCM/TGF method), assembled via :class:`Cluster` (GMM) for exact single-body or
+cluster cross sections — the main route for non-spherical bodies.
 
 Конвенция / convention: e^{-iωt}, внешняя среда — вакуум / vacuum host, исходящая
 волна / outgoing wave ~ h_n^{(1)}. ``k`` — волновое число во внешней среде / wavenumber

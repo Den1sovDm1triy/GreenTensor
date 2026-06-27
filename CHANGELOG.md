@@ -7,6 +7,47 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-06-27
+
+### Added
+- **Rigorous full-wave EBCM / null-field T-matrix solver** for non-spherical
+  axisymmetric bodies (`green_tensor/ebcm.py`): spheroid, finite cylinder, cone,
+  including **layered** bodies via the Peterson–Ström recursion. Calibrated to the
+  layered-sphere core (`sphere_core`) and validated for energy conservation, the
+  Rayleigh limit, and reduction to Mie.
+- **EBCM primitives exposed in the public API**: `green_tensor.Spheroid`,
+  `green_tensor.FiniteCylinder`, `green_tensor.Cone` — implement the `Scatterer`
+  protocol and assemble through `Cluster` (GMM) for exact single-body or cluster
+  cross sections. This is now the **main route for non-spherical scattering**.
+- **Arbitrary orientation** of EBCM primitives via Wigner-D rotation of the
+  T-matrix (`vswf.rotate_tmatrix`, `euler=(α,β,γ)` on each primitive), validated by
+  cross-section covariance.
+- GMM generalized to **full (non-diagonal) T-matrices** (`gmm._full_t`); spheres
+  remain bit-for-bit unchanged.
+
+### Changed (BREAKING)
+- **Non-spherical solvers consolidated onto the rigorous EBCM/TGF family.** The
+  approximate quasi-static `SpheroidSolver` and `solve_spheroid` are **removed**:
+  the full-wave spheroid is now `green_tensor.Spheroid` (EBCM), and the Rayleigh
+  limit is available via `EllipsoidSolver(a_eq, a_eq, c_ax, …)` (spheroid = ellipsoid
+  with b = a — numerically identical depolarization/polarizability).
+- `green_tensor/cone.py` **removed**: its geometry helpers (`cone_indicator`,
+  `decompose_cone`) moved into `green_tensor/decompose.py`; `ConeSolver` now wires
+  the decompose-fallback path, while the rigorous cone is `green_tensor.Cone` (EBCM).
+- Retained for their **unique physics** (not covered by EBCM): `EllipsoidSolver`
+  (triaxial, quasi-static), `CylinderSolver`/`LayeredCylinderSolver` (infinite,
+  layered, oblique 2D), `decompose` (arbitrary-blob fallback), `mie_core`
+  (antenna-mode + verified oracle).
+
+### Fixed
+- `mie_core` magneto-dielectric (μ ≠ 1) interface factors — magnetic sphere now
+  matches the Kerker closed-form arbiter; GMM axial-incidence NaN at the poles.
+
+### Removed
+- Out-of-scope `examples/Example 1 …/test.py` (Yandex-GPT HTML analyzer, not
+  electrodynamics) — its previously committed API key must be revoked in the
+  Yandex Cloud console.
+
 ## [0.3.0] — 2026-06-23
 
 ### Added
