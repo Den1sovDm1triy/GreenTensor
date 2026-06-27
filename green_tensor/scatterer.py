@@ -1,8 +1,11 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """scatterer — общий контракт рассеивателя для движка сборки GMM.
 
 Каждый примитив реализует ``Scatterer``: положение, описывающий радиус и
 T-матрицу в сферическом базисе ВСВФ (вектор для GMM). Сфера — каноническая
-реализация поверх верифицированного ядра mie_core; остальные геометрии
+реализация поверх ``01_sphere.py``; остальные геометрии
 (сфероид/эллипсоид/цилиндр/конус) добавляются как новые классы с тем же контрактом.
 
 Вектор T для GMM хранит диагональ (M,N): c^M = t_M·a^M, c^N = t_N·a^N.
@@ -15,7 +18,7 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 
-from . import mie_core
+from . import sphere_core
 from . import vswf
 
 
@@ -47,8 +50,8 @@ class LayeredSphere:
     def t_vector(self, k: float, nmax: int) -> np.ndarray:
         x = k * self.radius
         toch = max(nmax + 2, int(math.ceil(x + 4.0 * x ** (1.0 / 3.0) + 2.0)))
-        mie = mie_core.MieSphere(k0=x, a=self.a_norm, eps=self.eps,
-                                 miy=self.miy, toch=toch)
+        mie = sphere_core.MieSphere(k0=x, a=self.a_norm, eps=self.eps,
+                                    miy=self.miy, toch=toch)
         Mn, Nn = mie.coefficients()
         modes = vswf.mode_list(nmax)
         tM = np.array([-Nn[n - 1] for (n, m) in modes], dtype=complex)  # −b_n

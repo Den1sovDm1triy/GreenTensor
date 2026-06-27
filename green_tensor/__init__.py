@@ -1,15 +1,18 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """GreenTensor — analytic electromagnetic scattering on a layered-sphere core.
 
 RU: Библиотека аналитического анализа рассеяния электромагнитных волн. Математическим
 ядром служит точное решение для радиально-слоистой сферы (метод тензорных функций
-Грина / Ми, ``01_sphere.py`` / :mod:`green_tensor.mie_core`). Поверх ядра построено
+Грина / Ми, ``01_sphere.py``; импортируемый фасад — :mod:`green_tensor.sphere_core`). Поверх ядра построено
 семейство аналитических решателей (сфероид, эллипсоид, цилиндр, конус) с единым
 T-матричным интерфейсом в сферическом базисе ВСВФ и единый движок сборки сложной
 геометрии (GMM, :mod:`green_tensor.gmm`).
 
 EN: A library for analytic electromagnetic-scattering analysis. Its mathematical core
 is the exact solution for a radially layered sphere (tensor Green's function / Mie
-method, ``01_sphere.py`` / :mod:`green_tensor.mie_core`). On top of the core a family
+method, ``01_sphere.py``; importable facade :mod:`green_tensor.sphere_core`). On top of the core a family
 of analytic solvers (spheroid, ellipsoid, cylinder, cone) shares one T-matrix interface
 in the spherical-VSWF basis, composed by a single complex-geometry assembly engine
 (GMM, :mod:`green_tensor.gmm`).
@@ -42,6 +45,7 @@ from . import (  # noqa: F401
     mie_core,
     scatterer,
     solvers,
+    sphere_core,
     spheroid,
     tmatrix,
     vswf,
@@ -79,6 +83,6 @@ __all__ = [
     "solve_sphere", "solve_ellipsoid", "solve_spheroid",
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
     # modules
-    "mie_core", "tmatrix", "scatterer", "vswf", "gmm",
+    "mie_core", "sphere_core", "tmatrix", "scatterer", "vswf", "gmm",
     "ellipsoid", "spheroid", "cylinder", "cone", "decompose", "solvers",
 ]

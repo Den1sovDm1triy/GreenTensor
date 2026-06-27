@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Проверки многослойного цилиндра (ТФГ, нормальное падение).
 
 green_tensor/cylinder.py: layered_coeff / cross_sections_layered и обёртки

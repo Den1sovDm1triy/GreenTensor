@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Проверки бесконечного цилиндра (green_tensor/cylinder.py).
 
   [1] сохранение энергии без потерь: Q_ext = Q_sca (TM и TE);

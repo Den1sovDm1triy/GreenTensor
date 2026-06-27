@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Проверки оптимизатора разложения: поправка эффективной среды (Максвелл–Гарнетт)
 и метрики упаковки (green_tensor.decompose).
 

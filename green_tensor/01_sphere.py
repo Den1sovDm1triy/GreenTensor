@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 import math
 import cmath
 import scipy
@@ -178,45 +181,42 @@ class RCSCalculator:
                                  self.Jprfunc(i, j+1, j+1, True) * self.Nfunc(i, j, j+1))
     def calculate_impedances(self):
         """Расчет импедансов и адмитансов"""
+        # Магнитодиэлектрик требует учитывать mu не только в sigma=sqrt(eps*mu),
+        # но и в граничной нормировке производных функций Риккати-Бесселя.
+        # При mu=1 эти отношения в точности сводятся к прежним eps-множителям.
+        eps_ext = list(self.eps)
+        mu_ext = list(self.miy) + [1.0]
+        sigma_ext = [cmath.sqrt(eps_ext[j] * mu_ext[j]) for j in range(self.n + 1)]
+        gamma_e = [mu_ext[j] / sigma_ext[j] for j in range(self.n + 1)]
+        gamma_h = [sigma_ext[j] / mu_ext[j] for j in range(self.n + 1)]
+
         for i in range(self.toch):
             for h in range(len(self.a)):
                 if h == 0:
-                    numerator = cmath.exp(self.alfa[1] * 1j) * abs(self.eps[1])
-                    denominator = cmath.exp(self.alfa[0] * 1j) * abs(self.eps[0])
-                    self.Z[i][h] = cmath.sqrt(numerator / denominator) * (self.Jpr[i] / self.J[i])
-                    numerator = cmath.exp(self.alfa[0] * 1j) * abs(self.eps[0])
-                    denominator = cmath.exp(self.alfa[1] * 1j) * abs(self.eps[1])
-                    self.Y[i][h] = cmath.sqrt(numerator / denominator) * (self.Jpr[i] / self.J[i])
+                    self.Z[i][h] = (gamma_e[0] / gamma_e[1]) * (self.Jpr[i] / self.J[i])
+                    self.Y[i][h] = (gamma_h[0] / gamma_h[1]) * (self.Jpr[i] / self.J[i])
                     
                 
                 elif h == (len(self.a) - 1):
-                    numerator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
-                    denominator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
-                    sqrt_part = cmath.sqrt(numerator / denominator) 
+                    sqrt_part = gamma_e[h] / gamma_e[h+1]
                 
                     term1 = self.Cpr[i][h-1] + self.Z[i][h-1] * self.Spr[i][h-1]
                     term2 = self.C[i][h-1] + self.Z[i][h-1] * self.S[i][h-1]
                     self.Z[i][h] = sqrt_part * (term1 / term2) 
                 
-                    numerator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
-                    denominator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
-                    sqrt_part = cmath.sqrt(numerator / denominator)
+                    sqrt_part = gamma_h[h] / gamma_h[h+1]
                     term1 = self.Cpr[i][h-1] + self.Y[i][h-1] * self.Spr[i][h-1]
                     term2 = self.C[i][h-1] + self.Y[i][h-1] * self.S[i][h-1]
                     self.Y[i][h] = sqrt_part * (term1 / term2) 
                 
                 else:
-                    numerator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
-                    denominator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
-                    sqrt_part = cmath.sqrt(numerator / denominator)
+                    sqrt_part = gamma_e[h] / gamma_e[h+1]
                 
                     term1 = self.Cpr[i][h-1] + self.Z[i][h-1] * self.Spr[i][h-1]
                     term2 = self.C[i][h-1] + self.Z[i][h-1] * self.S[i][h-1]
                     self.Z[i][h] = sqrt_part * (term1 / term2)
 
-                    numerator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
-                    denominator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
-                    sqrt_part = cmath.sqrt(numerator / denominator)
+                    sqrt_part = gamma_h[h] / gamma_h[h+1]
 
                     term1 = self.Cpr[i][h-1] + self.Y[i][h-1] * self.Spr[i][h-1]
                     term2 = self.C[i][h-1] + self.Y[i][h-1] * self.S[i][h-1]

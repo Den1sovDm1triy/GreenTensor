@@ -1,16 +1,19 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """solvers — единый публичный API: по одному решателю на геометрию.
 solvers — unified public API: one solver per geometry.
 
 RU: Каждый примитив семейства экспонируется как самостоятельный класс-решатель с
 единообразным интерфейсом (``cross_sections`` и т.п.) поверх уже проверенных ядер
 пакета. Классы НЕ содержат собственной математики — только связывают проверенные
-функции (mie_core/tmatrix/ellipsoid/spheroid/cylinder/cone/gmm) в удобный объект.
+функции (01_sphere.py/tmatrix/ellipsoid/spheroid/cylinder/cone/gmm) в удобный объект.
 Для краткого вызова есть функции-обёртки ``solve_*``.
 
 EN: Each primitive of the family is exposed as a standalone solver class with a
 uniform interface (``cross_sections`` etc.) on top of the package's already-verified
 cores. The classes carry NO math of their own — they only wire the verified functions
-(mie_core/tmatrix/ellipsoid/spheroid/cylinder/cone/gmm) into a convenient object.
+(01_sphere.py/tmatrix/ellipsoid/spheroid/cylinder/cone/gmm) into a convenient object.
 Thin ``solve_*`` wrapper functions are provided for one-line calls.
 
 Карта решателей / solver map (see GreenTensor_Theory.tex):
@@ -39,8 +42,8 @@ from . import cylinder as _cylinder
 from . import decompose as _decompose
 from . import ellipsoid as _ellipsoid
 from . import gmm as _gmm
-from . import mie_core as _mie_core
 from . import scatterer as _scatterer
+from . import sphere_core as _sphere_core
 from . import spheroid as _spheroid
 from . import tmatrix as _tmatrix
 
@@ -58,8 +61,8 @@ __all__ = [
 # Sphere — canonical exact core (Mie / TFG method)
 # --------------------------------------------------------------------------- #
 class SphereSolver:
-    """RU: Радиально-слоистая сфера — точный решатель поверх ядра ``mie_core``.
-    EN: Radially layered sphere — exact solver on top of the ``mie_core`` core.
+    """RU: Радиально-слоистая сфера — точный решатель поверх ``01_sphere.py``.
+    EN: Radially layered sphere — exact solver on top of ``01_sphere.py``.
 
     radius : внешний радиус / outer radius;
     eps    : комплексные проницаемости слоёв изнутри наружу / layer permittivities, inner→outer;
@@ -76,11 +79,11 @@ class SphereSolver:
         self.miy = list(miy) if miy is not None else None
         self.position = np.asarray(position, dtype=float)
 
-    def mie(self, k: float, *, toch: int | None = None, **mie_kwargs) -> "_mie_core.MieSphere":
-        """RU: Объект ядра ``MieSphere`` для волнового числа k (x = k·radius).
-        EN: ``MieSphere`` core object for wavenumber k (x = k·radius)."""
-        return _mie_core.MieSphere(k0=k * self.radius, a=self.a_norm, eps=self.eps,
-                                   miy=self.miy, toch=toch, **mie_kwargs)
+    def mie(self, k: float, *, toch: int | None = None, **mie_kwargs) -> "_sphere_core.MieSphere":
+        """RU: Объект канонического ядра ``01_sphere.py`` для x = k·radius.
+        EN: Canonical ``01_sphere.py`` core object for x = k·radius."""
+        return _sphere_core.MieSphere(k0=k * self.radius, a=self.a_norm, eps=self.eps,
+                                      miy=self.miy, toch=toch, **mie_kwargs)
 
     def cross_sections(self, k: float, *, toch: int | None = None) -> dict:
         """RU: Эффективности Q_sca, Q_ext, Q_abs, Q_back (норм. на πR²).
@@ -93,8 +96,8 @@ class SphereSolver:
         return _tmatrix.sphere_tmatrix(self.mie(k, toch=toch))
 
     def pattern(self, k: float, theta=None, **mie_kwargs) -> dict:
-        """RU: Диаграмма рассеяния (линейная/круговая поляризация) — формулы ``mie_core``.
-        EN: Scattering pattern (linear/circular polarization) — ``mie_core`` formulas."""
+        """RU: Диаграмма рассеяния (линейная/круговая поляризация) — формулы ``01_sphere.py``.
+        EN: Scattering pattern (linear/circular polarization) — ``01_sphere.py`` formulas."""
         return self.mie(k, **mie_kwargs).pattern(theta)
 
     def as_scatterer(self) -> "_scatterer.LayeredSphere":

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """gmm — единый движок сборки сложной геометрии (Generalized Multiparticle Mie).
 
 Потребляет T-матрицы примитивов (любых геометрий, см. scatterer.py) в общем
@@ -9,6 +12,11 @@
 где d_p — разложение внешней падающей волны относительно центра p, а G^{out}_{pq}
 переразлагает рассеянное поле тела q как падающее на тело p. Поля и сечения
 геометрии-агностичны — зависят только от T-матриц и положений тел.
+
+T_q — ПОЛНАЯ (вообще говоря недиагональная) матрица 2K×2K в базисе [блок M; блок N]:
+для сферы она диагональна (diag(t_M, t_N)), для несферических EBCM-примитивов
+(конус, конечный цилиндр) — недиагональна и связывает M↔N (см. :func:`_full_t`).
+Связь a_p = d_p + Σ G·T·a_q и c_p = T·a_p — матричные (а не поэлементные).
 """
 from __future__ import annotations
 
@@ -64,12 +72,37 @@ def _check_applicability(positions, k: float, nmax: int) -> float:
     return sep
 
 
+def _full_t(scatterer, k: float, nmax: int) -> np.ndarray:
+    """Полная (2K×2K) T-матрица рассеивателя в базисе ВСВФ [блок M; блок N].
+
+    Использует ``scatterer.t_matrix(k, nmax)``, если он определён (несферические /
+    EBCM-примитивы дают недиагональную T); иначе продвигает диагональный
+    ``t_vector`` до ``diag(t_vector)``. Для сферы ``G @ diag(t)`` и ``diag(t) @ a``
+    тождественно равны прежним поэлементным ``G * t[None,:]`` и ``t * a`` — поэтому
+    переход на матричную форму не меняет результат для сфер (регрессия).
+    """
+    tm = getattr(scatterer, "t_matrix", None)
+    if callable(tm):
+        blk = 2 * len(vswf.mode_list(nmax))
+        T = np.asarray(tm(k, nmax), dtype=complex)
+        if T.shape != (blk, blk):
+            raise ValueError(
+                f"t_matrix должна быть {blk}×{blk} при nmax={nmax}, получено {T.shape}")
+        return T
+    return np.diag(np.asarray(scatterer.t_vector(k, nmax), dtype=complex))
+
+
 def solve_cluster(scatterers, k: float, khat, pol, nmax: int):
-    """Решить кластер: вернуть (a, c, d) формы (P, 2K) — возбуждающие, рассеянные, падающие."""
+    """Решить кластер: вернуть (a, c, d) формы (P, 2K) — возбуждающие, рассеянные, падающие.
+
+    Поддерживает ПОЛНЫЕ (недиагональные) T-матрицы примитивов: связь a_p = d_p +
+    Σ_{q≠p} G_pq·T_q·a_q и c_p = T_p·a_p — матричные. Сфера (диагональная T) даёт тот
+    же результат, что прежняя поэлементная форма.
+    """
     P = len(scatterers)
     modes = vswf.mode_list(nmax)
     blk = 2 * len(modes)
-    tvecs = [np.asarray(s.t_vector(k, nmax)) for s in scatterers]
+    Ts = [_full_t(s, k, nmax) for s in scatterers]
     pos = [np.asarray(s.position, dtype=float) for s in scatterers]
 
     _check_applicability(pos, k, nmax)
@@ -81,9 +114,9 @@ def solve_cluster(scatterers, k: float, khat, pol, nmax: int):
                 continue
             A, B, _ = vswf.translation_block_closed(pos[p] - pos[q], k, nmax, "out")
             G = np.block([[A, B], [B, A]])          # 2K×2K: (c^M_q,c^N_q) -> a_p
-            Mfull[p * blk:(p + 1) * blk, q * blk:(q + 1) * blk] = -G * tvecs[q][None, :]
+            Mfull[p * blk:(p + 1) * blk, q * blk:(q + 1) * blk] = -G @ Ts[q]
     a = np.linalg.solve(Mfull, d).reshape(P, blk)
-    c = np.array([tvecs[p] * a[p] for p in range(P)])
+    c = np.array([Ts[p] @ a[p] for p in range(P)])
     return a, c, d.reshape(P, blk)
 
 
@@ -155,6 +188,9 @@ def cross_sections(scatterers, c, k: float, khat, pol) -> dict:
 
 
 def isolated_scattered(scatterer, k: float, khat, pol, nmax: int) -> np.ndarray:
-    """Рассеянные коэффициенты ОДИНОЧНОГО тела (c = T·d) — для предела расцепления."""
+    """Рассеянные коэффициенты ОДИНОЧНОГО тела (c = T·d) — для предела расцепления.
+
+    Матричное умножение полной T-матрицы; для сферы diag(t)·d == t*d (как прежде).
+    """
     d = plane_wave_coeffs(k, khat, pol, scatterer.position, nmax)
-    return np.asarray(scatterer.t_vector(k, nmax)) * d
+    return _full_t(scatterer, k, nmax) @ d

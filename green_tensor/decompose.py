@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """decompose — разложение сложной геометрии в кластер аналитических примитивов.
 
 Произвольное тело аппроксимируется набором НЕПЕРЕСЕКАЮЩИХСЯ сфер (описывающие сферы

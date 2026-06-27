@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Проверки квазистатического эллипсоида (green_tensor/ellipsoid.py).
 
   [1] Σ L_i = 1; сфера ⇒ L_i = 1/3;

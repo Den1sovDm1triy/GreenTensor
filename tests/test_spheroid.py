@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Проверки сфероида (green_tensor/spheroid.py, квазистатика).
 
   [1] замкнутая форма L_ax (prolate и oblate) == численный интеграл;

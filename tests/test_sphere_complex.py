@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Фаза 1 — проверки комплексной eps, поглощения и металл-диэлектрик (01_sphere.py).
 
 Покрывает то, что раньше было сломано в обработке комплексной проницаемости:

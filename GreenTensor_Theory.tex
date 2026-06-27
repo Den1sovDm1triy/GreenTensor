@@ -1,3 +1,6 @@
+% SPDX-License-Identifier: MIT
+% Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 \documentclass[11pt,a4paper]{article}
 \usepackage{amsmath,amssymb,amsfonts,mathtools}
 \usepackage{bm}
@@ -222,13 +225,21 @@ k_j=\omega\sqrt{\varepsilon_j\mu_j}=k_0\,\sigma_j,
 
 Сферическая симметрия разделяет TM- и TE-каналы, и каждый мультиполь $n$ распространяется \emph{независимо}. Это позволяет ввести для каждой границы поверхностный импеданс $Z_n$ (для TM-мод, ассоциированных с $\bm{N}_{mn}$) и адмитанс $Y_n$ (для TE-мод, ассоциированных с $\bm{M}_{mn}$) и сшивать поля поверхность за поверхностью --- рекурсия Адена--Керкера \cite{aden1951,bohren1983}.
 
-\paragraph{Ядро (слой 0).} В центральном слое регулярно лишь $\psi_n$, поэтому при $k_{00}=k_0 a_0\sigma_0$
+\paragraph{Ядро (слой 0).} В центральном слое регулярно лишь $\psi_n$, поэтому при $k_{00}=k_0 a_0\sigma_0$ введём две граничные нормировки
+\begin{equation}
+\gamma_j^{(Z)}=\frac{\mu_j}{\sigma_j},
+\qquad
+\gamma_j^{(Y)}=\frac{\sigma_j}{\mu_j},
+\qquad \sigma_j=\sqrt{\varepsilon_j\mu_j}.
+\label{sphere-eq:gamma-zy}
+\end{equation}
+Они являются безразмерными формами волнового импеданса/адмитанса слоя для двух разделённых сферических каналов: $Z$ соответствует электрическому (TM, $a_n$) коэффициенту, $Y$ --- магнитному (TE, $b_n$). Тогда
 \begin{align}
-Z_n^{(0)} &= \sqrt{\frac{\varepsilon_1}{\varepsilon_0}}\;\frac{\psi_n'(k_{00})}{\psi_n(k_{00})}, &
-Y_n^{(0)} &= \sqrt{\frac{\varepsilon_0}{\varepsilon_1}}\;\frac{\psi_n'(k_{00})}{\psi_n(k_{00})}.
+Z_n^{(0)} &= \frac{\gamma_0^{(Z)}}{\gamma_1^{(Z)}}\;\frac{\psi_n'(k_{00})}{\psi_n(k_{00})}, &
+Y_n^{(0)} &= \frac{\gamma_0^{(Y)}}{\gamma_1^{(Y)}}\;\frac{\psi_n'(k_{00})}{\psi_n(k_{00})}.
 \label{sphere-eq:Z-core}
 \end{align}
-Корни отношений диэлектрических проницаемостей (для $\mu=1$ это $\sqrt{\varepsilon_{j+1}/\varepsilon_j}$) учитывают скачок волнового импеданса на границе; в общем случае фактор задаётся отношением $\sqrt{\varepsilon\mu}$ для TM и обратным для TE. В коде используется фаза $\varepsilon$ через \texttt{cmath.phase} (atan2), что корректно для $\operatorname{Re}\varepsilon<0$ (металлы, плазмоника).
+При $\mu\equiv1$ эти множители сводятся к прежним $\sqrt{\varepsilon_1/\varepsilon_0}$ и $\sqrt{\varepsilon_0/\varepsilon_1}$. В общем магнитодиэлектрическом случае именно отношения \eqref{sphere-eq:gamma-zy}, а не один лишь показатель $\sqrt{\varepsilon\mu}$, обеспечивают непрерывность тангенциальных компонент $\bm E$ и $\bm H$ на границе. В коде используется фаза $\varepsilon$ через \texttt{cmath.phase} (atan2), что корректно для $\operatorname{Re}\varepsilon<0$ (металлы, плазмоника).
 
 \paragraph{Шаг рекурсии.} На границе $h$ вводятся кросс-произведения регулярного ($\psi$) и сингулярного ($\chi$) решений по обе стороны границы. Обозначив $A=k_h^{(h)}=k_0 a_h\sigma_h$ (изнутри слоя $h$) и $B=k_{h-1}^{(h)}=k_0 a_{h-1}\sigma_h$ (на предыдущем радиусе в среде слоя $h$):
 \begin{align}
@@ -240,10 +251,10 @@ S_n' &= \chi_n'(A)\,\psi_n(B)-\psi_n'(A)\,\chi_n(B).
 \end{align}
 Тогда импеданс и адмитанс переносятся на следующую границу дробно-линейно \cite{aden1951,bohren1983}:
 \begin{align}
-Z_n^{(h)} &= \sqrt{\frac{\varepsilon_{h+1}}{\varepsilon_{h}}}\;
+Z_n^{(h)} &= \frac{\gamma_h^{(Z)}}{\gamma_{h+1}^{(Z)}}\;
 \frac{C_n'+Z_n^{(h-1)}\,S_n'}{C_n+Z_n^{(h-1)}\,S_n},
 &
-Y_n^{(h)} &= \sqrt{\frac{\varepsilon_{h}}{\varepsilon_{h+1}}}\;
+Y_n^{(h)} &= \frac{\gamma_h^{(Y)}}{\gamma_{h+1}^{(Y)}}\;
 \frac{C_n'+Y_n^{(h-1)}\,S_n'}{C_n+Y_n^{(h-1)}\,S_n},
 \qquad h=1,\dots,N_L-1.
 \label{sphere-eq:recursion}
@@ -935,6 +946,147 @@ C_{\mathrm{abs}}=C_{\mathrm{ext}}-C_{\mathrm{sca}},
 
 Конус следует квалифицировать как полуаналитический примитив \textsc{TIER-B} с наибольшей реализационной стоимостью в библиотеке. Причины: (i)~\emph{нецелые присоединённые функции Лежандра} $P_\nu^m(\cos\theta)$ и поиск их собственных степеней $\nu$ из трансцендентных уравнений \eqref{cone-cone-eq:eig-TM}--\eqref{cone-cone-eq:eig-TE} требуют специальной численной машинерии (непрерывные дроби, гипергеометрические ряды), слабо или вовсе не покрытой стандартными библиотеками (в отличие от целочисленных $P_n^m$ ядра-сферы); (ii)~сшивка мод даёт \emph{связанную} линейную систему \eqref{cone-cone-eq:modematch-system}, недиагональную по $n$, со сходимостью, управляемой аспектным отношением и параметром размера $ka$; (iii)~\emph{две} сингулярные линии (вершина и ребро) требуют аккуратного условия Мейкснера и ускорения рядов \cite{klinkenbusch2007,bowman1987}. Это не «чистое» решение уровня сферы: ожидаются усечённая связанная система, контролируемая (а не машинная) точность и обязательная забота о ребре. Тем не менее путь строгий --- замкнутые собственные функции в естественных координатах, точный полу-бесконечный блок \cite{klinkenbusch2007} и стандартная сшивка/EBCM \cite{waterman1971} --- и итоговая $\bm{T}^{\mathrm{cone}}$ \eqref{cone-cone-eq:Tcone} полностью совместима с единым сферическим VSWF-каркасом GMM.
 
+\section{Метод нулевого поля (EBCM): реализованный путь к T-матрице несферических тел}
+\label{ebcm-sec:ebcm}
+
+Полуаналитические разложения предыдущих разделов (сшивание мод для конечного цилиндра
+\S\ref{cylinder-cyl-sec:cylinder}, сферо-коническое для конуса \S\ref{cone-cone-sec:cone})
+задают строгую
+\emph{постановку}, но требуют нетабулируемых спецфункций (нецелые $P_\nu^m$) и связанных
+модальных систем. В коде библиотеки несферические осесимметричные примитивы (конечный
+цилиндр, конус) реализованы единым \textbf{методом нулевого поля} (Extended Boundary
+Condition Method, EBCM; Уотерман \cite{waterman1971}; Мищенко, Трэвис, Лацис
+\cite{mishchenko2002}, гл.~5; Дойчу, Видт, Еремин \cite{doicu2006}). EBCM выводится
+из векторного принципа Гюйгенса (тензора функции Грина), спроецированного на базис ВСВФ
+\eqref{tmatrix-eq:tm-M}--\eqref{tmatrix-eq:tm-N}, и потому естественно продолжает
+ТФГ-идентичность проекта со сферы на тело вращения. Модуль: \texttt{green\_tensor/ebcm.py};
+калибровка --- \texttt{tests/test\_ebcm.py}.
+
+\subsection{Основное соотношение}
+\label{ebcm-ssec:master}
+Падающее (регулярное), внутреннее (регулярное при $k_1=k\sqrt{\varepsilon\mu}$) и
+рассеянное (исходящее) поля раскладываются в ВСВФ проекта:
+\begin{align}
+\bm{E}_{\mathrm{inc}} &= \sum_{mn}\bigl[a_{mn}\,\mathrm{Rg}\bm{M}_{mn}(k)+b_{mn}\,\mathrm{Rg}\bm{N}_{mn}(k)\bigr],\\
+\bm{E}_{\mathrm{int}} &= \sum_{mn}\bigl[c_{mn}\,\mathrm{Rg}\bm{M}_{mn}(k_1)+d_{mn}\,\mathrm{Rg}\bm{N}_{mn}(k_1)\bigr],\\
+\bm{E}_{\mathrm{sca}} &= \sum_{mn}\bigl[p_{mn}\,\bm{M}_{mn}(k)+q_{mn}\,\bm{N}_{mn}(k)\bigr].
+\end{align}
+Условие нулевого поля внутри вписанной сферы и представление Гюйгенса снаружи дают две
+матричные связи через поверхностные интегралы по границе тела $S$:
+\begin{equation}
+\begin{bmatrix}\bm a\\\bm b\end{bmatrix}=Q\begin{bmatrix}\bm c\\\bm d\end{bmatrix},
+\qquad
+\begin{bmatrix}\bm p\\\bm q\end{bmatrix}=-\,\mathrm{Rg}Q\begin{bmatrix}\bm c\\\bm d\end{bmatrix}
+\;\Longrightarrow\;
+\boxed{\;\bm T=-\,\mathrm{Rg}Q\,\,Q^{-1}\;}.
+\label{ebcm-eq:T}
+\end{equation}
+
+\subsection{Поверхностные интегралы и сборка \texorpdfstring{$Q$}{Q}}
+\label{ebcm-ssec:Q}
+Элементы $Q,\mathrm{Rg}Q$ суть четыре поверхностных интеграла от смешанных произведений
+ВСВФ (источник --- регулярные внутри при $k_1$; тест --- внешние при $k$: исходящие для
+$Q$, регулярные для $\mathrm{Rg}Q$):
+\begin{equation}
+J^{XY}_{nn'} = \oint_S \hat{\bm n}\cdot\bigl[\bm X^{(\mathrm{src})}_{m n'}(k_1\bm r)\times
+\bm Y^{(\mathrm{test})}_{-m,\,n}(k\bm r)\bigr]\,\mathrm dS,
+\qquad \bm X,\bm Y\in\{\bm M,\bm N\}.
+\label{ebcm-eq:J}
+\end{equation}
+В коде интеграл \eqref{ebcm-eq:J} берётся численно теми же проверенными эвалуаторами
+\texttt{vswf.mn\_grid}, поэтому нормировка автоматически согласована с ядром-сферой.
+Блоки $Q$ (порядок $[\bm M\,(\mathrm{TE});\bm N\,(\mathrm{TM})]$) собираются с импедансным
+множителем $s_E=\sqrt{\varepsilon/\mu}$ (при $\mu=1$: $s_E=\sqrt\varepsilon=k_1/k$),
+умножающим член \emph{магнитной} непрерывности (тип источника противоположен типу блока):
+\begin{equation}
+\begin{aligned}
+Q^{MM} &= s_E\,J^{NM}+J^{MN}, &\quad Q^{MN} &= s_E\,J^{MM}+J^{NN},\\
+Q^{NN} &= s_E\,J^{MN}+J^{NM}, &\quad Q^{NM} &= s_E\,J^{NN}+J^{MM},
+\end{aligned}
+\label{ebcm-eq:Qblocks}
+\end{equation}
+(общий множитель $-i k k_1$ сокращается в \eqref{ebcm-eq:T}). Поверхностный элемент для
+образующей $r(\theta)$:
+$\hat{\bm n}\,\mathrm dS = r(\theta)\bigl[r(\theta)\hat{\bm r}-r_\theta\hat{\bm\theta}\bigr]
+\sin\theta\,\mathrm d\theta\,\mathrm d\varphi$ (для сферы $r_\theta{=}0\Rightarrow
+\hat{\bm n}{=}\hat{\bm r}$, $\mathrm dS{=}r^2\sin\theta\,\mathrm d\theta\,\mathrm d\varphi$).
+
+\paragraph{Блочность по $m$.} Для тела вращения $\int_0^{2\pi}e^{i(m'-m)\varphi}\mathrm
+d\varphi=2\pi\delta_{mm'}$ обнуляет $Q,\mathrm{Rg}Q$ при $m\ne m'$: матрица блочно-диагональна
+по азимуту $m$, и для каждого $m$ решается независимая система размера $2N_m\times2N_m$,
+$n=\max(1,|m|)\dots n_{\max}$. Квадратура --- Гаусс--Лежандр по $\cos\theta$ ($\sim 2n_{\max}$
+узлов), $T=-\mathrm{Rg}Q\,Q^{-1}$ через LU-решение (не явное обращение).
+
+\subsection{Калибровка: точный предел сферы}
+\label{ebcm-ssec:sphere}
+При $r(\theta)=a$ ортогональность ВСВФ на сфере даёт $J^{MM}=J^{NN}=0$ и диагональность
+$J^{MN},J^{NM}$ по $n$ ($\Rightarrow$ кросс-блоки $Q^{MN}=Q^{NM}=0$, расцепление TE/TM).
+Радиальные части сворачиваются через вронскиан Риккати--Бесселя
+$\xi_n\psi_n'-\xi_n'\psi_n=i$, и \eqref{ebcm-eq:T} даёт \emph{точно} коэффициенты Ми
+(Борен--Хаффман, ур.~4.53; здесь $x=ka,\ mx=k_1a,\ \tilde m=s_E$):
+\begin{align}
+t^{N}_n=-\frac{\tilde m\,\psi_n(mx)\psi_n'(x)-\psi_n(x)\psi_n'(mx)}{\tilde m\,\psi_n(mx)\xi_n'(x)-\xi_n(x)\psi_n'(mx)}=-a_n,\\
+t^{M}_n=-\frac{\psi_n(mx)\psi_n'(x)-\tilde m\,\psi_n(x)\psi_n'(mx)}{\psi_n(mx)\xi_n'(x)-\tilde m\,\xi_n(x)\psi_n'(mx)}=-b_n.
+\end{align}
+Именно совпадение с этими формулами фиксирует размещение $s_E$ в \eqref{ebcm-eq:Qblocks}
+(множитель стоит при «магнитном» $J$-члене). Численно реализация воспроизводит
+$a_n,b_n$ для диэлектрической \emph{и} магнитной ($\mu\ne1$) сфер с точностью
+$\sim10^{-15}$, кросс-блоки и внедиагональные по $n$ элементы $\lesssim10^{-14}$
+(\texttt{tests/test\_ebcm.py}, тесты~[1]--[2]).
+
+\paragraph{Конвенция.} Ядро \texttt{01\_sphere}/\texttt{mie\_core} хранит коэффициенты
+\emph{сопряжёнными} ($M_n,N_n=\overline{\,\cdot\,}$). EBCM в базисе \texttt{vswf}
+($e^{-i\omega t}$) даёт стандартные коэффициенты, поэтому возвращаемая T-матрица
+сопрягается: $\bm T_{\mathrm{GMM}}=\overline{\bm T_{\mathrm{EBCM}}}$. Проверено: для сферы
+$\overline{\bm T_{\mathrm{EBCM}}}$ бит-в-бит совпадает с \texttt{LayeredSphere.t\_vector} и
+взаимозаменяема с ней в связанном GMM-кластере (\texttt{test\_ebcm.py}, тесты~[3]--[4]).
+
+\paragraph{Нормировочная поправка (критично вне диагонали).} ВСВФ проекта \emph{ортонорми\-рованы}
+($\oint|\bm M_{nm}|^2\mathrm d\Omega=n(n+1)$), а не нормированы на мощность, как у Мищенко.
+Поэтому собранная из них T-матрица связана с физической \emph{неунитарным} преобразованием
+подобия $\mathrm{diag}\bigl(1/(n(n+1))\bigr)$:
+\begin{equation}
+T^{\mathrm{phys}}_{nn'} = \frac{n'(n'+1)}{n(n+1)}\,T^{\mathrm{EBCM}}_{nn'}.
+\label{ebcm-eq:norm}
+\end{equation}
+На сфере $T$ диагональна по $n$, поэтому \eqref{ebcm-eq:norm} тождественна и предел сферы
+остаётся точным; \emph{вне} диагонали (несферические тела) множитель $n'(n'+1)/(n(n+1))$
+существенно неравен единице. Поскольку подобие \emph{неунитарно}, оно меняет энергобаланс:
+без \eqref{ebcm-eq:norm} у сфероида наблюдалось нарушение $|C_{\mathrm{abs}}|/C_{\mathrm{sca}}\sim10\%$,
+после --- на уровне квадратуры ($\sim10^{-5}$). Это и есть недостающее звено, объединяющее
+компактную форму \eqref{ebcm-eq:J} с физической T-матрицей; альтернативно эквивалентно
+вводу множителя $\sqrt{(2n+1)/(n(n+1))}$ в нормировку ВСВФ (как в ScatterPy/SMARTIES).
+
+\subsection{Образующие конечного цилиндра и конуса; слоистость}
+\label{ebcm-ssec:curves}
+Интеграл \eqref{ebcm-eq:J} сводится к 1D по $\theta$ ($\mathrm dl=\sqrt{r^2+r_\theta^2}\,
+\mathrm d\theta$), кусочно (со своим $\hat{\bm n}$ и квадратурой на каждом гладком сегменте,
+без сшивки через ребро):
+\emph{конечный цилиндр} ($R,H$; $\theta_e{=}\arctan(R/H)$) --- верхняя/нижняя крышки
+$r{=}\pm H/\cos\theta,\ \hat{\bm n}{=}\pm\hat{\bm z}$ и боковая $r{=}R/\sin\theta,\
+\hat{\bm n}{=}\hat{\bm\rho}$;
+\emph{конус} (полуугол $\alpha$, вершина $z_a$) --- боковая образующая $r(\theta)=z_a\sin\alpha/\sin(\theta+\alpha)$
+и донная крышка $r=z_b/\cos\theta$. Нормаль выходит корректной автоматически из $r(\theta),r_\theta$
+каждого сегмента (крышки/боковина), сшивать вручную не нужно.
+
+\paragraph{Статус реализации и валидации (\texttt{green\_tensor/ebcm.py}, \texttt{test\_ebcm.py}).}
+С поправкой \eqref{ebcm-eq:norm} EBCM воспроизводит, помимо сферы, и \emph{несферические}
+тела: \emph{гладкий сфероид} (prolate/oblate, диэлектрик и магнит) --- энергобаланс
+$\sim10^{-5}$ и совпадение с рэлеевской поляризуемостью (\texttt{spheroid.py}); \emph{конус}
+--- энергобаланс $\sim10^{-4}$ для умеренных конусов. \emph{Конечный цилиндр} имеет ДВА острых
+ребра $90^\circ$: классический EBCM в double precision сходится лишь до $\sim10^{-3}\!-\!10^{-2}$
+и чувствителен к параметрам (для плоского/кубического аспекта $R\gtrsim H$ расходится ---
+энергобаланс растёт с $n_{\max}$, известное свойство Мейкснера/гипотезы Рэлея). Высокая
+точность для цилиндра требует расширенной точности при обращении $Q$, метода инвариантного
+вложения (II-TM) либо дискретных источников (NFM-DS, \cite{doicu2006}) с переразложением в
+одноцентровый базис теоремой сложения \eqref{tmatrix-eq:tm-addM}.
+
+Радиальная \textbf{слоистость} (в планах) строится рекурсией
+Петерсона--Стрёма \cite{petersonstrom1974} от ядра наружу (аналог импедансной рекурсии
+слоистой сферы \eqref{sphere-eq:Z-core}); двухслойная EBCM-сфера обязана воспроизвести покрытые
+коэффициенты Адена--Керкера. Полученная $\bm T$ совместима со сферическим каркасом GMM
+(\S\ref{tmatrix-sec:tmatrix}).
+
 \section{Суперпозиция T-матриц и сложная геометрия}
 \label{tmatrix-sec:tmatrix}
 
@@ -977,7 +1129,7 @@ C_{\mathrm{abs}}=C_{\mathrm{ext}}-C_{\mathrm{sca}},
 \mathbf{T}=\begin{pmatrix} \mathbf{T}^{11} & \mathbf{T}^{12}\\[2pt] \mathbf{T}^{21} & \mathbf{T}^{22}\end{pmatrix}.
 \label{tmatrix-eq:tm-Td}
 \end{equation}
-Для сферы $\mathbf{T}$ диагональна и не смешивает TE/TM: $T_{mn,m'n'}^{11}=-N_n\,\delta_{nn'}\delta_{mm'}$, $T_{mn,m'n'}^{22}=-M_n\,\delta_{nn'}\delta_{mm'}$ (знак и нормировка фиксируются конвенцией коэффициентов Ми из \texttt{mie\_core}); это и есть классический результат Ми и Адена--Керкера \cite{aden1951,bohren1983,mishchenko2002}. Для конфокального многослойного сфероида $\mathbf{T}$ блочно-диагональна по $m$, но связывает порядки $n$ и типы M/N; её получают пересчётом сфероидального решения в сферический базис (см.\ раздел о сфероиде). В любом случае на вход GMM каждое тело $i$ поступает как готовая матрица $\mathbf{T}_i$ в его собственной (центрированной и ориентированной) системе.
+Для сферы $\mathbf{T}$ диагональна и не смешивает TE/TM: $T_{mn,m'n'}^{11}=-N_n\,\delta_{nn'}\delta_{mm'}$, $T_{mn,m'n'}^{22}=-M_n\,\delta_{nn'}\delta_{mm'}$ (знак и нормировка фиксируются конвенцией коэффициентов Ми канонического решателя \texttt{01\_sphere.py}, экспортируемого через \texttt{sphere\_core}); это и есть классический результат Ми и Адена--Керкера \cite{aden1951,bohren1983,mishchenko2002}. Для конфокального многослойного сфероида $\mathbf{T}$ блочно-диагональна по $m$, но связывает порядки $n$ и типы M/N; её получают пересчётом сфероидального решения в сферический базис (см.\ раздел о сфероиде). В любом случае на вход GMM каждое тело $i$ поступает как готовая матрица $\mathbf{T}_i$ в его собственной (центрированной и ориентированной) системе.
 
 \subsection{Теорема сложения (трансляция) для векторных волновых функций}
 \label{tmatrix-sec:tm-addition}
@@ -1271,14 +1423,14 @@ f \;=\; \frac{N\,\tfrac{4}{3}\pi r^3}{V_{\mathrm{body}}} \;<\; 1,
 Верификация многоуровневая: (1) сопоставление с \emph{независимым аналитическим пределом} (редукция к более простой геометрии), (2) сопоставление с \emph{опубликованным численным эталоном}, (3) проверка \emph{солвер-агностических} физических инвариантов. Принятая временна\'я конвенция $e^{-i\omega t}$, исходящая волна $\sim h_n^{(1)}$ (Риккати $\xi_n=\psi_n-i\chi_n$); знак $\operatorname{Im}\varepsilon>0$ отвечает поглощению.
 
 \paragraph{(a) Слоистая сфера: Аден--Керкер, Борен--Хаффман и собственный независимый эталон.}
-Импедансно-адмитансная рекурсия по концентрическим оболочкам тождественно совпадает с рекурсией Адена--Керкера для двух сфер и её многослойным обобщением \cite{aden1951}, а в однослойном пределе --- с замкнутыми коэффициентами Ми Борена--Хаффмана \cite{bohren1983}
+Импедансно-адмитансная рекурсия по концентрическим оболочкам тождественно совпадает с рекурсией Адена--Керкера для двух сфер и её многослойным обобщением \cite{aden1951}, а в однослойном пределе --- с замкнутыми магнитодиэлектрическими коэффициентами Ми Борена--Хаффмана--Керкера \cite{bohren1983,kerker1983,arruda2010}
 \begin{align}
-a_n &= \frac{m\,\psi_n(mx)\,\psi_n'(x) - \psi_n(x)\,\psi_n'(mx)}{m\,\psi_n(mx)\,\xi_n'(x) - \xi_n(x)\,\psi_n'(mx)},
+a_n &= \frac{\widetilde m\,\psi_n(mx)\,\psi_n'(x) - \psi_n(x)\,\psi_n'(mx)}{\widetilde m\,\psi_n(mx)\,\xi_n'(x) - \xi_n(x)\,\psi_n'(mx)},
 \label{decomp-eq:mie-a}\\
-b_n &= \frac{\psi_n(mx)\,\psi_n'(x) - m\,\psi_n(x)\,\psi_n'(mx)}{\psi_n(mx)\,\xi_n'(x) - m\,\xi_n(x)\,\psi_n'(mx)},
+b_n &= \frac{\psi_n(mx)\,\psi_n'(x) - \widetilde m\,\psi_n(x)\,\psi_n'(mx)}{\psi_n(mx)\,\xi_n'(x) - \widetilde m\,\xi_n(x)\,\psi_n'(mx)},
 \label{decomp-eq:mie-b}
 \end{align}
-где $x=k_0 R$ --- размерный параметр, $m=\sqrt{\varepsilon\mu}/\sqrt{\varepsilon_m\mu_m}$ --- относительный показатель преломления, $\psi_n(z)=z\,j_n(z)$ и $\xi_n(z)=z\,h_n^{(1)}(z)$ --- функции Риккати--Бесселя. Решатель проекта дополнительно сверен с \emph{собственным} независимым рядом Ми (модуль \texttt{tests/analytic\_mie.py}), коэффициенты \eqref{decomp-eq:mie-a}--\eqref{decomp-eq:mie-b} которого выведены из замкнутых формул через цилиндрические функции и \emph{не используют} код библиотеки. Достигнута \textbf{машинная точность} ($\sim 10^{-15}$) по $Q_{\mathrm{sca}}$ и $Q_b$ при $x=0{,}5\dots5$, инвариантность к разбиению на $N$ идентичных слоёв, а также корректное поглощение ($Q_{\mathrm{abs}}$ при $\operatorname{Im}\varepsilon>0$) и устойчивый PEC-предел ($|\varepsilon|\to\infty$) --- $10/10$ независимых проверок. Чувствительное к знаку обратное рассеяние $Q_b$ подтвердило корректность конвенции $h_n^{(1)}$.
+где $x=k_0 R$ --- размерный параметр, $m=\sqrt{\varepsilon_1\mu_1/(\varepsilon\mu)}$ --- относительный показатель преломления сферы относительно среды, а $\widetilde m=\sqrt{\mu\varepsilon_1/(\mu_1\varepsilon)}$ --- относительный импедансный параметр магнитодиэлектрической границы \cite{kerker1983,arruda2010}. Для вакуума с относительными $\varepsilon_r,\mu_r$ имеем $m=\sqrt{\varepsilon_r\mu_r}$ и $\widetilde m=\sqrt{\varepsilon_r/\mu_r}$; при $\mu_r=1$ формулы сводятся к немагнитному виду. Решатель проекта дополнительно сверен с \emph{собственным} независимым рядом Ми (модуль \texttt{tests/analytic\_mie.py}), коэффициенты \eqref{decomp-eq:mie-a}--\eqref{decomp-eq:mie-b} которого выведены из замкнутых формул через цилиндрические функции и \emph{не используют} код библиотеки. Достигнута \textbf{машинная точность} ($\sim 10^{-15}$) по $Q_{\mathrm{sca}}$, $Q_{\mathrm{ext}}$ и коэффициентам $a_n,b_n$ для немагнитных и магнитодиэлектрических сфер; проверены инвариантность к разбиению на $N$ идентичных слоёв, корректное поглощение ($Q_{\mathrm{abs}}>0$ при $\operatorname{Im}\varepsilon>0,\operatorname{Im}\mu>0$), устойчивый PEC-предел ($|\varepsilon|\to\infty$) и дуальный случай $\varepsilon_r=\mu_r$, где $a_n=b_n$ и обратное рассеяние обращается в нуль. Чувствительное к знаку обратное рассеяние $Q_b$ подтвердило корректность конвенции $h_n^{(1)}$.
 
 \paragraph{(b) Сфероид: редукция к сфере при $d\to0$ и эталоны Асано--Ямамото, Фарафонова--Вощинникова, SMARTIES.}
 При стягивании фокусного расстояния $d\to0$ вытянутый/сплюснутый сфероид вырождается в сферу, сфероидальные VSWF переходят в сферические, а блочная по $m$ T-матрица --- в диагональную Ми. Это служит первым (аналитическим) контролем. Поля раскладываются по сфероидальным волновым функциям, а граничные условия (непрерывность тангенциальных компонент $\bm{E}$ и $\bm{H}$ на поверхности) дают систему линейных уравнений для коэффициентов разложения \cite{asano1975}; азимутальное число $m$ при этом сохраняется (моды по $m$ расщепляются), тогда как мультипольные порядки внутри фиксированного $m$ связаны, а раздельное TE/TM-описание возможно лишь при осевом ($m=0$) падении вдоль оси симметрии \cite{asano1975,flammer1957}. Сечения и индикатриса сверяются с классическими расчётами рассеяния на сфероиде Асано--Ямамото \cite{asano1975} и с многослойным (конфокальным) обобщением Фарафонова--Вощинникова \cite{farafonov2012,farafonov1996}, а также с независимым кодом сфероидального T-матричного метода (SMARTIES) \cite{mishchenko2002}.
@@ -1347,6 +1499,8 @@ $C_{\mathrm{abs}}\!=\!0$ для непоглощающего тела &
 \bibitem{stratton1941} J.~A.~Stratton, \emph{Electromagnetic Theory} (McGraw-Hill, New York, 1941).
 \bibitem{jackson1999} J.~D.~Jackson, \emph{Classical Electrodynamics}, 3rd ed. (Wiley, New York, 1999).
 \bibitem{aden1951} A.~L.~Aden, M.~Kerker, \emph{Scattering of electromagnetic waves from two concentric spheres}, J. Appl. Phys. \textbf{22}, 1242--1246 (1951).
+\bibitem{kerker1983} M.~Kerker, D.-S.~Wang, C.~L.~Giles, \emph{Electromagnetic scattering by magnetic spheres}, J. Opt. Soc. Am. \textbf{73}, 765--767 (1983).
+\bibitem{arruda2010} T.~J.~Arruda, A.~S.~Martinez, \emph{Electromagnetic energy within magnetic spheres}, J. Opt. Soc. Am. A \textbf{27}, 992--1001 (2010); arXiv:1010.2970.
 \bibitem{flammer1957} C.~Flammer, \emph{Spheroidal Wave Functions} (Stanford Univ. Press, 1957).
 \bibitem{stein1961} S.~Stein, \emph{Addition theorems for spherical wave functions}, Q. Appl. Math. \textbf{19}, 15--24 (1961).
 \bibitem{cruzan1962} O.~R.~Cruzan, \emph{Translational addition theorems for spherical vector wave functions}, Q. Appl. Math. \textbf{20}, 33--40 (1962).
@@ -1368,5 +1522,7 @@ $C_{\mathrm{abs}}\!=\!0$ для непоглощающего тела &
 \bibitem{mitelman2013} Ю.~Е.~Мительман, С.~Н.~Шабунин, \emph{Электродинамика многослойных цилиндрических направляющих систем} (LAP Lambert Academic Publishing, 2013).
 \bibitem{wait1955} J.~R.~Wait, \emph{Scattering of a plane wave from a circular dielectric cylinder at oblique incidence}, Can. J. Phys. \textbf{33}, 189--195 (1955).
 \bibitem{kavaklioglu2008} Ö.~Kavaklıoğlu, B.~Schneider, \emph{On the Fourier--Bessel multiple scattering coefficients of an infinite grating of dielectric circular cylinders at oblique incidence} (Wait's isolated-cylinder coefficients), arXiv:0711.0362 (2008).
+\bibitem{doicu2006} A.~Doicu, T.~Wriedt, Yu.~Eremin, \emph{Light Scattering by Systems of Particles: Null-Field Method with Discrete Sources --- Theory and Programs}, Springer, 2006.
+\bibitem{petersonstrom1974} B.~Peterson, S.~Ström, \emph{T-matrix for electromagnetic scattering from an arbitrary number of scatterers and representations of E(3)}, Phys.\ Rev.\ D \textbf{10}, 2670 (1974).
 \end{thebibliography}
 \end{document}

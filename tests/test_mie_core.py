@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Фаза 2 — проверки чистого ядра green_tensor/mie_core.py.
 
 Гарантируют, что вынесенное ядро:
@@ -24,7 +27,7 @@ sys.path.insert(0, _HERE)
 sys.path.insert(0, _ROOT)
 
 from analytic_mie import (  # noqa: E402
-    q_sca, mie_pec, _q_sca, mie_helicity, wiscombe_nmax, trapezoid,
+    q_sca, mie_pec, _q_sca, _q_ext, mie_ab_eps_mu, mie_helicity, wiscombe_nmax, trapezoid,
 )
 from _loader import load_sphere  # noqa: E402
 from green_tensor import mie_core as mc  # noqa: E402
@@ -56,6 +59,32 @@ def test_cross_sections_vs_mie():
     rel = abs(cs["q_sca"] - pec) / pec
     print(f"    PEC: dQsca={rel:.1e}")
     assert np.isfinite(cs["q_sca"]) and rel < 2e-2
+
+
+def test_magnetic_cross_sections_vs_kerker():
+    """РЕГРЕССИЯ μ-бага: магнитная сфера (mu≠1) в mie_core совпадает с независимым
+    арбитром Керкера (analytic_mie.mie_ab_eps_mu, m̃=√(ε/μ)). Раньше mie_core нормировал
+    импеданс только по ε и давал неверный результат для mu≠1."""
+    print("\n[mag] mie_core магнитная сфера vs арбитр Керкера:")
+    for eps, mu, x in [(2.25, 1.7, 1.2), (4.0, 2.0, 2.0), (3.0 + 0.2j, 1.5, 1.5)]:
+        toch = max(6, wiscombe_nmax(x))
+        cs = mc.MieSphere(k0=x, a=[1.0], eps=[eps], miy=[mu], toch=toch).cross_sections()
+        n, a, b = mie_ab_eps_mu(eps, mu, x, toch)
+        qsca_ref, qext_ref = _q_sca(n, a, b, x), _q_ext(n, a, b, x)
+        d_sca = abs(cs["q_sca"] - qsca_ref) / abs(qsca_ref)
+        d_ext = abs(cs["q_ext"] - qext_ref) / abs(qext_ref)
+        print(f"    eps={eps!s:>12} mu={mu} x={x}: dQsca={d_sca:.1e} dQext={d_ext:.1e}")
+        assert d_sca < 1e-9 and d_ext < 1e-9, f"магнитная сфера разошлась: {d_sca:.1e}/{d_ext:.1e}"
+
+
+def test_kerker_duality_zero_backscatter():
+    """Первое условие Керкера: ε=μ ⇒ a_n=b_n ⇒ Q_back=0. Грубый μ-баг давал Q_back≫0."""
+    print("\n[mag] условие Керкера ε=μ ⇒ Q_back≈0:")
+    for em, x in [(4.0, 2.0), (2.5, 1.3)]:
+        cs = mc.MieSphere(k0=x, a=[1.0], eps=[em], miy=[em], toch=max(6, wiscombe_nmax(x))).cross_sections()
+        ratio = cs["q_back"] / cs["q_sca"]
+        print(f"    ε=μ={em} x={x}: Q_back/Q_sca={ratio:.2e}")
+        assert ratio < 1e-12, f"ε=μ должно давать нулевое обратное рассеяние, получено {ratio:.1e}"
 
 
 def test_coefficients_match_rcs():

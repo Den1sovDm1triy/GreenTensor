@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Проверки адаптера T-матрицы (green_tensor/tmatrix.py).
 
 Спина архитектуры: примитив -> T-матрица в сферическом базисе ВСВФ -> сечения.

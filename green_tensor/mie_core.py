@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """mie_core — верифицированное ядро рассеяния на многослойной сфере (метод Ми / ТФГ).
 
 Чистая, импортируемая реализация (без matplotlib/input/глобального состояния),
@@ -125,6 +128,17 @@ class MieSphere:
         eps_ext = eps + [1.0 + 0j]
         sigma = [np.sqrt(eps[i] * miy[i]) for i in range(nL)]  # компл. показатель
 
+        # Магнитодиэлектрик: mu входит не только в sigma=sqrt(eps*mu), но и в граничную
+        # нормировку производных Риккати-Бесселя. gamma_e=mu/sigma (E/TM, импеданс),
+        # gamma_h=sigma/mu (H/TE, адмиттанс) над расширенными массивами (слои + воздух).
+        # При mu=1 отношения gamma в точности сводятся к прежним sqrt(eps) множителям
+        # (gamma_e[a]/gamma_e[b]=sqrt(eps_b/eps_a)) — немагнитный путь не меняется.
+        # См. 01_sphere.calculate_impedances (канон) и GreenTensor_Theory.tex eq:gamma-zy.
+        mu_ext = miy + [1.0 + 0j]
+        sigma_ext = [np.sqrt(eps_ext[j] * mu_ext[j]) for j in range(nL + 1)]
+        gamma_e = [mu_ext[j] / sigma_ext[j] for j in range(nL + 1)]
+        gamma_h = [sigma_ext[j] / mu_ext[j] for j in range(nL + 1)]
+
         def kk(j1, j2):  # k[radius j1][layer j2]
             return self.k0 * self.a[j1] * sigma[j2]
 
@@ -136,8 +150,8 @@ class MieSphere:
 
         Z = np.zeros((self.toch, nL), dtype=complex)
         Y = np.zeros((self.toch, nL), dtype=complex)
-        Z[:, 0] = np.sqrt(eps_ext[1] / eps_ext[0]) * (Jpr / J)
-        Y[:, 0] = np.sqrt(eps_ext[0] / eps_ext[1]) * (Jpr / J)
+        Z[:, 0] = (gamma_e[0] / gamma_e[1]) * (Jpr / J)
+        Y[:, 0] = (gamma_h[0] / gamma_h[1]) * (Jpr / J)
 
         for h in range(1, nL):
             # C,S при j=h-1: A=k[h][h], B=k[h-1][h]
@@ -148,8 +162,8 @@ class MieSphere:
             S = chiA * psiB - psiA * chiB
             Spr = chiAp * psiB - psiAp * chiB
 
-            rZ = np.sqrt(eps_ext[h + 1] / eps_ext[h])
-            rY = np.sqrt(eps_ext[h] / eps_ext[h + 1])
+            rZ = gamma_e[h] / gamma_e[h + 1]
+            rY = gamma_h[h] / gamma_h[h + 1]
             Z[:, h] = rZ * (Cpr + Z[:, h - 1] * Spr) / (C + Z[:, h - 1] * S)
             Y[:, h] = rY * (Cpr + Y[:, h - 1] * Spr) / (C + Y[:, h - 1] * S)
 

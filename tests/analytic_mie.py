@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Независимый аналитический эталон Ми для однородной сферы (Bohren & Huffman).
 
 Используется как «арбитр корректности» для расчётов GreenTensor: коэффициенты
@@ -52,6 +55,32 @@ def mie_ab(m: complex, x: float, nmax: int | None = None):
     psi_mx, psi_mxp, _, _ = _riccati(n, m * x)
     a = (m * psi_mx * psi_xp - psi_x * psi_mxp) / (m * psi_mx * xi_xp - xi_x * psi_mxp)
     b = (psi_mx * psi_xp - m * psi_x * psi_mxp) / (psi_mx * xi_xp - m * xi_x * psi_mxp)
+    return n, a, b
+
+
+def mie_ab_eps_mu(eps: complex, mu: complex, x: float, nmax: int | None = None):
+    """Коэффициенты Ми a_n, b_n для однородной магнитодиэлектрической сферы.
+
+    Это независимая закрытая формула для относительных eps и mu в вакууме. При
+    mu=1 она сводится к ``mie_ab(sqrt(eps), x, nmax)``. Запись следует
+    формулам Керкера для магнитных сфер:
+    m=sqrt(eps*mu), m_tilde=sqrt(eps/mu).
+    """
+    if nmax is None:
+        nmax = wiscombe_nmax(x)
+    n = np.arange(1, nmax + 1)
+    eps = complex(eps)
+    mu = complex(mu)
+    m = np.sqrt(eps * mu)
+    m_tilde = np.sqrt(eps / mu)
+    psi_x, psi_xp, xi_x, xi_xp = _riccati(n, x)
+    psi_mx, psi_mxp, _, _ = _riccati(n, m * x)
+    a = (m_tilde * psi_mx * psi_xp - psi_x * psi_mxp) / (
+        m_tilde * psi_mx * xi_xp - xi_x * psi_mxp
+    )
+    b = (psi_mx * psi_xp - m_tilde * psi_x * psi_mxp) / (
+        psi_mx * xi_xp - m_tilde * xi_x * psi_mxp
+    )
     return n, a, b
 
 

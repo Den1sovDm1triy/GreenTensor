@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """cone — рассеяние на конусе.
 
 Полубесконечный круговой конус разделяется в сферо-конических координатах, но через

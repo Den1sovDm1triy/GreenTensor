@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Проверки конуса (green_tensor/cone.py).
 
   [1] индикатор конуса: точки внутри/снаружи классифицируются верно;

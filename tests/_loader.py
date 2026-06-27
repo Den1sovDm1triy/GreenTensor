@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Безопасная загрузка расчётных модулей GreenTensor для тестов.
 
 Имена файлов с цифровым префиксом (``01_sphere.py``) нельзя импортировать

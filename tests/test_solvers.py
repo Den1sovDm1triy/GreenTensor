@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Проверки публичного API green_tensor/solvers.py.
 
 Каждый класс-решатель и функция-обёртка ``solve_*`` НЕ содержат своей математики —
@@ -15,9 +18,11 @@ import numpy as np
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
+sys.path.insert(0, _HERE)
 sys.path.insert(0, _ROOT)
 
 import green_tensor as gt  # noqa: E402
+from analytic_mie import _q_ext, _q_sca, mie_ab_eps_mu  # noqa: E402
 from green_tensor import cylinder, ellipsoid, gmm, mie_core, spheroid, tmatrix, vswf  # noqa: E402
 
 
@@ -26,7 +31,7 @@ def _close(a, b, tol=1e-12):
 
 
 def test_sphere_solver_matches_core():
-    print("\n[1] SphereSolver == mie_core == solve_sphere:")
+    print("\n[1] SphereSolver == canonical sphere facade == solve_sphere:")
     radius, eps, k = 1.0, [2.25], 3.0
     sp = gt.SphereSolver(radius, eps)
     cs = sp.cross_sections(k)
@@ -35,7 +40,7 @@ def test_sphere_solver_matches_core():
     for key in ("q_sca", "q_ext", "q_abs", "q_back"):
         assert _close(cs[key], ref[key]), key
         assert _close(facade[key], ref[key]), key
-    print(f"    Q_sca={cs['q_sca']:.6f} (== core, == facade) — ок")
+    print(f"    Q_sca={cs['q_sca']:.6f} (== canonical, == facade) — ок")
 
 
 def test_sphere_tmatrix_consistency():
@@ -46,6 +51,22 @@ def test_sphere_tmatrix_consistency():
     assert isinstance(tm, tmatrix.DiagonalTMatrix)
     assert _close(tm.q_sca(), cs["q_sca"], tol=1e-9)
     print(f"    T-матрица q_sca={tm.q_sca():.6f} — согласовано")
+
+
+def test_sphere_solver_magnetodielectric_matches_closed_mie():
+    print("\n[2b] SphereSolver магнитодиэлектрик eps,mu == закрытая формула Ми:")
+    eps, mu, x, toch = 1.0, 4.0, 0.5, 10
+    sp = gt.SphereSolver(1.0, [eps], miy=[mu])
+    got = sp.cross_sections(x, toch=toch)
+    facade = gt.solve_sphere(1.0, [eps], x, miy=[mu], toch=toch)
+    tm = sp.t_matrix(x, toch=toch)
+    n, a, b = mie_ab_eps_mu(eps, mu, x, toch)
+    ref_sca, ref_ext = _q_sca(n, a, b, x), _q_ext(n, a, b, x)
+    assert _close(got["q_sca"], ref_sca, tol=1e-10)
+    assert _close(got["q_ext"], ref_ext, tol=1e-10)
+    assert _close(facade["q_sca"], ref_sca, tol=1e-10)
+    assert _close(tm.q_sca(), ref_sca, tol=1e-10)
+    print(f"    Q_sca={got['q_sca']:.6e}, Q_ext={got['q_ext']:.6e} — ок")
 
 
 def test_sphere_as_scatterer_in_cluster():
@@ -151,6 +172,7 @@ def test_notimplemented_honesty():
 
 if __name__ == "__main__":
     for fn in (test_sphere_solver_matches_core, test_sphere_tmatrix_consistency,
+               test_sphere_solver_magnetodielectric_matches_closed_mie,
                test_sphere_as_scatterer_in_cluster, test_cluster_solve_shapes,
                test_ellipsoid_solver_matches_module, test_spheroid_solver_matches_module,
                test_cylinder_solver_matches_module, test_cone_solver_decompose_and_cluster,

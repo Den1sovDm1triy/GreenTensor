@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Проверки разложения геометрии (green_tensor/decompose.py).
 
   [1] непересечение: min расстояние между центрами ≥ 2·radius (условие GMM);

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """ellipsoid — квазистатический (рэлеевский) решатель для трёхосного эллипсоида.
 
 Полноволновая векторная задача для эллипсоида не разделяется (функции Ламе

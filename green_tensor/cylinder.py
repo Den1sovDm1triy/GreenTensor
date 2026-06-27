@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """cylinder — рассеяние на круговом цилиндре.
 
 БЕСКОНЕЧНЫЙ круговой цилиндр (нормальное падение) решается ТОЧНО разделением

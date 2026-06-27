@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """vswf — сферические волновые функции и теоремы сложения (фундамент GMM).
 
 Общий вычислительный слой для сборки сложной геометрии (см. GreenTensor_Theory.tex,
@@ -222,9 +225,23 @@ def _sph2cart_arr(Ar, At, Ap, theta, phi):
     return (Ar[..., None] * rhat + At[..., None] * that + Ap[..., None] * phat)
 
 
+# Защита от полюса θ=0,π: на оси z sin θ=0 даёт 0/0 в M_θ,N_φ (∝ m/sinθ) и в ∂_θY.
+# Угловые функции имеют КОНЕЧНЫЙ предел на полюсе (вклад только |m|=1); смещаем θ на
+# малую величину, чтобы взять этот предел численно. Порог 1e-7 выбран так, что
+# cos(1e-7)≠1.0 в float64 (иначе lpmv(1,n,1)=0 и предел потерян), а ошибка поля ~1e-7.
+# Узлы Гаусса-Лежандра в квадратурах никогда не попадают в полюс ⇒ регрессии нет.
+_POLE_EPS = 1e-7
+
+
 def mn_grid(n: int, m: int, k: float, pts, kind: str = "reg"):
-    """M_{nm}, N_{nm} (декартовы, (Q,3)) на массиве точек pts (Q,3)."""
+    """M_{nm}, N_{nm} (декартовы, (Q,3)) на массиве точек pts (Q,3).
+
+    Устойчива на оси z (θ=0,π): θ зажимается в [_POLE_EPS, π−_POLE_EPS], что берёт
+    конечный предел угловых функций вместо 0/0 (нужно для дальнего поля вперёд при
+    осевом падении k̂‖ẑ — оптическая теорема C_ext).
+    """
     r, theta, phi = _to_spherical(pts)
+    theta = np.clip(theta, _POLE_EPS, np.pi - _POLE_EPS)
     rho = k * r
     z, up = _zfuncs(n, rho, kind)
     Y = ynm(n, m, theta, phi)

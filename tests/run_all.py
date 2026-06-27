@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
+
 """Единый раннер тестов GreenTensor без зависимости от pytest.
 
     python3 tests/run_all.py
@@ -16,6 +19,7 @@ import analytic_mie  # noqa: E402
 import test_sphere_mie  # noqa: E402
 import test_sphere_multilayer as ml  # noqa: E402
 import test_sphere_complex as cx  # noqa: E402
+import test_sphere_magnetic as smg  # noqa: E402
 import test_mie_core as core  # noqa: E402
 import test_tmatrix as tmx  # noqa: E402
 import test_vswf as vsw  # noqa: E402
@@ -29,6 +33,7 @@ import test_solvers as slv  # noqa: E402
 import test_cylinder_layered as cyl_l  # noqa: E402
 import test_finite_cylinder as fcyl  # noqa: E402
 import test_mg_correction as mg  # noqa: E402
+import test_ebcm as ebc  # noqa: E402
 
 
 def main() -> int:
@@ -43,7 +48,15 @@ def main() -> int:
         ("real metal vs Mie", cx.test_real_metal_matches_mie),
         ("PEC limit finite & correct", cx.test_pec_limit_is_finite_and_correct),
         ("metal shell shields -> PEC", cx.test_metal_shell_shields_to_pec),
+        ("mag sphere formula reduces to nonmag", smg.test_eps_mu_formula_reduces_to_nonmagnetic_mie),
+        ("mag sphere coeffs vs eps/mu Mie", smg.test_homogeneous_magnetodielectric_coefficients_match_closed_mie),
+        ("mag sphere Qsca/Qext vs eps/mu Mie", smg.test_homogeneous_magnetodielectric_cross_sections_match_closed_mie),
+        ("mag sphere distinct E/M response", smg.test_mu_only_sphere_has_distinct_electric_and_magnetic_response),
+        ("mag sphere subdivision invariance", smg.test_magnetodielectric_subdivision_invariance),
+        ("mag core metal shell -> PEC", smg.test_magnetic_core_metal_shell_shields_to_pec),
         ("mie_core cross-sections vs Mie", core.test_cross_sections_vs_mie),
+        ("mie_core magnetic vs Kerker (μ-fix)", core.test_magnetic_cross_sections_vs_kerker),
+        ("mie_core Kerker duality ε=μ→Qback0", core.test_kerker_duality_zero_backscatter),
         ("mie_core coeffs vs RCSCalculator", core.test_coefficients_match_rcs),
         ("mie_core linear E_θ/E_φ vs RCS", core.test_linear_matches_rcs),
         ("mie_core circular vs analytic helicity", core.test_circular_vs_analytic_helicity),
@@ -68,6 +81,9 @@ def main() -> int:
         ("gmm single-sphere cross-sections", gmt.test_single_sphere_cross_sections),
         ("gmm cluster energy conservation", gmt.test_energy_conservation_lossless_cluster),
         ("gmm dense packing (closed Cruzan)", gmt.test_dense_packing_energy),
+        ("gmm full-T == diagonal (regression)", gmt.test_fullT_matches_diagonal),
+        ("gmm t_matrix path == t_vector path", gmt.test_t_matrix_path_matches_t_vector),
+        ("gmm axial incidence finite (NaN fix)", gmt.test_axial_incidence_finite),
         ("ellipsoid depol sum/sphere", ell.test_depolarization_sum_and_sphere),
         ("ellipsoid spheroid closed-form", ell.test_spheroid_closed_form),
         ("ellipsoid Rayleigh vs analytic", ell.test_sphere_rayleigh_vs_analytic),
@@ -89,8 +105,9 @@ def main() -> int:
         ("cone indicator", cnt.test_cone_indicator),
         ("cone decompose+GMM", cnt.test_decompose_cone_and_gmm),
         ("cone full-wave not-impl", cnt.test_full_wave_not_implemented),
-        ("solvers: SphereSolver vs core", slv.test_sphere_solver_matches_core),
+        ("solvers: SphereSolver vs canonical sphere", slv.test_sphere_solver_matches_core),
         ("solvers: sphere T-matrix consistency", slv.test_sphere_tmatrix_consistency),
+        ("solvers: sphere eps/mu public API", slv.test_sphere_solver_magnetodielectric_matches_closed_mie),
         ("solvers: as_scatterer in Cluster", slv.test_sphere_as_scatterer_in_cluster),
         ("solvers: Cluster.solve shapes", slv.test_cluster_solve_shapes),
         ("solvers: EllipsoidSolver vs module", slv.test_ellipsoid_solver_matches_module),
@@ -98,6 +115,14 @@ def main() -> int:
         ("solvers: CylinderSolver vs module", slv.test_cylinder_solver_matches_module),
         ("solvers: ConeSolver decompose+Cluster", slv.test_cone_solver_decompose_and_cluster),
         ("solvers: NotImplementedError honesty", slv.test_notimplemented_honesty),
+        ("sphere_mag: eps/mu formula -> nonmagnetic", smg.test_eps_mu_formula_reduces_to_nonmagnetic_mie),
+        ("sphere_mag: coefficients vs closed Mie", smg.test_homogeneous_magnetodielectric_coefficients_match_closed_mie),
+        ("sphere_mag: cross sections vs closed Mie", smg.test_homogeneous_magnetodielectric_cross_sections_match_closed_mie),
+        ("sphere_mag: mu-only response", smg.test_mu_only_sphere_has_distinct_electric_and_magnetic_response),
+        ("sphere_mag: dual eps=mu zero backscatter", smg.test_dual_sphere_zero_backscatter_and_equal_coefficients),
+        ("sphere_mag: lossless eps,mu energy", smg.test_lossless_magnetodielectric_energy_conservation),
+        ("sphere_mag: identical magnetic layers", smg.test_magnetodielectric_subdivision_invariance),
+        ("sphere_mag: magnetic core + metal shell -> PEC", smg.test_magnetic_core_metal_shell_shields_to_pec),
         ("layered cyl: N=1 vs B&H arbiter", cyl_l.test_layered_n1_vs_arbiter),
         ("layered cyl: subdivision invariance", cyl_l.test_subdivision_invariance),
         ("layered cyl: energy conservation", cyl_l.test_energy_conservation_lossless),
@@ -120,6 +145,13 @@ def main() -> int:
         ("MG: unreachable filling raises", mg.test_unreachable_filling_raises),
         ("MG: effective_medium integration", mg.test_effective_medium_integration),
         ("MG: packing report metrics", mg.test_packing_report),
+        ("EBCM sphere → Mie (diag+decouple)", ebc.test_ebcm_sphere_matches_mie),
+        ("EBCM magnetic sphere → Mie", ebc.test_ebcm_magnetic_sphere_matches_mie),
+        ("EBCM sphere cross-sections vs Mie", ebc.test_ebcm_sphere_cross_sections_vs_mie),
+        ("EBCM drop-in cluster ≡ LayeredSphere", ebc.test_ebcm_drop_in_cluster),
+        ("EBCM spheroid energy + Rayleigh", ebc.test_ebcm_spheroid_energy_and_rayleigh),
+        ("EBCM cone energy conservation", ebc.test_ebcm_cone_energy),
+        ("EBCM finite cylinder energy (convergent)", ebc.test_ebcm_cylinder_energy),
     ]
     failures = 0
     for name, fn in suite:
