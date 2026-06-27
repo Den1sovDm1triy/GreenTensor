@@ -18,7 +18,7 @@ Thin ``solve_*`` wrapper functions are provided for one-line calls.
 
 Карта решателей / solver map (see GreenTensor_Theory.tex):
   * :class:`SphereSolver`    — слоистая сфера, точное ядро (Mie/TFG) / layered sphere, exact core;
-  * :class:`SpheroidSolver`  — сфероид, квазистатика / spheroid, quasi-static;
+  * ``green_tensor.Spheroid`` — сфероид, строгий EBCM (в Cluster) / spheroid, rigorous EBCM (in Cluster);
   * :class:`EllipsoidSolver` — трёхосный эллипсоид, квазистатика / triaxial ellipsoid, quasi-static;
   * :class:`CylinderSolver`  — бесконечный цилиндр, точная 2D-аналитика / infinite cylinder, exact 2D;
   * :class:`ConeSolver`      — конус через разложение в сферы + GMM / cone via sphere decomposition + GMM;
@@ -44,14 +44,13 @@ from . import ellipsoid as _ellipsoid
 from . import gmm as _gmm
 from . import scatterer as _scatterer
 from . import sphere_core as _sphere_core
-from . import spheroid as _spheroid
 from . import tmatrix as _tmatrix
 
 __all__ = [
-    "SphereSolver", "EllipsoidSolver", "SpheroidSolver",
+    "SphereSolver", "EllipsoidSolver",
     "CylinderSolver", "LayeredCylinderSolver", "FiniteCylinderSolver",
     "ConeSolver", "Cluster",
-    "solve_sphere", "solve_ellipsoid", "solve_spheroid",
+    "solve_sphere", "solve_ellipsoid",
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
 ]
 
@@ -154,61 +153,14 @@ class EllipsoidSolver:
 
 
 # --------------------------------------------------------------------------- #
-# Сфероид (вытянутый / сплюснутый) — квазистатика
-# Spheroid (prolate / oblate) — quasi-static
+# Сфероид (вытянутый / сплюснутый) — строгий полноволновой EBCM (ТФГ)
+# Spheroid (prolate / oblate) — rigorous full-wave EBCM (TGF)
+#   → публичный примитив green_tensor.Spheroid в green_tensor.Cluster (GMM):
+#       gt.Cluster([gt.Spheroid(pos, a_eq, c_ax, eps)]).cross_sections(k, khat, pol, nmax)
+#     Рэлеевский предел — через EllipsoidSolver(a_eq, a_eq, c_ax, …) (сфероид = эллипсоид b=a).
+#   → public primitive green_tensor.Spheroid inside green_tensor.Cluster (GMM);
+#     Rayleigh limit via EllipsoidSolver(a_eq, a_eq, c_ax, …) (spheroid = ellipsoid b=a).
 # --------------------------------------------------------------------------- #
-class SpheroidSolver:
-    """RU: Однородный сфероид: экваториальная полуось a_eq, ось симметрии c_ax.
-    EN: Homogeneous spheroid: equatorial semi-axis a_eq, symmetry axis c_ax.
-
-    prolate (вытянутый / prolate): c_ax > a_eq; oblate (сплюснутый / oblate): c_ax < a_eq.
-    """
-
-    def __init__(self, a_eq, c_ax, eps, *, eps_m: complex = 1.0, position=(0.0, 0.0, 0.0)):
-        self.a_eq = float(a_eq)
-        self.c_ax = float(c_ax)
-        self.eps = complex(eps)
-        self.eps_m = complex(eps_m)
-        self.position = np.asarray(position, dtype=float)
-
-    @property
-    def is_prolate(self) -> bool:
-        return self.c_ax > self.a_eq
-
-    def depolarization_factors(self, *, closed: bool = True):
-        """RU: Факторы деполяризации (L_eq, L_eq, L_ax). closed=True — замкнутая форма
-        (Bohren & Huffman); иначе численный интеграл.
-        EN: Depolarization factors (L_eq, L_eq, L_ax). closed=True — closed form
-        (Bohren & Huffman); otherwise numerical integral."""
-        if closed:
-            L_eq, L_ax = _spheroid.depolarization_closed(self.a_eq, self.c_ax)
-            return L_eq, L_eq, L_ax
-        return _spheroid.depolarization(self.a_eq, self.c_ax)
-
-    def polarizability(self) -> np.ndarray:
-        """RU: Поляризуемость (α_eq, α_eq, α_ax) однородного сфероида.
-        EN: Polarizability (α_eq, α_eq, α_ax) of a homogeneous spheroid."""
-        return _spheroid.polarizability(self.a_eq, self.c_ax, self.eps, self.eps_m)
-
-    def cross_sections(self, k: float, *, orientation_average: bool = True,
-                       axis: int | None = None) -> dict:
-        """RU: Рэлеевские сечения C_sca, C_abs, C_ext (см. :meth:`EllipsoidSolver.cross_sections`).
-        EN: Rayleigh cross sections C_sca, C_abs, C_ext (see :meth:`EllipsoidSolver.cross_sections`)."""
-        if axis is None and orientation_average:
-            return _ellipsoid.orientation_average_cross_sections(
-                self.a_eq, self.a_eq, self.c_ax, self.eps, k, self.eps_m)
-        i = 0 if axis is None else int(axis)
-        return _spheroid.rayleigh_cross_sections(self.polarizability()[i], k)
-
-    def dipole_t(self, k: float, *, axis: int = 0) -> complex:
-        """RU: Электрич.-дипольный элемент T_N(n=1) вдоль оси axis.
-        EN: Electric-dipole element T_N(n=1) along ``axis``."""
-        return _spheroid.dipole_t_scalar(self.polarizability()[axis], k)
-
-    def full_wave(self, *args, **kwargs):
-        """RU: Полноволновой конфокальный сфероид — НЕ реализован (комплексный-c базис).
-        EN: Full-wave confocal spheroid — NOT implemented (complex-c basis required)."""
-        return _spheroid.full_wave(*args, **kwargs)
 
 
 # --------------------------------------------------------------------------- #
@@ -452,14 +404,6 @@ def solve_ellipsoid(a, b, c, eps, k: float, *, eps_m: complex = 1.0,
     """RU: Рэлеевские сечения трёхосного эллипсоида / EN: Rayleigh cross sections of a triaxial
     ellipsoid (см. / see :class:`EllipsoidSolver`)."""
     return EllipsoidSolver(a, b, c, eps, eps_m=eps_m).cross_sections(
-        k, orientation_average=orientation_average, axis=axis)
-
-
-def solve_spheroid(a_eq, c_ax, eps, k: float, *, eps_m: complex = 1.0,
-                   orientation_average: bool = True, axis: int | None = None) -> dict:
-    """RU: Рэлеевские сечения сфероида / EN: Rayleigh cross sections of a spheroid
-    (см. / see :class:`SpheroidSolver`)."""
-    return SpheroidSolver(a_eq, c_ax, eps, eps_m=eps_m).cross_sections(
         k, orientation_average=orientation_average, axis=axis)
 
 

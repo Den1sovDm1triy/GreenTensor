@@ -23,7 +23,7 @@ sys.path.insert(0, _ROOT)
 
 import green_tensor as gt  # noqa: E402
 from analytic_mie import _q_ext, _q_sca, mie_ab_eps_mu  # noqa: E402
-from green_tensor import cylinder, ellipsoid, gmm, mie_core, spheroid, tmatrix, vswf  # noqa: E402
+from green_tensor import cylinder, ellipsoid, gmm, mie_core, tmatrix, vswf  # noqa: E402
 
 
 def _close(a, b, tol=1e-12):
@@ -114,21 +114,20 @@ def test_ellipsoid_solver_matches_module():
     print(f"    ⟨C_ext⟩={gotavg['c_ext']:.6f} (== module, == facade) — ок")
 
 
-def test_spheroid_solver_matches_module():
-    print("\n[6] SpheroidSolver == spheroid + solve_spheroid:")
-    a_eq, c_ax, eps, k = 1.0, 2.0, 3.0 + 0.1j, 0.5
-    ss = gt.SpheroidSolver(a_eq, c_ax, eps)
-    assert ss.is_prolate is True
-    L_eq_c, L_ax_c = spheroid.depolarization_closed(a_eq, c_ax)
-    L = ss.depolarization_factors(closed=True)
-    assert _close(L[0], L_eq_c) and _close(L[2], L_ax_c)
-    refavg = ellipsoid.orientation_average_cross_sections(a_eq, a_eq, c_ax, eps, k, 1.0)
-    facade = gt.solve_spheroid(a_eq, c_ax, eps, k)
-    got = ss.cross_sections(k)
-    for key in ("c_sca", "c_abs", "c_ext"):
-        assert _close(got[key], refavg[key]), key
-        assert _close(facade[key], refavg[key]), key
-    print(f"    L=({L[0]:.4f},{L[1]:.4f},{L[2]:.4f}) ⟨C_ext⟩={got['c_ext']:.6f} — ок")
+def test_spheroid_primitive_ebcm_in_cluster():
+    print("\n[6] gt.Spheroid (строгий EBCM) в Cluster == gmm одиночным телом:")
+    a_eq, c_ax, eps, k = 0.4, 0.8, 2.25, 2.0
+    sp = gt.Spheroid((0, 0, 0), a_eq, c_ax, eps)
+    khat, pol, nmax = (0, 0, 1), (1, 0, 0), 6
+    got = gt.Cluster([sp]).cross_sections(k=k, khat=khat, pol=pol, nmax=nmax)
+    c = gmm.isolated_scattered(sp, k, khat, pol, nmax)
+    ref = gmm.cross_sections([sp], np.array([c]), k, khat, pol)
+    for key in ("c_sca", "c_ext", "c_abs"):
+        assert _close(got[key], ref[key], tol=1e-9), key
+        assert np.isfinite(got[key])
+    bal = abs(got["c_abs"]) / got["c_sca"]
+    assert bal < 5e-3, f"диэлектрический сфероид: энергобаланс нарушен ({bal:.1e})"
+    print(f"    C_sca={got['c_sca']:.6f} |C_abs|/C_sca={bal:.1e} (lossless) — ок")
 
 
 def test_cylinder_solver_matches_module():
@@ -157,24 +156,23 @@ def test_cone_solver_decompose_and_cluster():
 
 
 def test_notimplemented_honesty():
-    print("\n[9] полноволновые ветви → честный NotImplementedError:")
-    raised = 0
-    for fn in (lambda: gt.SpheroidSolver(1, 2, 2.0).full_wave(),
-               lambda: gt.CylinderSolver(1, 2.0).finite(),
-               lambda: gt.ConeSolver([0, 0, 0], [0, 0, 1], 0.5, 1.0, [2.0]).full_wave()):
-        try:
-            fn()
-        except NotImplementedError:
-            raised += 1
-    assert raised == 3, "все три ветви должны поднимать NotImplementedError"
-    print("    спфероид/конечный цилиндр/конус — 3/3 NotImplementedError — ок")
+    print("\n[9] нереализованная ветвь → честный NotImplementedError:")
+    # Конечный цилиндр в 2D-модуле cylinder.py намеренно не реализован (мод-матчинг);
+    # строгий путь — полноволновой EBCM gt.FiniteCylinder. Заглушка честно поднимает ошибку.
+    raised = False
+    try:
+        gt.CylinderSolver(1, 2.0).finite()
+    except NotImplementedError:
+        raised = True
+    assert raised, "cylinder.finite (2D-модуль) должен поднимать NotImplementedError"
+    print("    cylinder.finite (2D) → NotImplementedError; строгий конечный цилиндр = gt.FiniteCylinder — ок")
 
 
 if __name__ == "__main__":
     for fn in (test_sphere_solver_matches_core, test_sphere_tmatrix_consistency,
                test_sphere_solver_magnetodielectric_matches_closed_mie,
                test_sphere_as_scatterer_in_cluster, test_cluster_solve_shapes,
-               test_ellipsoid_solver_matches_module, test_spheroid_solver_matches_module,
+               test_ellipsoid_solver_matches_module, test_spheroid_primitive_ebcm_in_cluster,
                test_cylinder_solver_matches_module, test_cone_solver_decompose_and_cluster,
                test_notimplemented_honesty):
         fn()

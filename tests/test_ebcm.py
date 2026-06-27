@@ -158,7 +158,7 @@ def test_ebcm_spheroid_energy_and_rayleigh():
     квадратуры (lossless ⇒ C_abs≈0) + рэлеевский предел == аналит. поляризуемость.
     Это тест НЕсферической машины (внедиаг. по n + кросс-блоки TE↔TM)."""
     import math
-    from green_tensor import spheroid
+    from green_tensor import ellipsoid
     print("\n[5] EBCM сфероид — энергобаланс + Рэлей:")
     for aeq, cax, k, mu, nm, tag in [(0.4, 0.8, 2.0, 1.0, 7, "prolate"),
                                      (0.8, 0.4, 2.0, 1.0, 7, "oblate"),
@@ -169,7 +169,7 @@ def test_ebcm_spheroid_energy_and_rayleigh():
         assert bal < 1e-3, f"сфероид: энергобаланс нарушен ({bal:.1e}) — кросс-блоки/нормировка"
     # Рэлеевский предел: малый сфероид → аналит. поляризуемость (осевая/экваториальная)
     aeq, cax, k, nm, eps = 0.05, 0.10, 1.0, 4, 3.0
-    al = spheroid.polarizability(aeq, cax, eps)
+    al = ellipsoid.polarizability_homogeneous(aeq, aeq, cax, eps, 1.0)  # сфероид = эллипсоид b=a
     T = ebcm.tmatrix_axisym(ebcm.spheroid_curve(aeq, cax), k, eps, 1.0, nm)
     for pol, ai, lbl in [((0, 0, 1), al[2], "axial"), ((0, 1, 0), al[0], "equat")]:
         csca = _energy_balance(T, k, nm, pol)[0]

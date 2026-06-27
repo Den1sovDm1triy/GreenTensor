@@ -46,13 +46,20 @@ from . import (  # noqa: F401
     scatterer,
     solvers,
     sphere_core,
-    spheroid,
     tmatrix,
     vswf,
 )
 
 # Публичный API / public API
-from .scatterer import LayeredSphere, Scatterer  # noqa: F401
+# Строгие полноволновые EBCM-примитивы (ТФГ) — собираются через :class:`Cluster` (GMM).
+# Rigorous full-wave EBCM primitives (TGF) — assembled via :class:`Cluster` (GMM).
+from .scatterer import (  # noqa: F401
+    Cone,
+    FiniteCylinder,
+    LayeredSphere,
+    Scatterer,
+    Spheroid,
+)
 from .tmatrix import DiagonalTMatrix  # noqa: F401
 from .solvers import (  # noqa: F401
     Cluster,
@@ -62,27 +69,27 @@ from .solvers import (  # noqa: F401
     FiniteCylinderSolver,
     LayeredCylinderSolver,
     SphereSolver,
-    SpheroidSolver,
     solve_cluster,
     solve_cylinder,
     solve_ellipsoid,
     solve_layered_cylinder,
     solve_sphere,
-    solve_spheroid,
 )
 
 __all__ = [
     "__version__",
     # protocols / data types
     "Scatterer", "LayeredSphere", "DiagonalTMatrix",
+    # строгие EBCM-примитивы (ТФГ) / rigorous EBCM primitives (TGF)
+    "Spheroid", "FiniteCylinder", "Cone",
     # solver classes
-    "SphereSolver", "EllipsoidSolver", "SpheroidSolver",
+    "SphereSolver", "EllipsoidSolver",
     "CylinderSolver", "LayeredCylinderSolver", "FiniteCylinderSolver",
     "ConeSolver", "Cluster",
     # functional facade
-    "solve_sphere", "solve_ellipsoid", "solve_spheroid",
+    "solve_sphere", "solve_ellipsoid",
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
     # modules
     "mie_core", "sphere_core", "tmatrix", "scatterer", "vswf", "gmm",
-    "ellipsoid", "spheroid", "cylinder", "cone", "decompose", "solvers",
+    "ellipsoid", "cylinder", "cone", "decompose", "solvers",
 ]

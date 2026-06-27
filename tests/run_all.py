@@ -26,7 +26,6 @@ import test_vswf as vsw  # noqa: E402
 import test_gmm as gmt  # noqa: E402
 import test_ellipsoid as ell  # noqa: E402
 import test_decompose as dct  # noqa: E402
-import test_spheroid as spt  # noqa: E402
 import test_cylinder as cyt  # noqa: E402
 import test_cone as cnt  # noqa: E402
 import test_solvers as slv  # noqa: E402
@@ -96,10 +95,6 @@ def main() -> int:
         ("decompose coverage/refinement", dct.test_coverage_and_refinement),
         ("decompose box/cylinder", dct.test_box_and_cylinder),
         ("decompose feeds GMM", dct.test_decompose_feeds_gmm),
-        ("spheroid closed-form vs numerical", spt.test_closed_form_vs_numerical),
-        ("spheroid sphere limit", spt.test_sphere_limit),
-        ("spheroid near-sphere dipole vs Mie", spt.test_near_sphere_dipole_vs_mie),
-        ("spheroid full-wave not-impl", spt.test_full_wave_not_implemented),
         ("cylinder energy conservation", cyt.test_energy_conservation_lossless),
         ("cylinder absorption sign", cyt.test_absorption_sign),
         ("cylinder small-x behavior", cyt.test_small_x_positive_decreasing),
@@ -113,7 +108,7 @@ def main() -> int:
         ("solvers: as_scatterer in Cluster", slv.test_sphere_as_scatterer_in_cluster),
         ("solvers: Cluster.solve shapes", slv.test_cluster_solve_shapes),
         ("solvers: EllipsoidSolver vs module", slv.test_ellipsoid_solver_matches_module),
-        ("solvers: SpheroidSolver vs module", slv.test_spheroid_solver_matches_module),
+        ("solvers: gt.Spheroid (EBCM) in Cluster", slv.test_spheroid_primitive_ebcm_in_cluster),
         ("solvers: CylinderSolver vs module", slv.test_cylinder_solver_matches_module),
         ("solvers: ConeSolver decompose+Cluster", slv.test_cone_solver_decompose_and_cluster),
         ("solvers: NotImplementedError honesty", slv.test_notimplemented_honesty),
