@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: MIT
 # Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
 
-"""Проверки конуса (green_tensor/cone.py).
+"""Проверки decompose-fallback конуса (green_tensor/decompose.py: cone_indicator,
+decompose_cone). Строгий полноволновой конус — EBCM-примитив green_tensor.Cone
+(см. tests/test_ebcm.py::test_ebcm_cone_energy).
 
   [1] индикатор конуса: точки внутри/снаружи классифицируются верно;
-  [2] разложение конуса в сферы: непересечение + все внутри + интеграция с GMM;
-  [3] прямой решатель → честный NotImplementedError.
+  [2] разложение конуса в сферы: непересечение + все внутри + интеграция с GMM.
 
 Запуск: python3 tests/test_cone.py | pytest tests/test_cone.py
 """
@@ -21,7 +22,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, _ROOT)
 
-from green_tensor import cone  # noqa: E402
+from green_tensor import decompose as cone  # noqa: E402  (cone_indicator/decompose_cone теперь в decompose)
 from green_tensor import decompose as dc  # noqa: E402
 from green_tensor import gmm  # noqa: E402
 
@@ -56,18 +57,7 @@ def test_decompose_cone_and_gmm():
     print(f"    GMM на конус-кластере решён, |c| конечно — ок")
 
 
-def test_full_wave_not_implemented():
-    print("\n[3] прямой решатель → NotImplementedError:")
-    try:
-        cone.full_wave()
-        raised = False
-    except NotImplementedError:
-        raised = True
-    assert raised
-    print("    честный NotImplementedError — ок")
-
-
-_TESTS = [test_cone_indicator, test_decompose_cone_and_gmm, test_full_wave_not_implemented]
+_TESTS = [test_cone_indicator, test_decompose_cone_and_gmm]
 
 if __name__ == "__main__":
     ok = True

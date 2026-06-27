@@ -37,7 +37,6 @@ __version__ = "0.3.0"
 
 # Низкоуровневые модули / low-level modules
 from . import (  # noqa: F401
-    cone,
     cylinder,
     decompose,
     ellipsoid,
@@ -91,5 +90,5 @@ __all__ = [
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
     # modules
     "mie_core", "sphere_core", "tmatrix", "scatterer", "vswf", "gmm",
-    "ellipsoid", "cylinder", "cone", "decompose", "solvers",
+    "ellipsoid", "cylinder", "decompose", "solvers",
 ]

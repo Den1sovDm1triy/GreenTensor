@@ -14,6 +14,8 @@ GreenTensor_Theory.tex, раздел «Разложение»). Это даёт 
 """
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from . import scatterer
@@ -261,3 +263,52 @@ def decompose_cylinder(center, radius: float, half_length: float, spacing: float
         body_volume = np.pi * radius ** 2 * (2.0 * half_length)
         eps_used = effective_medium_eps(eps, miy, centers, sphere_radius, body_volume)
     return to_scatterers(centers, sphere_radius, eps_used, a_norm=a_norm, miy=miy), centers, sphere_radius
+
+
+def cone_indicator(apex, axis, half_angle: float, height: float):
+    """Индикатор конечного кругового конуса: вершина apex, ось axis, полуугол, высота."""
+    apex = np.asarray(apex, dtype=float)
+    ax = np.asarray(axis, dtype=float)
+    ax = ax / np.linalg.norm(ax)
+    tan_a = math.tan(half_angle)
+
+    def f(P):
+        v = np.asarray(P, float) - apex
+        axial = v @ ax
+        perp = v - axial[..., None] * ax
+        rad = np.sqrt(np.sum(perp**2, axis=-1))
+        return (axial >= 0.0) & (axial <= height) & (rad <= axial * tan_a)
+
+    return f
+
+
+def decompose_cone(apex, axis, half_angle: float, height: float, spacing: float,
+                   eps, *, fill: float = 0.45, a_norm=None, miy=None,
+                   k: float | None = None, allow_metal: bool = False,
+                   effective_medium: bool = False, lattice: str = "cubic"):
+    """Разложить КОНЕЧНЫЙ круговой конус в непересекающиеся сферы для GMM.
+
+    apex — вершина; axis — ось (от вершины к основанию); half_angle — полуугол; height —
+    высота. Возвращает (scatterers, centers, sphere_radius). Это decompose-fallback
+    конусоподобных тел; строгий полноволновой путь конуса — EBCM-примитив
+    :class:`green_tensor.Cone` в :class:`green_tensor.solvers.Cluster`.
+
+    Металл: разложение запрещено, если внешний слой металлический (см.
+    :func:`reject_metal_packing`); k — для скин-слойной проверки, allow_metal=True —
+    осознанный обход. effective_medium=True — поправка Максвелла–Гарнетта на ε
+    (однородный диэлектрик; квазистатика), см. :func:`effective_medium_eps`."""
+    reject_metal_packing(eps, miy, _lattice_radius(spacing, fill, lattice), k, allow_metal)
+    apex = np.asarray(apex, dtype=float)
+    ax = np.asarray(axis, dtype=float)
+    ax = ax / np.linalg.norm(ax)
+    R = height * math.tan(half_angle)
+    far = apex + height * ax                      # грубый bbox: отрезок apex..far ± R
+    lo = np.minimum(apex, far) - R
+    hi = np.maximum(apex, far) + R
+    inside = cone_indicator(apex, ax, half_angle, height)
+    centers, radius = pack_spheres(inside, lo, hi, spacing, fill, lattice=lattice)
+    eps_used = eps
+    if effective_medium:
+        body_volume = math.pi * R ** 2 * height / 3.0
+        eps_used = effective_medium_eps(eps, miy, centers, radius, body_volume)
+    return to_scatterers(centers, radius, eps_used, a_norm=a_norm, miy=miy), centers, radius

@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from . import cone as _cone
 from . import cylinder as _cylinder
 from . import decompose as _decompose
 from . import ellipsoid as _ellipsoid
@@ -252,16 +251,19 @@ class LayeredCylinderSolver:
 
 
 # --------------------------------------------------------------------------- #
-# Конус — строгая аналитика через разложение в кластер сфер + GMM
-# Cone — rigorous analytics via sphere-cluster decomposition + GMM
+# Конус — decompose-fallback (кластер сфер + GMM). Строгий полноволновой конус —
+# EBCM-примитив green_tensor.Cone в Cluster (см. ниже).
+# Cone — decompose fallback (sphere cluster + GMM). Rigorous full-wave cone is the
+# EBCM primitive green_tensor.Cone inside Cluster.
 # --------------------------------------------------------------------------- #
 class ConeSolver:
     """RU: Конечный круговой конус: вершина apex, ось axis, полуугол half_angle, высота height.
-    Прямой сферо-конический решатель не реализован (нецелые P_ν^μ); строго аналитический
-    путь — :meth:`decompose` → :class:`Cluster` (GMM).
-    EN: Finite circular cone: apex, axis, half-angle, height. The direct sphero-conal
-    solver is not implemented (non-integer P_ν^μ); the rigorous-analytic route is
-    :meth:`decompose` → :class:`Cluster` (GMM).
+    Это decompose-fallback (разложение в кластер сфер → :class:`Cluster` (GMM)) для
+    конусоподобных тел. СТРОГИЙ полноволновой конус — примитив ``green_tensor.Cone``
+    (EBCM) в :class:`Cluster`.
+    EN: Finite circular cone: apex, axis, half-angle, height. This is the decompose
+    fallback (sphere-cluster → :class:`Cluster` (GMM)) for cone-like bodies. The
+    RIGOROUS full-wave cone is the ``green_tensor.Cone`` primitive (EBCM) in :class:`Cluster`.
     """
 
     def __init__(self, apex, axis, half_angle: float, height: float, eps, *,
@@ -277,7 +279,7 @@ class ConeSolver:
     def indicator(self):
         """RU: Логический индикатор «точка внутри конуса».
         EN: Boolean indicator "point inside the cone"."""
-        return _cone.cone_indicator(self.apex, self.axis, self.half_angle, self.height)
+        return _decompose.cone_indicator(self.apex, self.axis, self.half_angle, self.height)
 
     def decompose(self, spacing: float, *, fill: float = 0.45,
                   k: float | None = None, allow_metal: bool = False,
@@ -289,16 +291,11 @@ class ConeSolver:
         EN: Decompose into non-overlapping spheres for GMM. Metal outer layer rejected
         (pass k for the skin-depth test; allow_metal=True to override). effective_medium=True
         applies the Maxwell–Garnett eps correction. lattice='cubic'|'fcc' (FCC is denser)."""
-        return _cone.decompose_cone(self.apex, self.axis, self.half_angle, self.height,
-                                    spacing, self.eps, fill=fill,
-                                    a_norm=self.a_norm, miy=self.miy,
-                                    k=k, allow_metal=allow_metal,
-                                    effective_medium=effective_medium, lattice=lattice)
-
-    def full_wave(self, *args, **kwargs):
-        """RU: Прямой решатель конуса — НЕ реализован (нецелые функции Лежандра).
-        EN: Direct cone solver — NOT implemented (non-integer Legendre functions)."""
-        return _cone.full_wave(*args, **kwargs)
+        return _decompose.decompose_cone(self.apex, self.axis, self.half_angle, self.height,
+                                         spacing, self.eps, fill=fill,
+                                         a_norm=self.a_norm, miy=self.miy,
+                                         k=k, allow_metal=allow_metal,
+                                         effective_medium=effective_medium, lattice=lattice)
 
 
 # --------------------------------------------------------------------------- #
