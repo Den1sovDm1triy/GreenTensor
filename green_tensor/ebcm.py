@@ -157,6 +157,38 @@ def cylinder_segments(radius: float, half_length: float):
     return [(cap_top, 0.0, te), (side, te, math.pi - te), (cap_bot, math.pi - te, math.pi)]
 
 
+def rounded_cylinder_curve(radius: float, half_length: float, *, p: float = 6.0):
+    """ГЛАДКАЯ образующая «скруглённого цилиндра» — суперэллипс (ρ/R)^p+(z/H)^p=1.
+
+    Острые рёбра 90° конечного цилиндра дают сингулярность Мейкснера, для которой
+    разложение по СФЕРИЧЕСКИМ ВСВФ (EBCM) сходится крайне медленно и теряет взаимность
+    (а расширенная точность/квадратура НЕ помогают — это усечение, не обусловленность).
+    Скругление рёбер убирает сингулярность ⇒ EBCM сходится быстро и T-матрица взаимна.
+    p→∞ — острый цилиндр; p≈6 — цилиндр со слегка скруглёнными рёбрами (рекомендуется).
+
+    Возвращает ``r_of_theta(θ) -> (r, dr/dθ)`` для :func:`tmatrix_axisym` / :func:`axisym_surface`.
+    """
+    R, H, p = float(radius), float(half_length), float(p)
+
+    def r_of_theta(theta):
+        theta = np.asarray(theta, dtype=float)
+        s = np.abs(np.sin(theta))
+        c = np.abs(np.cos(theta))
+        a = (s / R) ** p
+        b = (c / H) ** p
+        u = a + b
+        r = u ** (-1.0 / p)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            dadt = p * s ** (p - 1.0) / R ** p * np.sign(np.sin(theta)) * np.cos(theta)
+            dbdt = p * c ** (p - 1.0) / H ** p * np.sign(np.cos(theta)) * (-np.sin(theta))
+        dadt = np.where(s > 0, dadt, 0.0)          # на полюсах (s или c =0) производная 0
+        dbdt = np.where(c > 0, dbdt, 0.0)
+        drdt = (-1.0 / p) * u ** (-1.0 / p - 1.0) * (dadt + dbdt)
+        return r, drdt
+
+    return r_of_theta
+
+
 def cone_segments(radius: float, height: float, *, z_apex: float | None = None):
     """Образующая КОНЕЧНОГО конуса (ось z, вершина вверху): базовый радиус R, высота L.
     Два сегмента — боковая (наклонная) поверхность и донная крышка. По умолчанию вершина

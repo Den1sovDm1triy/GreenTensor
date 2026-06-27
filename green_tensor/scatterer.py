@@ -117,11 +117,17 @@ class Spheroid:
 
 class FiniteCylinder:
     """Конечный круговой цилиндр (ось ∥ z, радиус R, полудлина H) — EBCM-рассеиватель GMM.
-    ВНИМАНИЕ: острые рёбра ⇒ EBCM кромочно-ограничен (вытянутый аспект точнее; плоский
-    расходится). См. ebcm.tmatrix_axisym_segments. Слоистость — через a_norm (гомотетия)."""
+
+    Острые рёбра 90° (сингулярность Мейкснера) разложение по сферическим ВСВФ представляет
+    плохо: сходимость по nmax крайне медленная, T-матрица теряет ВЗАИМНОСТЬ (~10–30% ошибки),
+    причём расширенная точность и квадратура НЕ помогают (это усечение, не обусловленность).
+    Поэтому по умолчанию рёбра СКРУГЛЯЮТСЯ суперэллипсом степени ``edge_p`` (гладкая образующая
+    ebcm.rounded_cylinder_curve) — EBCM сходится быстро и взаимность ~1e-2. ``edge_p=None`` —
+    прежний острый цилиндр (кромочно-ограниченный, для совместимости). Слоистый путь
+    (a_norm) — через острые сегменты (скругление слоёв пока не поддержано)."""
 
     def __init__(self, position, radius: float, half_length: float, eps, mu=1.0, *,
-                 a_norm=None, euler=(0.0, 0.0, 0.0)):
+                 a_norm=None, euler=(0.0, 0.0, 0.0), edge_p: float | None = 6.0):
         self.position = np.asarray(position, dtype=float)
         self.radius = float(radius)
         self.half_length = float(half_length)
@@ -129,6 +135,7 @@ class FiniteCylinder:
         self.mu = mu
         self.a_norm = a_norm
         self.euler = tuple(float(x) for x in euler)
+        self.edge_p = None if edge_p is None else float(edge_p)
 
     def bounding_radius(self) -> float:
         return math.hypot(self.radius, self.half_length)
@@ -146,9 +153,12 @@ class FiniteCylinder:
                 return ebcm.surface_segments(ebcm.cylinder_segments(a * R, a * H), n_per, nphi)
             T = ebcm.tmatrix_layered(builder, list(self.eps), list(mu),
                                      list(self.a_norm), k, nmax)
-        else:
+        elif self.edge_p is None:
             T = ebcm.tmatrix_axisym_segments(ebcm.cylinder_segments(R, H),
                                              k, complex(self.eps), complex(self.mu), nmax)
+        else:
+            T = ebcm.tmatrix_axisym(ebcm.rounded_cylinder_curve(R, H, p=self.edge_p),
+                                    k, complex(self.eps), complex(self.mu), nmax)
         return _oriented(T, nmax, self.euler)
 
 
