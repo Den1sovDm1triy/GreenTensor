@@ -9,13 +9,13 @@ GreenTensor
    :alt: MIT License
 
 **GreenTensor** is a Python library for analytic electromagnetic-scattering
-analysis on heterogeneous structures. Its mathematical core is the *exact*
-solution for a radially layered sphere obtained by the **tensor Green's function
-(TGF / Mie) method**. On top of that core, a family of analytic solvers
-(spheroid, ellipsoid, cylinder, cone) shares a single **T-matrix interface** in
-the spherical vector-wave-function (VSWF) basis, and a single **Generalized
-Multiparticle Mie (GMM)** engine composes them into solutions for arbitrarily
-complex geometry.
+analysis on heterogeneous structures. Its scope is restricted to **exact analytic**
+tensor Green's function (TGF) solutions: the *exact* radially layered sphere
+(TGF / Mie), the infinite layered/oblique circular cylinder (exact 2-D analytics),
+and their rigorous superposition into a **cluster of non-overlapping spheres** via
+the **Generalized Multiparticle Mie (GMM)** method (Cruzan–Stein addition theorem),
+sharing one **T-matrix interface** in the spherical vector-wave-function (VSWF)
+basis. Approximate or purely numerical methods are intentionally excluded.
 
 The library underpins two IEEE publications:
 
@@ -29,30 +29,23 @@ Features
 --------
 
 - **Exact layered-sphere core** (Mie / TGF): multilayer, complex permittivity
-  (absorption), magnetic layers, PEC limit, diffraction and surface-source
-  ("antenna") problems, linear and circular polarization.
-- **Rigorous full-wave EBCM/TGF primitives** for non-spherical bodies, assembled
-  through ``Cluster`` (GMM):
+  (absorption), magnetic layers, PEC limit, linear and circular polarization, both
+  the plane-wave **diffraction** and surface-source (**antenna**) problems.
+- **Exact analytic solvers only:**
 
   - ``SphereSolver`` — layered sphere, exact (Mie / TGF).
-  - ``Spheroid``, ``FiniteCylinder``, ``Cone`` — rigorous full-wave EBCM/TGF
-    primitives (incl. **layered**, with arbitrary orientation via Wigner-D
-    rotation); solved through ``Cluster``.
-  - ``EllipsoidSolver`` — triaxial ellipsoid, quasi-static (Rayleigh) — the one
-    geometry the axisymmetric EBCM cannot cover.
   - ``CylinderSolver`` / ``LayeredCylinderSolver`` — infinite cylinder, exact 2-D
-    (homogeneous, layered, normal + oblique incidence).
-  - ``decompose`` → ``Cluster`` — rigorous fallback: arbitrary bodies as a
-    non-overlapping sphere cluster.
-  - ``Cluster`` — self-consistent GMM assembly of any of the above.
+    (homogeneous, layered, normal + oblique incidence; TGF / transmission-line).
+  - ``Cluster`` — self-consistent GMM assembly of **non-overlapping spheres**
+    (Cruzan–Stein addition theorem; closed-form coefficients valid at any
+    separation).
 
-- **Unified T-matrix interface** (spherical VSWF) + **GMM** assembly engine with
-  closed-form Cruzan translation-addition coefficients (no dense-packing limit).
-- **Honest scope.** The EBCM finite cylinder is edge-limited (sharp rims:
-  elongated aspect is accurate, flat/cubic diverges — use the ``decompose``
-  fallback there). The legacy 2-D ``CylinderSolver.finite`` raises
-  ``NotImplementedError`` rather than returning unverified results, pointing to the
-  rigorous ``FiniteCylinder`` (EBCM) instead.
+- **Unified T-matrix interface** (spherical VSWF) feeding the GMM engine.
+- **Honest scope.** Only exact, verifiable analytics are shipped. Non-separable
+  geometries with no exact closed-form solution (e.g. the finite cylinder) raise
+  ``NotImplementedError`` rather than returning unverified results; approximate or
+  numerical methods (EBCM for edged bodies, Rayleigh quasi-statics, sphere-packing
+  decomposition) are not included.
 
 Installation
 ------------
@@ -84,24 +77,15 @@ Quick start
    T = sphere.t_matrix(k=3.0)            # DiagonalTMatrix in the VSWF basis
    diagram = sphere.pattern(k=3.0)       # scattering diagram
 
-   # Rigorous full-wave non-spherical primitives (EBCM/TGF), assembled by GMM
-   spheroid = gt.Spheroid(position=(0, 0, 0), a_eq=0.4, c_ax=0.8, eps=2.25)
-   cone     = gt.Cone(position=(0, 0, 2.5), radius=0.35, height=0.8, eps=2.25,
-                      euler=(0.0, 0.5, 0.0))   # arbitrary orientation (Wigner-D)
-   gt.Cluster([spheroid, cone]).cross_sections(k=2.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=7)
+   # Infinite layered cylinder (exact 2-D, TGF) — normal & oblique incidence
+   gt.solve_layered_cylinder(radius=1.0, eps=[4 + 0.5j, 2.0], a_norm=[0.6, 1.0], k=2.0)
 
-   # Cluster of scatterers (GMM)
-   s1 = gt.SphereSolver(0.5, [2.25], position=(-1, 0, 0)).as_scatterer()
-   s2 = gt.SphereSolver(0.5, [2.25], position=(+1, 0, 0)).as_scatterer()
-   gt.Cluster([s1, s2]).cross_sections(k=3.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=6)
+   # Cluster of non-overlapping spheres (GMM)
+   s1 = gt.SphereSolver(0.5, [2.25], position=(0, 0, -1.5)).as_scatterer()
+   s2 = gt.SphereSolver(0.5, [2.25], position=(0, 0, +1.5)).as_scatterer()
+   gt.Cluster([s1, s2]).cross_sections(k=3.0, khat=(1, 0, 0), pol=(0, 0, 1), nmax=6)
 
-   # Fallback for arbitrary bodies: decompose into non-overlapping spheres -> GMM
-   conesolver = gt.ConeSolver(apex=[0, 0, 0], axis=[0, 0, 1],
-                              half_angle=0.5, height=8.0, eps=[2.25])
-   scatterers, centers, radius = conesolver.decompose(spacing=2.0)
-   gt.Cluster(scatterers).cross_sections(k=1.0, khat=(1, 0, 0), pol=(0, 0, 1), nmax=3)
-
-See ``examples/`` for end-to-end scripts (Luneburg/Maxwell lenses, complex geometry).
+See ``examples/`` for end-to-end scripts (Luneburg / Maxwell lenses).
 
 Convention
 ----------
@@ -117,16 +101,14 @@ Project layout
 
    green_tensor/        importable package
      01_sphere.py       canonical exact sphere core (TGF/Mie) — math preserved
-     mie_core.py        importable mirror of the sphere core
+     sphere_core.py     importable facade over 01_sphere.py
      tmatrix.py         diagonal T-matrix + cross sections
-     vswf.py            VSWF, Wigner-3j/Gaunt, closed-form translation + Wigner-D rotation
-     scatterer.py       Scatterer protocol + LayeredSphere, Spheroid, FiniteCylinder, Cone
-     ebcm.py            rigorous full-wave EBCM/TGF T-matrix (non-spherical primitives)
-     gmm.py             Generalized Multiparticle Mie assembly engine
-     ellipsoid.py       triaxial ellipsoid (quasi-static)
-     cylinder.py        infinite/layered/oblique cylinder (exact 2-D)
-     decompose.py       pack a body into non-overlapping spheres (fallback)
-     solvers.py         unified public API (SphereSolver, ... , Cluster, solve_*)
+     vswf.py            VSWF, Wigner-3j/Gaunt, closed-form translation-addition
+     scatterer.py       Scatterer protocol + LayeredSphere
+     gmm.py             Generalized Multiparticle Mie assembly engine (sphere clusters)
+     cylinder.py        infinite/layered/oblique cylinder (exact 2-D, TGF)
+     solvers.py         unified public API (SphereSolver, CylinderSolver,
+                        LayeredCylinderSolver, Cluster, solve_*)
      legacy/            archival original research scripts (not maintained)
    tests/               independent-arbiter test suite (run_all.py)
    docs/                Sphinx documentation
@@ -178,7 +160,7 @@ Software (BibTeX):
    @software{greentensor,
      title   = {{GreenTensor}: analytic electromagnetic scattering on a layered-sphere core},
      author  = {Denisov, Dmitriy V. and Noskov, Vitaliy Ya. and Skumatenko, Ilya O.},
-     version = {0.4.0},
+     version = {0.5.0},
      year    = {2026},
      license = {MIT},
      url     = {https://github.com/Den1sovDm1triy/GreenTensor},

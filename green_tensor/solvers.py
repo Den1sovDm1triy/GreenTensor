@@ -4,33 +4,33 @@
 """solvers — единый публичный API: по одному решателю на геометрию.
 solvers — unified public API: one solver per geometry.
 
-RU: Каждый примитив семейства экспонируется как самостоятельный класс-решатель с
-единообразным интерфейсом (``cross_sections`` и т.п.) поверх уже проверенных ядер
-пакета. Классы НЕ содержат собственной математики — только связывают проверенные
-функции (01_sphere.py/tmatrix/ellipsoid/cylinder/decompose/gmm) в удобный объект.
-Для краткого вызова есть функции-обёртки ``solve_*``.
+RU: Каждый решатель экспонируется как самостоятельный класс с единообразным
+интерфейсом (``cross_sections`` и т.п.) поверх уже проверенных ядер пакета. Классы
+НЕ содержат собственной математики — только связывают проверенные функции
+(01_sphere.py/tmatrix/cylinder/gmm) в удобный объект. Для краткого вызова есть
+функции-обёртки ``solve_*``.
 
-EN: Each primitive of the family is exposed as a standalone solver class with a
-uniform interface (``cross_sections`` etc.) on top of the package's already-verified
-cores. The classes carry NO math of their own — they only wire the verified functions
-(01_sphere.py/tmatrix/ellipsoid/cylinder/decompose/gmm) into a convenient object.
-Thin ``solve_*`` wrapper functions are provided for one-line calls.
+EN: Each solver is exposed as a standalone class with a uniform interface
+(``cross_sections`` etc.) on top of the package's already-verified cores. The classes
+carry NO math of their own — they only wire the verified functions
+(01_sphere.py/tmatrix/cylinder/gmm) into a convenient object. Thin ``solve_*`` wrapper
+functions are provided for one-line calls.
+
+ОБЛАСТЬ ОХВАТА: только ТОЧНЫЕ аналитические решения метода ТФГ — геометрии с
+разделением переменных (сфера, бесконечный цилиндр) и их строгая суперпозиция
+(кластер невзаимопересекающихся сфер, GMM, теорема сложения Крузана–Стейна).
+Приближённые/численные методы (EBCM для тел с рёбрами, квазистатика Рэлея,
+разложение в кластер сфер) намеренно НЕ входят в библиотеку.
+SCOPE: only EXACT analytic TGF solutions — separable geometries (sphere, infinite
+cylinder) and their rigorous superposition (cluster of non-overlapping spheres, GMM,
+Cruzan–Stein addition theorem). Approximate/numerical methods (EBCM for edged bodies,
+Rayleigh quasi-statics, sphere-cluster decomposition) are intentionally OUT of scope.
 
 Карта решателей / solver map (see GreenTensor_Theory.tex):
   * :class:`SphereSolver`    — слоистая сфера, точное ядро (Mie/TFG) / layered sphere, exact core;
-  * :class:`EllipsoidSolver` — трёхосный эллипсоид, квазистатика / triaxial ellipsoid, quasi-static;
   * :class:`CylinderSolver`  — бесконечный цилиндр, точная 2D-аналитика / infinite cylinder, exact 2D;
   * :class:`LayeredCylinderSolver` — слоистый/косой бесконечный цилиндр (ТФГ) / layered/oblique infinite cylinder (TGF);
-  * :class:`ConeSolver`, :class:`FiniteCylinderSolver` — decompose-fallback (кластер сфер + GMM)
-    / decompose fallback (sphere cluster + GMM);
-  * :class:`Cluster`         — сборка набора рассеивателей (GMM) / assembly of scatterers (GMM).
-
-RU: СТРОГИЕ полноволновые примитивы — ``green_tensor.{Spheroid, FiniteCylinder, Cone}``
-(метод EBCM/ТФГ); собираются через :class:`Cluster` (GMM) и дают точные сечения
-одиночного тела или кластера. Это основной путь для несферических тел.
-EN: The RIGOROUS full-wave primitives are ``green_tensor.{Spheroid, FiniteCylinder, Cone}``
-(EBCM/TGF method), assembled via :class:`Cluster` (GMM) for exact single-body or
-cluster cross sections — the main route for non-spherical bodies.
+  * :class:`Cluster`         — сборка кластера сфер (GMM) / assembly of a sphere cluster (GMM).
 
 Конвенция / convention: e^{-iωt}, внешняя среда — вакуум / vacuum host, исходящая
 волна / outgoing wave ~ h_n^{(1)}. ``k`` — волновое число во внешней среде / wavenumber
@@ -41,18 +41,15 @@ from __future__ import annotations
 import numpy as np
 
 from . import cylinder as _cylinder
-from . import decompose as _decompose
-from . import ellipsoid as _ellipsoid
 from . import gmm as _gmm
 from . import scatterer as _scatterer
 from . import sphere_core as _sphere_core
 from . import tmatrix as _tmatrix
 
 __all__ = [
-    "SphereSolver", "EllipsoidSolver",
-    "CylinderSolver", "LayeredCylinderSolver", "FiniteCylinderSolver",
-    "ConeSolver", "Cluster",
-    "solve_sphere", "solve_ellipsoid",
+    "SphereSolver",
+    "CylinderSolver", "LayeredCylinderSolver", "Cluster",
+    "solve_sphere",
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
 ]
 
@@ -109,63 +106,6 @@ class SphereSolver:
 
 
 # --------------------------------------------------------------------------- #
-# Трёхосный эллипсоид — квазистатика (рэлеевский предел)
-# Triaxial ellipsoid — quasi-static (Rayleigh) limit
-# --------------------------------------------------------------------------- #
-class EllipsoidSolver:
-    """RU: Однородный трёхосный эллипсоид в квазистатическом пределе (k·a ≪ 1).
-    EN: Homogeneous triaxial ellipsoid in the quasi-static limit (k·a ≪ 1).
-
-    Полуоси / semi-axes a ≥ b ≥ c; eps — тело / body permittivity; eps_m — среда / host.
-    """
-
-    def __init__(self, a, b, c, eps, *, eps_m: complex = 1.0, position=(0.0, 0.0, 0.0)):
-        self.a, self.b, self.c = float(a), float(b), float(c)
-        self.eps = complex(eps)
-        self.eps_m = complex(eps_m)
-        self.position = np.asarray(position, dtype=float)
-
-    def depolarization_factors(self):
-        """RU: Факторы деполяризации (L_a, L_b, L_c), Σ = 1.
-        EN: Depolarization factors (L_a, L_b, L_c), Σ = 1."""
-        return _ellipsoid.depolarization_factors(self.a, self.b, self.c)
-
-    def polarizability(self) -> np.ndarray:
-        """RU: Поляризуемость α вдоль трёх главных осей.
-        EN: Polarizability α along the three principal axes."""
-        return _ellipsoid.polarizability_homogeneous(self.a, self.b, self.c,
-                                                     self.eps, self.eps_m)
-
-    def cross_sections(self, k: float, *, orientation_average: bool = True,
-                       axis: int | None = None) -> dict:
-        """RU: Рэлеевские сечения C_sca, C_abs, C_ext. orientation_average=True — среднее
-        по случайной ориентации; axis=i — поле вдоль главной оси i (0/1/2).
-        EN: Rayleigh cross sections C_sca, C_abs, C_ext. orientation_average=True —
-        random-orientation average; axis=i — field along principal axis i (0/1/2)."""
-        if axis is None and orientation_average:
-            return _ellipsoid.orientation_average_cross_sections(
-                self.a, self.b, self.c, self.eps, k, self.eps_m)
-        i = 0 if axis is None else int(axis)
-        return _ellipsoid.rayleigh_cross_sections(self.polarizability()[i], k)
-
-    def dipole_t(self, k: float, *, axis: int = 0) -> complex:
-        """RU: Электрич.-дипольный элемент T_N(n=1) вдоль оси axis (рэлеевский предел).
-        EN: Electric-dipole element T_N(n=1) along ``axis`` (Rayleigh limit)."""
-        return _ellipsoid.dipole_t_scalar(self.polarizability()[axis], k)
-
-
-# --------------------------------------------------------------------------- #
-# Сфероид (вытянутый / сплюснутый) — строгий полноволновой EBCM (ТФГ)
-# Spheroid (prolate / oblate) — rigorous full-wave EBCM (TGF)
-#   → публичный примитив green_tensor.Spheroid в green_tensor.Cluster (GMM):
-#       gt.Cluster([gt.Spheroid(pos, a_eq, c_ax, eps)]).cross_sections(k, khat, pol, nmax)
-#     Рэлеевский предел — через EllipsoidSolver(a_eq, a_eq, c_ax, …) (сфероид = эллипсоид b=a).
-#   → public primitive green_tensor.Spheroid inside green_tensor.Cluster (GMM);
-#     Rayleigh limit via EllipsoidSolver(a_eq, a_eq, c_ax, …) (spheroid = ellipsoid b=a).
-# --------------------------------------------------------------------------- #
-
-
-# --------------------------------------------------------------------------- #
 # Бесконечный круговой цилиндр — точная 2D-аналитика
 # Infinite circular cylinder — exact 2D analytics
 # --------------------------------------------------------------------------- #
@@ -194,8 +134,10 @@ class CylinderSolver:
         return _cylinder.cross_sections_infinite(self.m, k * self.radius, mode=mode, nmax=nmax)
 
     def finite(self, *args, **kwargs):
-        """RU: Конечный цилиндр (мод-матчинг/EBCM) — НЕ реализован (см. ConeSolver/decompose).
-        EN: Finite cylinder (mode-matching/EBCM) — NOT implemented (see ConeSolver/decompose)."""
+        """RU: Конечный цилиндр несепарабелен — НЕ реализован; точная аналитика существует
+        только для БЕСКОНЕЧНОГО цилиндра (этот класс / :class:`LayeredCylinderSolver`).
+        EN: The finite cylinder is non-separable — NOT implemented; exact analytics exist only
+        for the INFINITE cylinder (this class / :class:`LayeredCylinderSolver`)."""
         return _cylinder.finite(*args, **kwargs)
 
 
@@ -254,119 +196,16 @@ class LayeredCylinderSolver:
 
 
 # --------------------------------------------------------------------------- #
-# Конус — decompose-fallback (кластер сфер + GMM). Строгий полноволновой конус —
-# EBCM-примитив green_tensor.Cone в Cluster (см. ниже).
-# Cone — decompose fallback (sphere cluster + GMM). Rigorous full-wave cone is the
-# EBCM primitive green_tensor.Cone inside Cluster.
-# --------------------------------------------------------------------------- #
-class ConeSolver:
-    """RU: Конечный круговой конус: вершина apex, ось axis, полуугол half_angle, высота height.
-    Это decompose-fallback (разложение в кластер сфер → :class:`Cluster` (GMM)) для
-    конусоподобных тел. СТРОГИЙ полноволновой конус — примитив ``green_tensor.Cone``
-    (EBCM) в :class:`Cluster`.
-    EN: Finite circular cone: apex, axis, half-angle, height. This is the decompose
-    fallback (sphere-cluster → :class:`Cluster` (GMM)) for cone-like bodies. The
-    RIGOROUS full-wave cone is the ``green_tensor.Cone`` primitive (EBCM) in :class:`Cluster`.
-    """
-
-    def __init__(self, apex, axis, half_angle: float, height: float, eps, *,
-                 a_norm=None, miy=None):
-        self.apex = np.asarray(apex, dtype=float)
-        self.axis = np.asarray(axis, dtype=float)
-        self.half_angle = float(half_angle)
-        self.height = float(height)
-        self.eps = list(eps)
-        self.a_norm = a_norm
-        self.miy = miy
-
-    def indicator(self):
-        """RU: Логический индикатор «точка внутри конуса».
-        EN: Boolean indicator "point inside the cone"."""
-        return _decompose.cone_indicator(self.apex, self.axis, self.half_angle, self.height)
-
-    def decompose(self, spacing: float, *, fill: float = 0.45,
-                  k: float | None = None, allow_metal: bool = False,
-                  effective_medium: bool = False, lattice: str = "cubic"):
-        """RU: Разложить в непересекающиеся сферы: (scatterers, centers, radius) для GMM.
-        Металл с металлической внешней средой запрещён (k — для скин-слойной проверки,
-        allow_metal=True — обход). effective_medium=True — поправка Максвелла–Гарнетта на ε
-        (однородный диэлектрик, квазистатика). lattice='cubic'|'fcc' (ГЦК плотнее).
-        EN: Decompose into non-overlapping spheres for GMM. Metal outer layer rejected
-        (pass k for the skin-depth test; allow_metal=True to override). effective_medium=True
-        applies the Maxwell–Garnett eps correction. lattice='cubic'|'fcc' (FCC is denser)."""
-        return _decompose.decompose_cone(self.apex, self.axis, self.half_angle, self.height,
-                                         spacing, self.eps, fill=fill,
-                                         a_norm=self.a_norm, miy=self.miy,
-                                         k=k, allow_metal=allow_metal,
-                                         effective_medium=effective_medium, lattice=lattice)
-
-
-# --------------------------------------------------------------------------- #
-# Конечный цилиндр — строгая аналитика через разложение в кластер сфер + GMM
-# Finite cylinder — rigorous analytics via sphere-cluster decomposition + GMM
-# --------------------------------------------------------------------------- #
-class FiniteCylinderSolver:
-    """RU: Конечный круговой цилиндр (центр, радиус, полудлина, ось). Прямого
-    полноволнового решателя нет (несепарабелен — см. :class:`CylinderSolver`.finite);
-    строго аналитический путь — :meth:`decompose` в кластер непересекающихся сфер
-    → :class:`Cluster` (GMM). Для БЕСКОНЕЧНОГО цилиндра используйте
-    :class:`CylinderSolver` / :class:`LayeredCylinderSolver` (точная аналитика).
-    EN: Finite circular cylinder (centre, radius, half-length, axis). No direct
-    full-wave solver (non-separable — see :class:`CylinderSolver`.finite); the
-    rigorous-analytic route is :meth:`decompose` into a non-overlapping sphere
-    cluster → :class:`Cluster` (GMM). For an INFINITE cylinder use
-    :class:`CylinderSolver` / :class:`LayeredCylinderSolver` (exact analytics).
-    """
-
-    def __init__(self, center, radius: float, half_length: float, eps, *,
-                 axis: int = 2, a_norm=None, miy=None):
-        self.center = np.asarray(center, dtype=float)
-        self.radius = float(radius)
-        self.half_length = float(half_length)
-        self.eps = list(eps)
-        self.axis = int(axis)
-        self.a_norm = a_norm
-        self.miy = miy
-
-    def indicator(self):
-        """RU: Логический индикатор «точка внутри цилиндра».
-        EN: Boolean indicator "point inside the cylinder"."""
-        return _decompose.cylinder_indicator(self.center, self.radius,
-                                             self.half_length, self.axis)
-
-    def decompose(self, spacing: float, *, fill: float = 0.45,
-                  k: float | None = None, allow_metal: bool = False,
-                  effective_medium: bool = False, lattice: str = "cubic"):
-        """RU: Разложить в непересекающиеся сферы: (scatterers, centers, radius) для GMM.
-        Металл с металлической внешней средой запрещён (k — для скин-слойной проверки,
-        allow_metal=True — обход). effective_medium=True — поправка Максвелла–Гарнетта на ε
-        (однородный диэлектрик, квазистатика). lattice='cubic'|'fcc' (ГЦК плотнее).
-        EN: Decompose into non-overlapping spheres for GMM. Metal outer layer rejected
-        (pass k for the skin-depth test; allow_metal=True to override). effective_medium=True
-        applies the Maxwell–Garnett eps correction. lattice='cubic'|'fcc' (FCC is denser)."""
-        return _decompose.decompose_cylinder(self.center, self.radius, self.half_length,
-                                            spacing, self.eps, axis=self.axis, fill=fill,
-                                            a_norm=self.a_norm, miy=self.miy,
-                                            k=k, allow_metal=allow_metal,
-                                            effective_medium=effective_medium, lattice=lattice)
-
-    def full_wave(self, *args, **kwargs):
-        """RU: Прямой решатель конечного цилиндра — НЕ реализован (мод-матчинг/EBCM).
-        EN: Direct finite-cylinder solver — NOT implemented (mode-matching/EBCM)."""
-        return _cylinder.finite(*args, **kwargs)
-
-
-# --------------------------------------------------------------------------- #
-# Кластер — движок сборки (GMM) для произвольного набора рассеивателей
-# Cluster — assembly engine (GMM) for an arbitrary set of scatterers
+# Кластер — движок сборки (GMM) для набора сфер
+# Cluster — assembly engine (GMM) for a set of spheres
 # --------------------------------------------------------------------------- #
 class Cluster:
-    """RU: Самосогласованная сборка списка рассеивателей (GMM, трансляционные теоремы).
-    Принимает любые объекты протокола :class:`green_tensor.scatterer.Scatterer`
-    (например ``SphereSolver(...).as_scatterer()`` или результат ``ConeSolver.decompose``).
-    EN: Self-consistent assembly of a list of scatterers (GMM, translation theorems).
-    Accepts any object implementing the :class:`green_tensor.scatterer.Scatterer` protocol
-    (e.g. ``SphereSolver(...).as_scatterer()`` or the result of ``ConeSolver.decompose``).
+    """RU: Самосогласованная сборка кластера сфер (GMM, теорема сложения Крузана–Стейна).
+    Принимает объекты протокола :class:`green_tensor.scatterer.Scatterer`
+    (``SphereSolver(...).as_scatterer()``). Описывающие сферы тел НЕ должны пересекаться.
+    EN: Self-consistent assembly of a sphere cluster (GMM, Cruzan–Stein addition theorem).
+    Accepts objects implementing the :class:`green_tensor.scatterer.Scatterer` protocol
+    (``SphereSolver(...).as_scatterer()``). Circumscribing spheres must not overlap.
     """
 
     def __init__(self, scatterers):
@@ -397,14 +236,6 @@ def solve_sphere(radius, eps, k: float, *, a_norm=None, miy=None, toch: int | No
     """RU: Сечения слоистой сферы одной строкой / EN: layered-sphere cross sections in one line
     (см. / see :class:`SphereSolver`)."""
     return SphereSolver(radius, eps, a_norm=a_norm, miy=miy).cross_sections(k, toch=toch)
-
-
-def solve_ellipsoid(a, b, c, eps, k: float, *, eps_m: complex = 1.0,
-                    orientation_average: bool = True, axis: int | None = None) -> dict:
-    """RU: Рэлеевские сечения трёхосного эллипсоида / EN: Rayleigh cross sections of a triaxial
-    ellipsoid (см. / see :class:`EllipsoidSolver`)."""
-    return EllipsoidSolver(a, b, c, eps, eps_m=eps_m).cross_sections(
-        k, orientation_average=orientation_average, axis=axis)
 
 
 def solve_cylinder(radius, eps, k: float, *, eps_m: complex = 1.0,

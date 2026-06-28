@@ -7,6 +7,51 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] — 2026-06-28
+
+Сокращение области охвата до **только точных аналитических решений метода тензорных
+функций Грина (ТФГ)**. Цель — научная библиотека, в которой каждый решатель строго
+аналитичен и верифицируем; приближённые и чисто численные методы исключены.
+
+### Removed (BREAKING)
+- **EBCM / метод нулевого поля** и несферические примитивы `Spheroid`,
+  `FiniteCylinder`, `Cone` (модуль `green_tensor/ebcm.py`) — численный метод,
+  чувствительный к рёбрам/вершинам и неустойчивый для слоистых тел.
+- **Разложение тела в кластер сфер** (`green_tensor/decompose.py`) и решатели
+  `ConeSolver`, `FiniteCylinderSolver` — приближение (упаковка сферами +
+  поправка Максвелла–Гарнетта).
+- **Квазистатика Рэлея**: `green_tensor/ellipsoid.py`, `green_tensor/spheroid.py`,
+  класс `EllipsoidSolver` и функция `solve_ellipsoid` — точны лишь в пределе
+  `k·a ≪ 1`, не полноволновые.
+- **`green_tensor/mie_core.py`** — дубликат сферы; единственный путь сферы теперь —
+  каноническое ядро `01_sphere.py` через фасад `sphere_core`.
+- **Вращения Вигнера T-матрицы** (`vswf.rotate_tmatrix`, `wigner_d`, `wigner_D`,
+  `rotation_matrix`) — служили только ориентации EBCM-тел; сферы изотропны, кластеру
+  нужна лишь трансляция.
+- Удалены связанные тесты и примеры (`composite_primitives_demo.py`,
+  `complex_geometry_demo.py`).
+
+### Kept (точное аналитическое ТФГ)
+- **Слоистая сфера** — точное ядро `01_sphere.py` (`SphereSolver`, `solve_sphere`).
+- **Бесконечный цилиндр** — точная 2D-аналитика, одно-/многослойный, нормальное и
+  косое падение (`CylinderSolver`, `LayeredCylinderSolver`, ТФГ/эквивалентные линии).
+- **Кластер невзаимопересекающихся сфер** — строгая суперпозиция через теорему
+  сложения Крузана–Стейна (`Cluster`, GMM).
+
+### Added
+- **Антенный режим сферы** (источник/рупор на поверхности) реализован прямо в каноне
+  `01_sphere.py` — переключатель `problem="diffraction"|"antenna"` (ранее формула рупора
+  была в коде закомментирована). Проброшен через `sphere_core`,
+  `SphereSolver.pattern(..., problem="antenna")`, webapp и Studio. Это задача излучения:
+  выводится диаграмма направленности (сечения рассеяния и ЭПР для неё не определены).
+
+### Changed
+- Публичный API сведён к `SphereSolver`, `CylinderSolver`, `LayeredCylinderSolver`,
+  `Cluster` + обёртки `solve_sphere`/`solve_cylinder`/`solve_layered_cylinder`/`solve_cluster`.
+- Документация и `GreenTensor_Theory.tex` приведены к новому охвату (удалены разделы
+  EBCM, конечного цилиндра, конуса, сфероида SVM, триаксиального эллипсоида,
+  разложения в сферы). Версия `0.5.0`.
+
 ## [0.4.0] — 2026-06-27
 
 ### Added

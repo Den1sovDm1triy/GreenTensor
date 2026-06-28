@@ -51,39 +51,6 @@ Layered sphere (exact core)
    gt.SphereSolver(radius=1.0, eps=[4 + 0.5j, 2.25],
                    a_norm=[0.5, 1.0], miy=[1.0, 1.0]).cross_sections(k=2.0)
 
-Ellipsoid and spheroid (quasi-static)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: python
-
-   # triaxial ellipsoid, random-orientation average
-   gt.solve_ellipsoid(a=2, b=1, c=1, eps=3 + 0.1j, k=0.5)
-
-   # field along a chosen principal axis
-   el = gt.EllipsoidSolver(2, 1, 1, eps=3 + 0.1j)
-   el.cross_sections(k=0.5, axis=0)
-   el.depolarization_factors()         # (L_a, L_b, L_c), sum = 1
-
-   # spheroid in the Rayleigh limit = ellipsoid with b = a
-   gt.EllipsoidSolver(1, 1, 2, eps=3 + 0.1j).cross_sections(k=0.5)
-
-Rigorous non-spherical primitives (EBCM/TGF)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: python
-
-   # full-wave spheroid / finite cylinder / cone — assembled through Cluster (GMM)
-   sph = gt.Spheroid(position=(0, 0, 0), a_eq=0.4, c_ax=0.8, eps=2.25)
-   gt.Cluster([sph]).cross_sections(k=2.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=7)
-
-   cyl = gt.FiniteCylinder(position=(0, 0, 0), radius=0.35, half_length=0.5, eps=2.25)
-   cone = gt.Cone(position=(0, 0, 0), radius=0.35, height=0.8, eps=2.25,
-                  euler=(0.0, 0.5, 0.0))     # arbitrary orientation (Wigner-D)
-   gt.Cluster([cyl, cone]).cross_sections(k=2.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=7)
-
-   # layered primitive (Peterson–Ström recursion): eps inner->outer + a_norm boundaries
-   gt.Spheroid((0, 0, 0), 0.4, 0.8, eps=[4.0, 2.25], a_norm=[0.6, 1.0])
-
 Infinite cylinder (exact 2-D)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -116,28 +83,21 @@ Clusters and complex geometry (GMM)
    cluster.cross_sections(k=3.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=6)
    a, c, d = cluster.solve(k=3.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=6)
 
-   # cone -> non-overlapping spheres -> GMM
-   cone = gt.ConeSolver(apex=[0, 0, 0], axis=[0, 0, 1],
-                        half_angle=0.5, height=8.0, eps=[2.25])
-   scatterers, centers, radius = cone.decompose(spacing=2.0)
-   gt.Cluster(scatterers).cross_sections(k=1.0, khat=(1, 0, 0), pol=(0, 0, 1), nmax=3)
+   # a multi-sphere chain (circumscribing spheres must not overlap)
+   spheres = [gt.SphereSolver(0.5, [2.25], position=(0, 0, z)).as_scatterer()
+              for z in (-1.5, 0.0, 1.5)]
+   gt.Cluster(spheres).cross_sections(k=3.0, khat=(1, 0, 0), pol=(0, 0, 1), nmax=6)
 
-   # finite cylinder -> non-overlapping spheres -> GMM
-   cyl = gt.FiniteCylinderSolver(center=[0, 0, 0], radius=2.0, half_length=4.0,
-                                 eps=[2.25], axis=2)
-   scatterers, centers, radius = cyl.decompose(spacing=1.0)
-   gt.Cluster(scatterers).cross_sections(k=0.8, khat=(1, 0, 0), pol=(0, 0, 1), nmax=3)
+Out-of-scope (honest) branches
+------------------------------
 
-Not-implemented (honest) branches
----------------------------------
-
-The full-wave spheroid, finite cylinder and cone are now provided rigorously by the
-EBCM primitives above. The remaining honest stub is the legacy 2-D module's finite
-branch, which points to the rigorous :class:`~green_tensor.scatterer.FiniteCylinder`:
+Non-separable geometries with no exact closed-form solution are out of scope and
+raise :class:`NotImplementedError` rather than returning an unverified stub — e.g.
+the finite cylinder:
 
 .. code-block:: python
 
-   gt.CylinderSolver(1, 2.0).finite()   # raises NotImplementedError -> use gt.FiniteCylinder
+   gt.CylinderSolver(1, 2.0).finite()   # raises NotImplementedError (use the infinite cylinder)
 
 Running the tests
 -----------------

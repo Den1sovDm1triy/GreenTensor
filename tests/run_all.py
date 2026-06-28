@@ -20,21 +20,12 @@ import test_sphere_mie  # noqa: E402
 import test_sphere_multilayer as ml  # noqa: E402
 import test_sphere_complex as cx  # noqa: E402
 import test_sphere_magnetic as smg  # noqa: E402
-import test_mie_core as core  # noqa: E402
 import test_tmatrix as tmx  # noqa: E402
 import test_vswf as vsw  # noqa: E402
 import test_gmm as gmt  # noqa: E402
-import test_ellipsoid as ell  # noqa: E402
-import test_decompose as dct  # noqa: E402
 import test_cylinder as cyt  # noqa: E402
-import test_cone as cnt  # noqa: E402
 import test_solvers as slv  # noqa: E402
 import test_cylinder_layered as cyl_l  # noqa: E402
-import test_finite_cylinder as fcyl  # noqa: E402
-import test_mg_correction as mg  # noqa: E402
-import test_ebcm as ebc  # noqa: E402
-import test_composite as cmp  # noqa: E402
-import test_rotation as rot  # noqa: E402
 
 
 def main() -> int:
@@ -55,15 +46,6 @@ def main() -> int:
         ("mag sphere distinct E/M response", smg.test_mu_only_sphere_has_distinct_electric_and_magnetic_response),
         ("mag sphere subdivision invariance", smg.test_magnetodielectric_subdivision_invariance),
         ("mag core metal shell -> PEC", smg.test_magnetic_core_metal_shell_shields_to_pec),
-        ("mie_core cross-sections vs Mie", core.test_cross_sections_vs_mie),
-        ("mie_core magnetic vs Kerker (μ-fix)", core.test_magnetic_cross_sections_vs_kerker),
-        ("mie_core Kerker duality ε=μ→Qback0", core.test_kerker_duality_zero_backscatter),
-        ("mie_core coeffs vs RCSCalculator", core.test_coefficients_match_rcs),
-        ("mie_core linear E_θ/E_φ vs RCS", core.test_linear_matches_rcs),
-        ("mie_core circular vs analytic helicity", core.test_circular_vs_analytic_helicity),
-        ("mie_core circular integral+physics", core.test_circular_integral_and_physics),
-        ("mie_core polarization/problem", core.test_polarization_and_problem_params),
-        ("mie_core param validation", core.test_invalid_params),
         ("T-matrix sphere vs analytic", tmx.test_sphere_tmatrix_cross_sections_vs_analytic),
         ("T-matrix optical theorem", tmx.test_from_ab_optical_theorem),
         ("T-matrix adapter consistency", tmx.test_adapter_matches_direct_construction),
@@ -85,32 +67,18 @@ def main() -> int:
         ("gmm full-T == diagonal (regression)", gmt.test_fullT_matches_diagonal),
         ("gmm t_matrix path == t_vector path", gmt.test_t_matrix_path_matches_t_vector),
         ("gmm axial incidence finite (NaN fix)", gmt.test_axial_incidence_finite),
-        ("ellipsoid depol sum/sphere", ell.test_depolarization_sum_and_sphere),
-        ("ellipsoid spheroid closed-form", ell.test_spheroid_closed_form),
-        ("ellipsoid Rayleigh vs analytic", ell.test_sphere_rayleigh_vs_analytic),
-        ("ellipsoid dipole-T vs Mie", ell.test_dipole_t_vs_mie),
-        ("ellipsoid coated->homogeneous", ell.test_coated_reduces_to_homogeneous),
-        ("ellipsoid orientation average", ell.test_orientation_average),
-        ("decompose non-overlap/inside", dct.test_non_overlap_and_inside),
-        ("decompose coverage/refinement", dct.test_coverage_and_refinement),
-        ("decompose box/cylinder", dct.test_box_and_cylinder),
-        ("decompose feeds GMM", dct.test_decompose_feeds_gmm),
         ("cylinder energy conservation", cyt.test_energy_conservation_lossless),
         ("cylinder absorption sign", cyt.test_absorption_sign),
         ("cylinder small-x behavior", cyt.test_small_x_positive_decreasing),
         ("cylinder finite not-impl", cyt.test_finite_not_implemented),
-        ("cone(decompose) indicator", cnt.test_cone_indicator),
-        ("cone(decompose) decompose+GMM", cnt.test_decompose_cone_and_gmm),
         ("solvers: SphereSolver vs canonical sphere", slv.test_sphere_solver_matches_core),
         ("solvers: sphere T-matrix consistency", slv.test_sphere_tmatrix_consistency),
         ("solvers: sphere eps/mu public API", slv.test_sphere_solver_magnetodielectric_matches_closed_mie),
         ("solvers: as_scatterer in Cluster", slv.test_sphere_as_scatterer_in_cluster),
         ("solvers: Cluster.solve shapes", slv.test_cluster_solve_shapes),
-        ("solvers: EllipsoidSolver vs module", slv.test_ellipsoid_solver_matches_module),
-        ("solvers: gt.Spheroid (EBCM) in Cluster", slv.test_spheroid_primitive_ebcm_in_cluster),
         ("solvers: CylinderSolver vs module", slv.test_cylinder_solver_matches_module),
-        ("solvers: ConeSolver decompose+Cluster", slv.test_cone_solver_decompose_and_cluster),
         ("solvers: NotImplementedError honesty", slv.test_notimplemented_honesty),
+        ("solvers: sphere antenna problem", slv.test_sphere_antenna_problem),
         ("sphere_mag: eps/mu formula -> nonmagnetic", smg.test_eps_mu_formula_reduces_to_nonmagnetic_mie),
         ("sphere_mag: coefficients vs closed Mie", smg.test_homogeneous_magnetodielectric_coefficients_match_closed_mie),
         ("sphere_mag: cross sections vs closed Mie", smg.test_homogeneous_magnetodielectric_cross_sections_match_closed_mie),
@@ -130,36 +98,6 @@ def main() -> int:
         ("oblique cyl: subdivision invariance", cyl_l.test_oblique_subdivision_invariance),
         ("oblique cyl: energy conservation", cyl_l.test_oblique_energy_conservation),
         ("oblique cyl: cross-sec reduce + wrappers", cyl_l.test_oblique_cross_sections_reduce_and_wrapper),
-        ("finite cyl: indicator", fcyl.test_indicator),
-        ("finite cyl: decompose non-overlap/inside", fcyl.test_decompose_non_overlap_inside),
-        ("finite cyl: decompose feeds GMM", fcyl.test_decompose_feeds_gmm),
-        ("finite cyl: solver wrapper + not-impl", fcyl.test_solver_wrapper_and_notimpl),
-        ("finite cyl: metal guard (cavities)", fcyl.test_metal_guard),
-        ("finite cyl: FCC lattice (denser)", fcyl.test_fcc_lattice),
-        ("MG: round-trip", mg.test_mg_roundtrip),
-        ("MG: polarizability identity", mg.test_polarizability_identity),
-        ("MG: unreachable filling raises", mg.test_unreachable_filling_raises),
-        ("MG: effective_medium integration", mg.test_effective_medium_integration),
-        ("MG: packing report metrics", mg.test_packing_report),
-        ("EBCM sphere → Mie (diag+decouple)", ebc.test_ebcm_sphere_matches_mie),
-        ("EBCM magnetic sphere → Mie", ebc.test_ebcm_magnetic_sphere_matches_mie),
-        ("EBCM sphere cross-sections vs Mie", ebc.test_ebcm_sphere_cross_sections_vs_mie),
-        ("EBCM drop-in cluster ≡ LayeredSphere", ebc.test_ebcm_drop_in_cluster),
-        ("EBCM spheroid energy + Rayleigh", ebc.test_ebcm_spheroid_energy_and_rayleigh),
-        ("EBCM cone energy conservation", ebc.test_ebcm_cone_energy),
-        ("EBCM finite cylinder energy (convergent)", ebc.test_ebcm_cylinder_energy),
-        ("EBCM layered coated sphere -> Mie", ebc.test_ebcm_layered_coated_sphere),
-        ("EBCM layered reduction (identical=homog)", ebc.test_ebcm_layered_reduction),
-        ("EBCM layered spheroid energy", ebc.test_ebcm_layered_spheroid_energy),
-        ("EBCM reciprocity (non-spheres)", ebc.test_ebcm_reciprocity),
-        ("EBCM layered cylinder guarded (honest warn)", ebc.test_ebcm_layered_cylinder_guarded),
-        ("composite: single-primitive reduction", cmp.test_single_primitive_reduction),
-        ("composite: energy conservation", cmp.test_composite_energy_conservation),
-        ("composite: decoupling limit", cmp.test_composite_decoupling),
-        ("rotation: Wigner-d closed form", rot.test_wigner_d_closed_form),
-        ("rotation: sphere/axisym invariance", rot.test_sphere_and_axisym_invariance),
-        ("rotation: cross-section covariance", rot.test_rotation_covariance),
-        ("rotation: oriented scatterer in GMM", rot.test_oriented_scatterer_energy),
     ]
     failures = 0
     for name, fn in suite:

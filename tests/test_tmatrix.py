@@ -6,7 +6,7 @@
 Спина архитектуры: примитив -> T-матрица в сферическом базисе ВСВФ -> сечения.
 Валидируется против НЕЗАВИСИМОГО аналитического арбитра Ми (Bohren & Huffman,
 tests/analytic_mie.py), а также проверяется согласованность T-матрицы, собранной
-из канонического ядра mie_core, с прямой сборкой из коэффициентов a_n, b_n.
+из канонического ядра сферы (01_sphere/sphere_core), с прямой сборкой из коэффициентов a_n, b_n.
 
 Запуск:
     python3 tests/test_tmatrix.py
@@ -25,7 +25,7 @@ sys.path.insert(0, _HERE)
 sys.path.insert(0, _ROOT)
 
 from analytic_mie import mie_ab, q_sca, q_ext, wiscombe_nmax  # noqa: E402
-from green_tensor import mie_core as mc  # noqa: E402
+from green_tensor import sphere_core as mc  # noqa: E402
 from green_tensor import tmatrix as tm  # noqa: E402
 
 # (eps слоя, толеранс) — диэлектрик, поглощающий, «металл» (PEC-прокси)
@@ -39,8 +39,8 @@ def _q_back_analytic(m, x, nmax):
 
 
 def test_sphere_tmatrix_cross_sections_vs_analytic():
-    """Сечения из T-матрицы (адаптер mie_core) == независимый Ми (B&H)."""
-    print("\n[1] T-матрица сферы (адаптер mie_core) vs аналитика B&H:")
+    """Сечения из T-матрицы (адаптер sphere_core) == независимый Ми (B&H)."""
+    print("\n[1] T-матрица сферы (адаптер sphere_core) vs аналитика B&H:")
     for eps, tol in _CASES:
         m = np.sqrt(eps)
         for x in _X:
@@ -72,8 +72,8 @@ def test_from_ab_optical_theorem():
 
 
 def test_adapter_matches_direct_construction():
-    """T(mie_core) и T(analytic a,b) дают совпадающие сечения (согласованность конвенций)."""
-    print("\n[3] согласованность mie_core-адаптера и прямой сборки:")
+    """T(sphere_core) и T(analytic a,b) дают совпадающие сечения (согласованность конвенций)."""
+    print("\n[3] согласованность sphere_core-адаптера и прямой сборки:")
     x, nmax = 3.0, 12
     for eps, _ in _CASES:
         T1 = tm.sphere_tmatrix(mc.MieSphere(k0=x, a=[1.0], eps=[eps], toch=nmax))

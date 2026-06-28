@@ -53,8 +53,8 @@ class MieSphere:
         self.orientation = kwargs.get("orientation", "vertical")
         self.phi = float(kwargs.get("phi", 0.0))
         self.problem = kwargs.get("problem", "diffraction")
-        if self.problem != "diffraction":
-            raise NotImplementedError("01_sphere.py facade currently exposes the diffraction formulation")
+        if self.problem not in ("diffraction", "antenna"):
+            raise ValueError("problem must be 'diffraction' or 'antenna'")
         self._coefficients = None
 
     def _calculator(self):
@@ -68,6 +68,7 @@ class MieSphere:
             eps=list(self.eps),
             miy=list(self.miy),
             k1=self.k0,
+            problem=self.problem,
         )
         calc.run_calculation()
         return calc

@@ -20,26 +20,25 @@ authors:
     given-names: Ilya O.
     affiliation: "Ural Federal University, Yekaterinburg, Russia"
     email: ilya.skumatenko@urfu.ru
-version: "0.4.0"
-date-released: "2026-06-27"
+version: "0.5.0"
+date-released: "2026-06-28"
 license: MIT
 repository-code: "https://github.com/Den1sovDm1triy/GreenTensor"
 url: "https://greentensor.readthedocs.io"
 abstract: >-
   GreenTensor is a Python library for analytic electromagnetic-scattering analysis
-  on heterogeneous structures. Its mathematical core is the exact radially-layered-
-  sphere solution by the tensor Green's function (TGF / Mie) method. Non-spherical
-  bodies (spheroid, finite cylinder, cone, including layered) are solved rigorously
-  by the full-wave EBCM/TGF method and composed into complex geometry by a
-  Generalized Multiparticle Mie (GMM) engine, with complementary closed-form
-  analytics for the triaxial ellipsoid and the infinite/layered/oblique cylinder.
+  on heterogeneous structures. Its scope is restricted to exact analytic tensor
+  Green's function (TGF) solutions: the radially-layered sphere (Mie / TGF), the
+  infinite layered/oblique circular cylinder (exact 2D analytics), and their rigorous
+  superposition into a cluster of non-overlapping spheres via the Generalized
+  Multiparticle Mie (GMM) method (Cruzan–Stein addition theorem). Approximate and
+  purely numerical methods are intentionally excluded.
 keywords:
   - electromagnetics
   - electromagnetic scattering
   - tensor Green's function
   - Mie theory
   - T-matrix
-  - EBCM
   - generalized multiparticle Mie
   - Luneburg lens
   - radar cross section

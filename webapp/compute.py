@@ -3,10 +3,10 @@
 
 """Расчётный мост веб-приложения GreenTensor.
 
-Принимает параметры слоёв (JSON), считает через верифицированное ядро
-green_tensor/mie_core.py (оригинальные формулы + фиксы сходимости) и возвращает
-все серии данных для диаграмм: линейная/круговая поляризация, обе задачи
-(дифракция/антенна), сечения, свип по k0, коэффициенты Mn/Nn.
+Принимает параметры слоёв (JSON), считает через каноническое ядро
+green_tensor/sphere_core.py (фасад точного 01_sphere.py) и возвращает серии данных
+для диаграмм: линейная/круговая поляризация, обе задачи (дифракция/антенна),
+сечения, свип по k0, коэффициенты Mn/Nn.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ import numpy as np
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ROOT)
 
-from green_tensor.mie_core import MieSphere  # noqa: E402
+from green_tensor.sphere_core import MieSphere  # noqa: E402
 
 DB_FLOOR = -60.0
 MAX_TOCH = 150

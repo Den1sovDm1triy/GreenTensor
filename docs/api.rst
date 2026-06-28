@@ -22,7 +22,7 @@ Public solvers
 Core — layered sphere (Mie / TFG)
 ---------------------------------
 
-.. automodule:: green_tensor.mie_core
+.. automodule:: green_tensor.sphere_core
 
 .. automodule:: green_tensor.tmatrix
 
@@ -33,21 +33,12 @@ Vector spherical wave functions & translation
 
 .. automodule:: green_tensor.vswf
 
-Rigorous full-wave EBCM/TGF (non-spherical primitives)
-------------------------------------------------------
-
-.. automodule:: green_tensor.ebcm
-
-Complex-geometry assembly (GMM)
--------------------------------
+Sphere-cluster assembly (GMM)
+-----------------------------
 
 .. automodule:: green_tensor.gmm
 
-.. automodule:: green_tensor.decompose
-
-Complementary closed-form analytics
------------------------------------
-
-.. automodule:: green_tensor.ellipsoid
+Infinite cylinder (exact 2D analytics / TGF)
+--------------------------------------------
 
 .. automodule:: green_tensor.cylinder
