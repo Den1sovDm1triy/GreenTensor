@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
 
 """Adapter for the canonical layered-sphere solver in ``01_sphere.py``.
 

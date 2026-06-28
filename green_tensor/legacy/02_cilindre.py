@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
 
 import numpy as np
 from scipy.linalg import solve

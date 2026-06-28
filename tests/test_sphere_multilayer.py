@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
 
 """Фаза 1 — проверки многослойной рекурсии 01_sphere.py против аналитики Ми.
 

@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
 
 """Независимый аналитический арбитр: рассеяние плоской волны на ОДНОРОДНОМ
 бесконечном круговом цилиндре (нормальное падение), Bohren & Huffman гл. 8.

@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Scientific scope: scientific research and engineering modeling in classical electrodynamics, antenna theory, microwave devices, and electromagnetic scattering.
 
 #DATA FROM HFSS // need upload Ephi=90_from_HFSS.csv ||| compare with GreenTensor
 ######################################################################
