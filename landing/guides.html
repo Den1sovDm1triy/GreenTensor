@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<script>(function(){try{var t=localStorage.getItem('gt-theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'light');}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem('gt-theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'dark');}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GreenTensor Guides — постановка задач и туториалы</title>
 <meta name="description" content="Документация GreenTensor: какие задачи решает библиотека, как задавать геометрию многослойной сферы и источник излучения, готовые туториалы по линзе Люнеберга, металлической сфере и биомедицинской модели.">
@@ -1259,7 +1259,7 @@ cd GreenTensor && pip install -e .
 /* === Solver preset deeplink: /solver.html#preset=XYZ === */
 /* (Обработка происходит в самом solver.html — там надо поддержать hash. Здесь просто оставляем ссылки.) */
 
-/* === Theme toggle (light default, shared via localStorage 'gt-theme') === */
+/* === Theme toggle (dark default, shared via localStorage 'gt-theme') === */
 (function(){
   var KEY='gt-theme';
   var btn=document.getElementById('theme-toggle');

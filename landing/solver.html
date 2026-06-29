@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<script>(function(){try{var t=localStorage.getItem('gt-theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'light');}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem('gt-theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'dark');}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GreenTensor Solver — веб-расчётчик</title>
 <meta name="description" content="Интерактивный веб-расчётчик GreenTensor: бистатическая ЭПР, диаграммы рассеяния и параметрический свип k₀a для многослойных сферических структур. Python + numpy + scipy в браузере.">
@@ -39,6 +39,24 @@
   --bar-bg: rgba(7,9,10,0.85);
   --grid-line: rgba(0,255,156,0.03);
   color-scheme: dark;
+
+  /* ---- Visualization canvas palette (ALWAYS dark, in BOTH themes) ----
+     The 3D viewport + Plotly panels keep a dark canvas so the neon sphere
+     and plot traces stay high-contrast; only the surrounding UI chrome
+     follows the light/dark theme. These vars are NOT overridden in light. */
+  --viz-bg-1: #0c1815;
+  --viz-bg-2: #07090a;
+  --viz-paper: #0a1411;
+  --viz-text: #d8efe5;
+  --viz-muted: #8aa49b;
+  --viz-grid: rgba(0,255,156,0.14);
+  --viz-border: rgba(0,255,156,0.16);
+  --viz-accent: #00ff9c;
+  --viz-accent-2: #21d68a;
+  --viz-warn: #ffb547;
+  --viz-danger: #ff6b6b;
+  --viz-panel: rgba(7,9,10,0.62);
+  --viz-panel-2: rgba(7,9,10,0.72);
 }
 
 /* =========================================================
@@ -51,7 +69,7 @@ html[data-theme="light"]{
   --surface-2: #e9efed;
   --border: #d9e2de;
   --text: #0e1f18;
-  --muted: #586b63;
+  --muted: #3f504a;
   --accent: #047857;
   --accent-2: #059669;
   --accent-dim: rgba(4,120,87,0.10);
@@ -64,10 +82,8 @@ html[data-theme="light"]{
   --grid-line: rgba(4,120,87,0.05);
   color-scheme: light;
 }
-/* light theme: light visualization canvas (3D viewport + Plotly panels) */
-html[data-theme="light"] .viewport-3d{background:radial-gradient(ellipse at center,#eef3f1 0%,#dbe6e1 72%)}
-html[data-theme="light"] .viewport-3d-overlay{background:rgba(255,255,255,0.72)}
-html[data-theme="light"] .viewport-3d-legend .item{background:rgba(255,255,255,0.8)}
+/* NB: the visualization canvas stays DARK in light theme too — see --viz-* in :root.
+   No light overrides for .viewport-3d / overlay / legend on purpose. */
 
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -360,7 +376,7 @@ html[data-theme="light"] .theme-toggle .icon-moon{display:block}
 }
 .viewport-3d{
   position:relative;
-  background:radial-gradient(ellipse at center, #0c1815 0%, #07090a 70%);
+  background:radial-gradient(ellipse at center, var(--viz-bg-1) 0%, var(--viz-bg-2) 70%);
   overflow:hidden;
 }
 #scene-canvas{display:block;width:100%;height:100%}
@@ -369,46 +385,47 @@ html[data-theme="light"] .theme-toggle .icon-moon{display:block}
   display:flex;flex-direction:column;gap:4px;
   pointer-events:none;
   font-family:'JetBrains Mono',monospace;font-size:11px;
-  color:var(--muted);
-  background:rgba(7,9,10,0.6);
+  color:var(--viz-muted);
+  background:var(--viz-panel);
   backdrop-filter:blur(8px);
-  border:1px solid var(--border);border-radius:6px;
+  border:1px solid var(--viz-border);border-radius:6px;
   padding:8px 12px;
 }
-.viewport-3d-overlay .lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em}
-.viewport-3d-overlay .val{color:var(--accent);font-weight:600}
+.viewport-3d-overlay .lbl{color:var(--viz-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em}
+.viewport-3d-overlay .val{color:var(--viz-accent);font-weight:600}
 .viewport-3d-legend{
   position:absolute;bottom:14px;left:14px;right:14px;
   display:flex;flex-wrap:wrap;gap:10px;
   pointer-events:none;
   font-family:'JetBrains Mono',monospace;font-size:11px;
-  color:var(--muted);
+  color:var(--viz-muted);
 }
 .viewport-3d-legend .item{
   display:flex;align-items:center;gap:6px;
-  background:rgba(7,9,10,0.7);
+  background:var(--viz-panel-2);
   backdrop-filter:blur(8px);
-  border:1px solid var(--border);border-radius:5px;
+  border:1px solid var(--viz-border);border-radius:5px;
   padding:4px 9px;
+  color:var(--viz-text);
 }
 .viewport-3d-legend .swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
 
 .viewport-plots{
   position:relative;
-  background:var(--bg);
+  background:var(--viz-border);
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:1px;
 }
 .viewport-plot{
-  background:var(--code-bg);
+  background:var(--viz-paper);
   position:relative;
   min-height:240px;
 }
 .viewport-plot-empty{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
-  color:var(--muted);font-size:12px;
+  color:var(--viz-muted);font-size:12px;
   font-family:'JetBrains Mono',monospace;
   text-align:center;padding:20px;
 }
@@ -420,9 +437,9 @@ html[data-theme="light"] .theme-toggle .icon-moon{display:block}
 .viewport-plot-tabs span{
   padding:4px 10px;
   font-family:'JetBrains Mono',monospace;font-size:10px;
-  color:var(--muted);
-  background:var(--bar-bg);
-  border:1px solid var(--border);border-radius:4px;
+  color:var(--viz-muted);
+  background:var(--viz-panel-2);
+  border:1px solid var(--viz-border);border-radius:4px;
   text-transform:uppercase;letter-spacing:0.05em;
 }
 
@@ -700,7 +717,7 @@ body.tab-sweep [data-tab-sweep]{display:block}
 <script src="app-rcs.js" defer></script>
 
 <script>
-/* Theme toggle (light default, shared via localStorage 'gt-theme') */
+/* Theme toggle (dark default, shared via localStorage 'gt-theme') */
 (function(){
   var KEY='gt-theme';
   var btn=document.getElementById('theme-toggle');

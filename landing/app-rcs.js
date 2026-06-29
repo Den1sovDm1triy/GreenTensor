@@ -413,16 +413,18 @@ import calc
       return v || fallback;
     } catch (e) { return fallback; }
   }
+  // Charts + 3D live on a canvas that stays DARK in both themes (see --viz-* in
+  // solver.html :root), so they read the fixed viz palette, not the UI theme vars.
   function themeColors() {
     return {
-      accent: cssVar('--accent', '#00ff9c'),
-      warn:   cssVar('--warn', '#ffb547'),
-      green2: cssVar('--accent-2', '#21d68a'),
-      danger: cssVar('--danger', '#ff6b6b'),
-      text:   cssVar('--text', '#d8efe5'),
-      muted:  cssVar('--muted', '#6f8a82'),
-      paper:  cssVar('--code-bg', '#0a1411'),
-      grid:   cssVar('--accent-dim', 'rgba(0,255,156,0.12)'),
+      accent: cssVar('--viz-accent', '#00ff9c'),
+      warn:   cssVar('--viz-warn', '#ffb547'),
+      green2: cssVar('--viz-accent-2', '#21d68a'),
+      danger: cssVar('--viz-danger', '#ff6b6b'),
+      text:   cssVar('--viz-text', '#d8efe5'),
+      muted:  cssVar('--viz-muted', '#8aa49b'),
+      paper:  cssVar('--viz-paper', '#0a1411'),
+      grid:   cssVar('--viz-grid', 'rgba(0,255,156,0.14)'),
     };
   }
   function polarLayout() {
