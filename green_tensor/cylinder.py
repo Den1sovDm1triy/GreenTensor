@@ -21,8 +21,23 @@ import numpy as np
 import scipy.special as sp
 
 
+# Предел аргумента цилиндрических функций: J_n(z) растёт как e^{|Im z|}, и при
+# |Im z| выше ~700 double переполняется (scipy молча возвращает inf/nan). Сильный
+# металл моделируется умеренным |eps| (см. PEC-предел в тестах), а не |eps|→1e40.
+_MAX_IM_ARG = 700.0
+
+
+def _check_arg_overflow(z: complex):
+    if abs(np.imag(z)) > _MAX_IM_ARG:
+        raise ValueError(
+            f"|Im(m·x)|={abs(np.imag(z)):.3g} > {_MAX_IM_ARG:g}: цилиндрические функции "
+            f"переполняют double. Уменьшите |eps| (PEC-предел достигается уже при "
+            f"умеренных значениях) или размер параметра.")
+
+
 def _coeffs(m: complex, x: float, nmax: int, mode: str):
     """Коэффициенты рассеяния бесконечного цилиндра a_n, n=0..nmax (TM или TE)."""
+    _check_arg_overflow(m * x)
     n = np.arange(0, nmax + 1)
     Jx, Jpx = sp.jv(n, x), sp.jvp(n, x)
     Jmx, Jpmx = sp.jv(n, m * x), sp.jvp(n, m * x)
@@ -79,6 +94,8 @@ def layered_coeff(eps, mu, a_norm, x: float, n: int, mode: str = "TM") -> comple
     if len(mu) != nL or len(a_norm) != nL:
         raise ValueError("eps, mu, a_norm must have equal length")
     mrel = [np.sqrt(eps[i] * mu[i]) for i in range(nL)]   # относит. показатель слоя
+    for mr in mrel:
+        _check_arg_overflow(mr * x)
     # множитель в условии непрерывности тангенциального H (TM) или E (TE):
     fac = [(mrel[i] / mu[i] if mode == "TM" else mrel[i] / eps[i]) for i in range(nL)]
 
@@ -140,6 +157,16 @@ def layered_coeff_oblique(eps, mu, a_norm, x: float, theta: float, n: int):
     nL = len(eps)
     cos_t = float(np.cos(theta))
     g = [np.sqrt(eps[i] * mu[i] - cos_t ** 2) for i in range(nL)]   # радиальное число / k0
+    for i, gi in enumerate(g):
+        # критический угол слоя: g_i -> 0 вырождает матрицу полей (члены ~ 1/g_i^2),
+        # результат в этой точке нефизичен — отказываемся и просим сдвинуть угол
+        scale = max(1.0, abs(np.sqrt(eps[i] * mu[i])))
+        if abs(gi) < 1e-6 * scale:
+            raise ValueError(
+                f"Косое падение: слой {i} в критическом угле (радиальное число "
+                f"g={abs(gi):.2e}·k0 ≈ 0, eps·mu={eps[i] * mu[i]:.6g}, "
+                f"cos²θ={cos_t**2:.6g}). Сдвиньте угол падения.")
+        _check_arg_overflow(gi * x)
 
     # пропагируем базис амплитуд ядра [a1, c1] через внутренние границы
     Vmat = np.array([[1.0, 0.0], [0.0, 0.0], [0.0, 1.0], [0.0, 0.0]], dtype=complex)

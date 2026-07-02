@@ -174,6 +174,7 @@ def _zfuncs(n: int, rho: float, kind: str):
 def vsw_M(n: int, m: int, k: float, xyz, kind: str = "reg"):
     """Векторная сферическая волновая функция M_{nm} (декартов вектор) в точке xyz."""
     r, theta, phi = (float(v) for v in _to_spherical(xyz))
+    theta = min(max(theta, _POLE_EPS), math.pi - _POLE_EPS)   # конечный предел на оси z
     rho = k * r
     z, _ = _zfuncs(n, rho, kind)
     Y = complex(ynm(n, m, theta, phi))
@@ -187,6 +188,7 @@ def vsw_M(n: int, m: int, k: float, xyz, kind: str = "reg"):
 def vsw_N(n: int, m: int, k: float, xyz, kind: str = "reg"):
     """Векторная сферическая волновая функция N_{nm} (декартов вектор) в точке xyz."""
     r, theta, phi = (float(v) for v in _to_spherical(xyz))
+    theta = min(max(theta, _POLE_EPS), math.pi - _POLE_EPS)   # конечный предел на оси z
     rho = k * r
     z, up = _zfuncs(n, rho, kind)
     Y = complex(ynm(n, m, theta, phi))
@@ -226,10 +228,12 @@ def _sph2cart_arr(Ar, At, Ap, theta, phi):
 
 # Защита от полюса θ=0,π: на оси z sin θ=0 даёт 0/0 в M_θ,N_φ (∝ m/sinθ) и в ∂_θY.
 # Угловые функции имеют КОНЕЧНЫЙ предел на полюсе (вклад только |m|=1); смещаем θ на
-# малую величину, чтобы взять этот предел численно. Порог 1e-7 выбран так, что
-# cos(1e-7)≠1.0 в float64 (иначе lpmv(1,n,1)=0 и предел потерян), а ошибка поля ~1e-7.
+# малую величину, чтобы взять этот предел численно. Порог — компромисс двух ошибок:
+# слишком малый ε упирается в катастрофическое сокращение lpmv возле cosθ=1 (при
+# ε=1e-7 относительная ошибка поля на оси ~4e-4), слишком большой — в ошибку смещения
+# самого предела. Оптимум по численному скану ε≈1e-5: ошибка поля на оси ~4e-8.
 # Узлы Гаусса-Лежандра в квадратурах никогда не попадают в полюс ⇒ регрессии нет.
-_POLE_EPS = 1e-7
+_POLE_EPS = 1e-5
 
 
 def mn_grid(n: int, m: int, k: float, pts, kind: str = "reg"):
@@ -288,11 +292,16 @@ def mode_list(nmax: int):
 
 
 def translation_block(d, k: float, nmax: int, source_kind: str = "out"):
-    """Полные матрицы векторной трансляции A, B (K×K) и список мод.
+    """Матрицы векторной трансляции A, B (K×K) СПЕКТРАЛЬНОЙ ПРОЕКЦИЕЙ (справочная).
 
-    source_kind='reg' — Rg→Rg (j_n в ядре); 'out' — out→Rg (h_n^{(1)}, для GMM:
-    рассеянное поле одного тела как падающее для другого). Связь:
+    source_kind='reg' — Rg→Rg (j_n в ядре); 'out' — out→Rg (h_n^{(1)}). Связь:
         a^M_p = Σ_q (A·c^M_q + B·c^N_q),   a^N_p = Σ_q (B·c^M_q + A·c^N_q).
+
+    Режим 'out' пригоден только для перекрёстной сверки НИЗКИХ мод: проекция
+    исходящих функций на сфере радиуса R<|d| теряет точность для высоких (n,ν)
+    (быстрый рост h_n внутрь), и ошибка не контролируется параметрами квадратуры.
+    Рабочий путь пакета — аналитическая :func:`translation_block_closed`; именно
+    она используется в GMM (gmm.solve_cluster).
     """
     d = np.asarray(d, dtype=float)
     dnorm = float(np.linalg.norm(d))

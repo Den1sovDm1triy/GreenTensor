@@ -57,7 +57,17 @@ class LayeredSphere:
         mie = sphere_core.MieSphere(k0=x, a=self.a_norm, eps=self.eps,
                                     miy=self.miy, toch=toch)
         Mn, Nn = mie.coefficients()
+        # Ядро сферы хранит СОПРЯЖЁННЫЕ коэффициенты Ми: Mn = a_n*, Nn = b_n*
+        # (знак мнимой части инвертируется на последнем шаге расчёта, см. 01_sphere.py,
+        # calculate_scattering_coefficients). T-матрица в конвенции пакета e^{-iωt}
+        # строится из истинных a_n, b_n: t_M = −b_n = −Nn*, t_N = −a_n = −Mn*.
+        # Без сопряжения фазы рассеянного поля неверны: нарушается граничное условие
+        # на поверхности (тест PEC-сферы) и связь тел в кластере GMM; сечения
+        # одиночной сферы к сопряжению нечувствительны, поэтому ловится только
+        # полевыми и кластерными проверками.
+        a_n = np.conj(Mn)
+        b_n = np.conj(Nn)
         modes = vswf.mode_list(nmax)
-        tM = np.array([-Nn[n - 1] for (n, m) in modes], dtype=complex)  # −b_n
-        tN = np.array([-Mn[n - 1] for (n, m) in modes], dtype=complex)  # −a_n
+        tM = np.array([-b_n[n - 1] for (n, m) in modes], dtype=complex)
+        tN = np.array([-a_n[n - 1] for (n, m) in modes], dtype=complex)
         return np.concatenate([tM, tN])

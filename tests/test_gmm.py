@@ -62,9 +62,10 @@ def test_solver_residual():
     s1 = LayeredSphere([0, 0, +1.0], RAD, EPS)
     s2 = LayeredSphere([0, 0, -1.0], RAD, EPS)
     a, c, d = gmm.solve_cluster([s1, s2], K_BG, KHAT, POL, NMAX)
-    # проверяем a_p = d_p + Σ_{q≠p} G T a_q напрямую
+    # проверяем a_p = d_p + Σ_{q≠p} G T a_q напрямую; вектор трансляции направлен
+    # от нового центра (p=0) к старому (q=1): pos_q − pos_p
     A, B, _ = vswf.translation_block_closed(
-        s1.position - s2.position, K_BG, NMAX, "out")
+        s2.position - s1.position, K_BG, NMAX, "out")
     G = np.block([[A, B], [B, A]])
     t2 = s2.t_vector(K_BG, NMAX)
     rhs0 = d[0] + (G * t2[None, :]) @ a[1]
@@ -139,7 +140,7 @@ def test_fullT_matches_diagonal():
         for q in range(2):
             if p == q:
                 continue
-            A, B, _ = vswf.translation_block_closed(pos[p] - pos[q], K_BG, NMAX, "out")
+            A, B, _ = vswf.translation_block_closed(pos[q] - pos[p], K_BG, NMAX, "out")
             G = np.block([[A, B], [B, A]])
             M[p * blk:(p + 1) * blk, q * blk:(q + 1) * blk] = -G * tv[q][None, :]
     aref = np.linalg.solve(M, dref).reshape(2, blk)
@@ -157,6 +158,9 @@ class _DiagTSphere:
     def __init__(self, sphere):
         self._s = sphere
         self.position = sphere.position
+
+    def bounding_radius(self):
+        return self._s.bounding_radius()
 
     def t_matrix(self, k, nmax):
         return np.diag(self._s.t_vector(k, nmax))
@@ -197,10 +201,67 @@ def test_axial_incidence_finite():
     assert rel < 2e-3, f"сечения сферы должны быть изотропны: {rel:.1e}"
 
 
+def test_pec_boundary_condition():
+    """Тангенциальное полное поле на поверхности PEC-сферы ≈ 0 в полной цепочке
+    пакета (plane_wave_coeffs -> t_vector -> scattered_field). Проверка чувствительна
+    к фазовой конвенции коэффициентов рассеяния (сопряжению), к которой интегральные
+    сечения одиночного тела слепы."""
+    print("\n[11] PEC-сфера: n×(E_inc+E_sca)=0 на поверхности:")
+    rng = np.random.default_rng(3)
+    R, nmax = 0.7, 10
+    s = LayeredSphere([0, 0, 0], R, [1.0e7])
+    khat = np.array([0.0, 0.0, 1.0])
+    pol = np.array([1.0, 0.0, 0.0])
+    d = gmm.plane_wave_coeffs(K_BG, khat, pol, [0, 0, 0], nmax)
+    c = s.t_vector(K_BG, nmax) * d
+    th = rng.uniform(0.3, np.pi - 0.3, 20)
+    ph = rng.uniform(0, 2 * np.pi, 20)
+    pts = R * np.stack([np.sin(th) * np.cos(ph), np.sin(th) * np.sin(ph), np.cos(th)], axis=1)
+    nhat = pts / R
+    E_inc = pol[None, :] * np.exp(1j * K_BG * pts @ khat)[:, None]
+    E_tot = E_inc + gmm.scattered_field([s], [c], K_BG, pts)
+    tang = E_tot - np.sum(E_tot * nhat, axis=1)[:, None] * nhat
+    tang_inc = E_inc - np.sum(E_inc * nhat, axis=1)[:, None] * nhat
+    ratio = np.max(np.abs(tang)) / np.max(np.abs(tang_inc))
+    print(f"    |E_tan(total)|/|E_tan(inc)| = {ratio:.2e}")
+    assert ratio < 5e-3, f"граничное условие на PEC нарушено: {ratio:.1e}"
+
+
+def test_asymmetric_cluster_energy():
+    """Кластер РАЗНЫХ сфер вплотную: энергобаланс. Несимметричная конфигурация
+    чувствительна к направлению вектора трансляции в solve_cluster, к которому
+    зеркально-симметричные кластеры одинаковых сфер слепы."""
+    print("\n[12] несимметричный кластер (R=0.3 и R=0.6, зазор 0.1): энергобаланс:")
+    s1 = LayeredSphere([0, 0, +0.55], 0.3, [2.25])
+    s2 = LayeredSphere([0, 0, -0.45], 0.6, [2.25])
+    _, c, _ = gmm.solve_cluster([s1, s2], K_BG, KHAT, POL, 8)
+    cs = gmm.cross_sections([s1, s2], c, K_BG, KHAT, POL)
+    bal = abs(cs["c_abs"]) / cs["c_sca"]
+    print(f"    C_sca={cs['c_sca']:.4f} |C_abs|/C_sca={bal:.1e}")
+    assert bal < 2e-3, f"энергобаланс несимметричного кластера нарушен: {bal:.1e}"
+
+
+def test_overlap_guard():
+    """Пересечение описывающих сфер тел — теорема сложения неприменима, метод обязан
+    отказаться считать (ValueError), а не молча вернуть неверный результат."""
+    print("\n[13] guard пересечения описывающих сфер:")
+    s1 = LayeredSphere([0, 0, +0.3], 0.5, [2.25])
+    s2 = LayeredSphere([0, 0, -0.3], 0.5, [2.25])   # разнос 0.6 < R1+R2=1.0
+    raised = False
+    try:
+        gmm.solve_cluster([s1, s2], K_BG, KHAT, POL, 4)
+    except ValueError:
+        raised = True
+    print(f"    ValueError поднят: {raised}")
+    assert raised, "перекрытие описывающих сфер должно давать ValueError"
+
+
 _TESTS = [test_decoupling_limit, test_coupling_is_active, test_solver_residual,
           test_single_sphere_cross_sections, test_energy_conservation_lossless_cluster,
           test_dense_packing_energy, test_fullT_matches_diagonal,
-          test_t_matrix_path_matches_t_vector, test_axial_incidence_finite]
+          test_t_matrix_path_matches_t_vector, test_axial_incidence_finite,
+          test_pec_boundary_condition, test_asymmetric_cluster_energy,
+          test_overlap_guard]
 
 if __name__ == "__main__":
     ok = True

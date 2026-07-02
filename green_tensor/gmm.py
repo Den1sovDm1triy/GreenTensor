@@ -4,7 +4,7 @@
 
 Потребляет T-матрицы примитивов (любых геометрий, см. scatterer.py) в общем
 сферическом базисе ВСВФ и решает самосогласованную систему с трансляционными
-теоремами сложения (vswf.translation_block):
+теоремами сложения (замкнутые коэффициенты vswf.translation_block_closed):
 
     a_p = d_p + Σ_{q≠p} G^{out}_{pq} · T_q a_q ,   c_p = T_p a_p ,
 
@@ -49,19 +49,34 @@ def plane_wave_coeffs(k: float, khat, pol, center, nmax: int) -> np.ndarray:
     return np.concatenate([dM, dN])
 
 
-def _check_applicability(positions, k: float, nmax: int) -> float:
-    """Предупредить о возможной потере точности на ОЧЕНЬ плотной упаковке.
+def _check_applicability(scatterers, positions, k: float, nmax: int) -> float:
+    """Проверить применимость теоремы сложения и предупредить о плотной упаковке.
 
-    Используются замкнутые коэффициенты Cruzan (translation_block_closed), которые
-    работают при любом разносе (включая k·разнос < nmax). Но при экстремально плотной
-    упаковке (касающиеся примитивы) усечение ряда по nmax может быть недостаточным —
-    тогда стоит увеличить nmax. Возвращает минимальный разнос.
+    Разложение исходящего поля тела q в регулярное вокруг тела p сходится строго
+    внутри сферы с центром p, не содержащей особенностей поля q, — то есть
+    ОПИСЫВАЮЩИЕ СФЕРЫ ТЕЛ НЕ ДОЛЖНЫ ПЕРЕСЕКАТЬСЯ. При перекрытии метод даёт
+    неконтролируемо неверный результат, поэтому поднимается ValueError.
+
+    Дополнительно: замкнутые коэффициенты Cruzan работают при любом допустимом
+    разносе, но при экстремально плотной упаковке (почти касающиеся тела) усечение
+    ряда по nmax может быть недостаточным — выдаётся предупреждение. Возвращает
+    минимальный разнос центров.
     """
     P = len(positions)
     sep = np.inf
     for i in range(P):
         for j in range(i + 1, P):
-            sep = min(sep, float(np.linalg.norm(positions[i] - positions[j])))
+            dij = float(np.linalg.norm(positions[i] - positions[j]))
+            sep = min(sep, dij)
+            bri = getattr(scatterers[i], "bounding_radius", None)
+            brj = getattr(scatterers[j], "bounding_radius", None)
+            if callable(bri) and callable(brj):
+                ri, rj = float(bri()), float(brj())
+                if dij < ri + rj - 1e-12:
+                    raise ValueError(
+                        f"GMM: описывающие сферы тел {i} и {j} пересекаются "
+                        f"(разнос {dij:.4g} < {ri:.4g} + {rj:.4g}). Теорема сложения "
+                        f"неприменима — разнесите тела.")
     if P > 1 and k * sep < 0.5 * nmax:
         warnings.warn(
             f"GMM: очень плотная упаковка (k·min_sep={k*sep:.2f}); для точности "
@@ -104,14 +119,17 @@ def solve_cluster(scatterers, k: float, khat, pol, nmax: int):
     Ts = [_full_t(s, k, nmax) for s in scatterers]
     pos = [np.asarray(s.position, dtype=float) for s in scatterers]
 
-    _check_applicability(pos, k, nmax)
+    _check_applicability(scatterers, pos, k, nmax)
     d = np.concatenate([plane_wave_coeffs(k, khat, pol, pos[p], nmax) for p in range(P)])
     Mfull = np.eye(P * blk, dtype=complex)
     for p in range(P):
         for q in range(P):
             if p == q:
                 continue
-            A, B, _ = vswf.translation_block_closed(pos[p] - pos[q], k, nmax, "out")
+            # Перенос исходящего поля тела q в регулярное разложение вокруг тела p:
+            # вектор трансляции направлен от НОВОГО центра (p) к СТАРОМУ (q),
+            # d = pos_q − pos_p (проверяется тождеством поля в tests/test_gmm.py).
+            A, B, _ = vswf.translation_block_closed(pos[q] - pos[p], k, nmax, "out")
             G = np.block([[A, B], [B, A]])          # 2K×2K: (c^M_q,c^N_q) -> a_p
             Mfull[p * blk:(p + 1) * blk, q * blk:(q + 1) * blk] = -G @ Ts[q]
     a = np.linalg.solve(Mfull, d).reshape(P, blk)
@@ -144,10 +162,19 @@ def scattered_field(scatterers, c, k: float, pts) -> np.ndarray:
 
 
 def scattering_cross_section(scatterers, c, k: float, pol, kR_far: float = 300.0) -> float:
-    """C_sca кластера интегралом дальнего поля: ∮|E_sca|²R² dΩ / |E_inc|²."""
+    """C_sca кластера интегралом дальнего поля: ∮|E_sca|²R² dΩ / |E_inc|².
+
+    Плотность угловой квадратуры учитывает протяжённость кластера: перенос
+    исходящих полей смещённых тел к общему началу расширяет угловую полосу
+    дальнего поля до ~nmax + k·max|r_p| (фазовый множитель e^{-i k k̂·r_p}
+    осциллирует по углу). Сетка только по nmax молча теряла точность для
+    разнесённых тел.
+    """
     nmax = _nmax_from_modes(len(c[0]) // 2)
+    kr_off = max((k * float(np.linalg.norm(s.position)) for s in scatterers), default=0.0)
+    L = nmax + int(np.ceil(kr_off))
     R = kR_far / k
-    pts, W = vswf._sphere_quad_cart(R, 2 * nmax + 12, 2 * nmax + 12)
+    pts, W = vswf._sphere_quad_cart(R, 2 * L + 12, 2 * L + 12)
     E = scattered_field(scatterers, c, k, pts)
     flux = np.sum(W * np.sum(np.abs(E) ** 2, axis=1)) * R**2
     return float(flux / np.sum(np.abs(np.asarray(pol)) ** 2))
@@ -165,10 +192,10 @@ def extinction_cross_section(scatterers, c, k: float, khat, pol,
                              kR=(4000.0, 8000.0)) -> float:
     """C_ext кластера (оптическая теорема) с экстраполяцией ближнего поля по 1/(kR).
 
-    Используется ФИЗИЧЕСКАЯ амплитуда рассеяния S (E_sca→S·e^{ikr}/r): C_ext=(4π/k)·Im[ê*·S]
-    (theory eq:optical-theorem). Это эквивалентно гармонической форме (4π/k²)·Re[ê*·F] из
-    eq:tm-Cext, где F=k·S — амплитуда в гармоническом базисе; _forward_amplitude возвращает
-    именно S=lim R·e^{−ikR}·E_sca. Проверено энергобалансом (lossless ⇒ C_abs≈0).
+    Используется физическая амплитуда рассеяния S (E_sca -> S·e^{ikr}/r):
+    C_ext = (4π/k)·Im[ê*·S(вперёд)] (теория, eq:tm-Cext); _forward_amplitude
+    возвращает именно S = lim R·e^{-ikR}·E_sca. Проверено энергобалансом
+    (для непоглощающего кластера C_ext совпадает с интегралом дальнего поля).
     """
     x1, x2 = 1.0 / kR[0], 1.0 / kR[1]
     F1 = _forward_amplitude(scatterers, c, k, khat, kR[0])
