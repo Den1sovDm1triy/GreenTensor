@@ -269,7 +269,7 @@ if __name__ == "__main__":
         try:
             fn()
         except AssertionError as exc:
-            print(f"  ❌ {fn.__name__}: {exc}")
+            print(f"  FAIL {fn.__name__}: {exc}")
             ok = False
-    print("\n✅ gmm проверки пройдены." if ok else "\n❌ Есть провалы.")
+    print("\nOK: gmm проверки пройдены." if ok else "\nFAIL: Есть провалы.")
     sys.exit(0 if ok else 1)

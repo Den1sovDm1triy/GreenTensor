@@ -26,13 +26,13 @@ sys.path.insert(0, _ROOT)
 from green_tensor import vswf  # noqa: E402
 
 
-def _sphere_quad(nθ=24, nφ=48):
+def _sphere_quad(ntheta=24, nphi=48):
     """Узлы/веса квадратуры по сфере (Гаусс–Лежандр по cosθ, равномерно по φ)."""
-    x, wx = np.polynomial.legendre.leggauss(nθ)      # x=cosθ
+    x, wx = np.polynomial.legendre.leggauss(ntheta)      # x=cosθ
     theta = np.arccos(x)
-    phi = 2 * math.pi * np.arange(nφ) / nφ
+    phi = 2 * math.pi * np.arange(nphi) / nphi
     TH, PH = np.meshgrid(theta, phi, indexing="ij")
-    W = np.outer(wx, np.full(nφ, 2 * math.pi / nφ))  # dΩ = dcosθ dφ
+    W = np.outer(wx, np.full(nphi, 2 * math.pi / nphi))  # dΩ = dcosθ dφ
     return TH, PH, W
 
 
@@ -214,7 +214,7 @@ if __name__ == "__main__":
         try:
             fn()
         except AssertionError as exc:
-            print(f"  ❌ {fn.__name__}: {exc}")
+            print(f"  FAIL {fn.__name__}: {exc}")
             ok = False
-    print("\n✅ vswf проверки пройдены." if ok else "\n❌ Есть провалы.")
+    print("\nOK: vswf проверки пройдены." if ok else "\nFAIL: Есть провалы.")
     sys.exit(0 if ok else 1)

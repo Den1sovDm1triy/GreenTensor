@@ -43,9 +43,6 @@ keywords:
   - Luneburg lens
   - radar cross section
 references:
-  # NOTE for maintainers: add the exact DOI, conference/venue and pages for each
-  # paper, and verify the per-paper author list. Year (2024) is from the IEEE
-  # catalog; the URL is the IEEE Xplore document.
   - type: conference-paper
     title: "GreenTensor: Efficient Electromagnetic Scattering Analysis on Heterogeneous Spherical Structures"
     year: 2024

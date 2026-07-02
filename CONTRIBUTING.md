@@ -37,24 +37,23 @@ Green's function / Mie recursion). Its mathematical lines are frozen: the
 verified correctness fixes (external-medium closure, impedance recursion range,
 complex refractive index, metal-phase handling, scaled Bessel functions) are part
 of the canon. **Do not refactor, "simplify", or migrate that math.** The
-importable mirror is `green_tensor/mie_core.py`; keep the two consistent.
+importable facade is `green_tensor/sphere_core.py`; keep the two consistent.
 
 If you believe the core math needs to change, open an issue first and get
 explicit sign-off before touching those lines.
 
 ## No fake or unverified code
 
-Branches that would require special-function machinery not available in SciPy
-(full-wave confocal spheroid, finite cylinder, sphero-conal cone) raise a
-documented `NotImplementedError` pointing at the relevant theory section. Do not
-replace them with placeholder/approximate code presented as exact. Complex
-geometry is handled rigorously via `decompose` → `Cluster` (GMM) over the
-analytic sphere family.
+Geometries without an exact closed-form solution in this basis (e.g. the finite
+cylinder) raise a documented `NotImplementedError`. Do not replace them with
+placeholder/approximate code presented as exact: the library ships exact
+analytics only (layered sphere, infinite cylinder, and clusters of
+non-overlapping spheres via GMM).
 
 ## Adding a new solver
 
 1. Implement the geometry's analytics in its own module (mirror the style of
-   `ellipsoid.py` / `cylinder.py`), keeping functions small and pure.
+   `cylinder.py`), keeping functions small and pure.
 2. To make it composable in clusters, emit a T-matrix in the spherical VSWF basis
    and/or expose a `Scatterer`-protocol object (see `scatterer.py`).
 3. Add a uniform wrapper to `green_tensor/solvers.py` (an OO `*Solver` class plus,

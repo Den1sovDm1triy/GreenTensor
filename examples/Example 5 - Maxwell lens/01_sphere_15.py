@@ -14,7 +14,8 @@ import time
 
 DN_Ansys_FEM_Ephi_0 = [-23.990185338254, -24.0135923600654, -24.1097027639874, -24.257619493249, -24.4291406463063, -24.5967269728459, -24.7439243824073, -24.8741533685856, -25.0131052270013, -25.2038131152549, -25.4983783539484, -25.9513428151712, -26.6168744888576, -27.5484688568982, -28.7961340491898, -30.3858955731699, -32.2316292612247, -33.8760293753118, -34.3490550672958, -33.3576855426192, -31.8344704314439, -30.4942185872922, -29.5550604985933, -29.053109285659, -28.9908733493641, -29.379185096221, -30.243439949591, -31.5981136936146, -33.310854222579, -34.6546807655953, -34.2633160164529, -32.3398104761707, -30.247598677324, -28.5664153629155, -27.3842561991549, -26.683679921049, -26.4491615540821, -26.6929957828345, -27.4705752775184, -28.9112394698999, -31.3058356669695, -35.4292387041212, -44.5613708860959, -43.0407402681627, -34.8322320159633, -30.9477423209318, -28.6717257390174, -27.3210697967237, -26.6382163953661, -26.5172173083207, -26.9303318741155, -27.9092172175643, -29.550077093066, -32.0201649079446, -35.3533996617561, -37.5508705535069, -35.2355986125763, -32.0576022853971, -29.7490993468099, -28.229758102401, -27.3186929090256, -26.8956375433646, -26.8814812087636, -27.2109890003418, -27.8022814251344, -28.5159548197616, -29.1194372663322, -29.3372158851287, -29.046492964254, -28.3937011786946, -27.6345651651292, -26.953342858472, -26.4302099149692, -26.0730384013674, -25.8452233446344, -25.6821781689163, -25.5077208248937, -25.2586551229644, -24.91141473473, -24.4919310799077, -24.0600161442685, -23.6826066652708, -23.4141851875989, -23.2886699928631, -23.3169265150741, -23.483339884811, -23.7383895683674, -23.9907646744162, -24.1147036025925, -23.9949491884892, -23.597028214994, -22.9930758711761, -22.31085979185, -21.6679719188039, -21.143930155267, -20.7829323896842, -20.6047956334724, -20.6131099755458, -20.7983032917987, -21.1359188608689, -21.5810826829939, -22.0622220140756, -22.4825607776379, -22.7426926046244, -22.7851024626754, -22.6279451183183, -22.3516521750195, -22.0533142320625, -21.8112042612727, -21.6741353694052, -21.6651398335667, -21.7881361769809, -22.0330563295135, -22.3792301214488, -22.7984722815495, -23.2596276978219, -23.7355271852595, -24.2112133835338, -24.6899918409804, -25.193861823911, -25.7580655456269, -26.4228817608734, -27.2260661125423, -28.1968679194956, -29.3495684598977, -30.6715681983283, -32.0970791154573, -33.455839238663, -34.4188846729934, -34.5867784561243, -33.8288516107737, -32.4215532137592, -30.7404644443394, -29.0378554635525, -27.4466758611745, -26.0324626460877, -24.8259728970625, -23.8390428402163, -23.0718070289627, -22.5151983406991, -22.1502299873843, -21.9448288367657, -21.8496696336554, -21.7969658060001, -21.7095588030505, -21.5257467214371, -21.2304148476408, -20.8675712384846, -20.5227127518728, -20.2938251133088, -20.2744661285, -20.5548730994885, -21.2374674625025, -22.4690625737095, -24.5152376053668, -27.9991789734617, -35.2467369131077, -42.1398080812442, -29.942191998991, -25.2933307090527, -22.7271659726898, -21.3306773470247, -20.853059485628, -21.3075584900352, -22.9463824965053, -26.2371444803495, -27.9476722549083, -22.1102652599143, -16.9405797206346, -13.1614692582796, -10.2551807120067, -7.93546344138625, -6.04642050904107, -4.49600829868165, -3.22604331749419, -2.19790071466837, -1.38513754761066, -0.769426582103044, -0.338204180026377, -0.08327569356358, -0.0868600049644348, -0.345326589557174, -0.779988014966816, -1.39897108079458, -2.21474425931448, -3.24549210463763, -4.51743193126563, -6.06881412944438, -7.95716914219601, -10.2733392426086, -13.1709047068484, -16.9318705779056, -22.0756642274177, -28.0787848440817, -26.6248519227815, -23.2711856543618, -21.6053526684193, -21.1526544581756, -21.6534829472752, -23.0993272643919, -25.7658761057742, -30.679771433204, -45.0806098540013, -34.4941836505203, -27.7592909937593, -24.4278449157321, -22.4583800002688, -21.2757533322534, -20.6293509950343, -20.3785166322184, -20.4235879812102, -20.6750757261901, -21.0383157885018, -21.4124580173747, -21.7085342446879, -21.880836501627, -21.9460970848755, -21.9697708652168, -22.0324834193885, -22.2039410609849, -22.5339531143875, -23.0541829716955, -23.782713489844, -24.7273863473767, -25.8865614373729, -27.2466699197544, -28.7753056107566, -30.4065396587983, -32.0118281454678, -33.3556978632508, -34.0945906531001, -33.9687169391645, -33.0783907456512, -31.7867031521275, -30.413127474398, -29.1323175916629, -28.0156140594431, -27.0791405762893, -26.3100440465458, -25.6786461882345, -25.1450963306376, -24.6658319692499, -24.2022403281819, -23.7304045788961, -23.2476354184044, -22.7718097511525, -22.3339817270692, -21.9687583150929, -21.7066538683259, -21.5695823019003, -21.5681863396114, -21.6989602496768, -21.939579143795, -22.242491262565, -22.5309371980233, -22.7082518081583, -22.6914843866101, -22.4570796852574, -22.0573597592036, -21.5894771560877, -21.1506257922315, -20.8138114339364, -20.6252637681911, -20.6104385467241, -20.779694876194, -21.1303452941205, -21.6440623191779, -22.2793209011776, -22.9608252204713, -23.5756723747076, -23.9973527780341, -24.147555439695, -24.050085528991, -23.8131113839328, -23.5618082638653, -23.390513160124, -23.3524626938754, -23.4667059070456, -23.7256470385474, -24.0987093723195, -24.5345114379246, -24.9676753985171, -25.3365574558116, -25.6096011620859, -25.8035859159798, -25.9774000098189, -26.2066108459247, -26.5574929916698, -27.0686834316938, -27.7332146906758, -28.4695588179737, -29.0896038110368, -29.3349590102212, -29.064434348225, -28.410527705866, -27.652460964177, -27.0204304450518, -26.6499801639437, -26.619289132967, -26.9895872411759, -27.8345360183478, -29.2663168737355, -31.45881597195, -34.5517841000342, -37.3230575372772, -35.7338845142099, -32.3352317641627, -29.733033088893, -27.9933653622772, -26.941569891376, -26.4715301288025, -26.5452317091529, -27.1860871933674, -28.4959948665986, -30.7257217096227, -34.5356400853707, -42.4355726482404, -44.3334641771887, -35.2766084866084, -31.1260290415924, -28.7155436891011, -27.2680984361912, -26.4921799236979, -26.2595961466797, -26.5180367531602, -27.2613544429054, -28.5170103802687, -30.3249159772457, -32.6258650543074, -34.7684441139172, -35.0354804016477, -33.3541368609218, -31.4509938357518, -30.0242794033804, -29.1419472622821, -28.760212617375, -28.8415424641008, -29.3700820728178, -30.3425748453381, -31.7285770035141, -33.3301384778654, -34.4603920330316, -34.1356435257382, -32.5656644940854, -30.7500307327966, -29.1816472611157, -27.9552564495533, -27.0437768653467, -26.3936682408238, -25.9470714774113, -25.645256013503, -25.4299776666035, -25.2480216265103, -25.0594235848957, -24.8456419170974, -24.6119582844169, -24.3815931930591, -24.1848242486951, -24.0486580934673, -23.990185338254]
 class RCSCalculator:
-    def __init__(self, k0=5, toch=20, n=7, phi=0, a=None, eps=None, miy=None, k1=None):
+    def __init__(self, k0=31.4, toch=60, n=7, phi=1, a=None, eps=None, miy=None, k1=None,
+                 problem="diffraction"):
         """
         Инициализация калькулятора RCS
         max k0=100000, toch=93
@@ -24,14 +25,17 @@ class RCSCalculator:
         n - число слоев (последний слой - воздух)
         phi - азимутальный угол (по умолчанию pi)
         a, eps, miy - параметры слоев (радиусы, диэлектрические проницаемости, магнитные проницаемости)
+        problem - тип задачи: "diffraction" (рассеяние плоской волны, элемент Гюйгенса)
+                  или "antenna" (источник/рупор на поверхности сферы)
         """
-        if k1 == None: self.k1=k0 
-        else: self.k1 = k1 
+        if k1 == None: self.k1=k0
+        else: self.k1 = k1
         self.k0 = k0
         self.toch = toch
         self.n = n
         self.phi = phi
-        
+        self.problem = problem
+
         # Параметры материалов по умолчанию (3 слоя)
         self.a = a if a is not None else [0.15, 0.30, 0.45, 0.63, 0.82, 1, 1]
         self.eps = eps if eps is not None else [3.90, 3.52, 2.98, 2.48, 1.76, 1.50, 1]
@@ -95,12 +99,20 @@ class RCSCalculator:
     def calculate_medium_parameters(self):
         """Расчет параметров среды"""
         for i in range(self.n):
-            self.alfa[i] = cmath.atan(self.eps[i].imag / self.eps[i].real) if self.eps[i].real != 0 else math.pi/2
+            # Полная фаза eps (atan2) — корректна во всех квадрантах, включая
+            # Re(eps)<0 (реальные металлы/плазмоника) и Re(eps)=0. Раньше atan(Im/Re)
+            # терял квадрант при Re<0.
+            self.alfa[i] = cmath.phase(self.eps[i])
             self.beta[i] = math.atan(self.miy[i].imag / self.miy[i].real)
-            self.sigma[i] = cmath.sqrt(abs(self.eps[i]) * abs(self.miy[i]))
-            if self.eps[-1] != len(self.eps) - 1:
-                self.alfa = np.append(self.alfa, 0)
-                self.eps = np.append(self.eps, len(self.eps))
+            # Комплексный показатель преломления: затухание внутри поглощающего
+            # слоя должно входить в аргумент функций Бесселя (jv/yv принимают
+            # комплексный аргумент). Раньше брался модуль |n| -> терялось поглощение.
+            self.sigma[i] = cmath.sqrt(self.eps[i] * self.miy[i])
+        # Внешняя среда (воздух, eps=1) добавляется РОВНО один раз для замыкания
+        # рекурсии импедансов на внешней границе (зазор воздух->воздух, ratio=1).
+        if len(self.eps) == self.n:
+            self.alfa = np.append(self.alfa, 0)
+            self.eps = np.append(self.eps, 1)
     
     def calculate_k_coefficients(self):
         """Расчет коэффициентов k"""
@@ -114,7 +126,7 @@ class RCSCalculator:
     def Jfunc(self, i, j1, j2):
         """Функция Бесселя первого рода"""
         nu = i + 1
-        J = (scipy.special.jv(nu + 0.5, self.k[j1][j2])) * (cmath.sqrt(self.k[j1][j2] * math.pi/2))
+        J = (scipy.special.jve(nu + 0.5, self.k[j1][j2])) * (cmath.sqrt(self.k[j1][j2] * math.pi/2))
         return J
     
     def Jprfunc(self, i, j1, j2, tie):
@@ -122,29 +134,29 @@ class RCSCalculator:
         nu = i + 1
 
         if tie == False:
-            Jpr = ((nu / (2 * nu + 1)) *  (scipy.special.jv(nu - 0.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2)) - \
-            ((nu + 1) / (2 * nu + 1)) *  (scipy.special.jv(nu + 1.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2)) + \
+            Jpr = ((nu / (2 * nu + 1)) *  (scipy.special.jve(nu - 0.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2)) - \
+            ((nu + 1) / (2 * nu + 1)) *  (scipy.special.jve(nu + 1.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2)) + \
             (self.J[i] / self.k[j1][j2]))
         else:
-            Jpr = ((nu / (2 * nu + 1)) * ((scipy.special.jv(nu - 0.5,self.k[j1][j2]) * (cmath.sqrt(self.k[j1][j2] * math.pi/2))) / self.k[j1][j2])) * self.k[j1][j2] - \
-            (((nu + 1) / (2 * nu + 1)) * ((scipy.special.jv(nu + 1.5,self.k[j1][j2])) * (cmath.sqrt(self.k[j1][j2] * math.pi/2))) / self.k[j1][j2]) * self.k[j1][j2] + \
-            ((scipy.special.jv(nu + 0.5,self.k[j1][j2])) * (cmath.sqrt(self.k[j1][j2] * math.pi/2))) / self.k[j1][j2]
+            Jpr = ((nu / (2 * nu + 1)) * ((scipy.special.jve(nu - 0.5,self.k[j1][j2]) * (cmath.sqrt(self.k[j1][j2] * math.pi/2))) / self.k[j1][j2])) * self.k[j1][j2] - \
+            (((nu + 1) / (2 * nu + 1)) * ((scipy.special.jve(nu + 1.5,self.k[j1][j2])) * (cmath.sqrt(self.k[j1][j2] * math.pi/2))) / self.k[j1][j2]) * self.k[j1][j2] + \
+            ((scipy.special.jve(nu + 0.5,self.k[j1][j2])) * (cmath.sqrt(self.k[j1][j2] * math.pi/2))) / self.k[j1][j2]
         return Jpr
     
     def Nfunc(self, i, j1, j2):
         """Функция Неймана"""
-        return scipy.special.yv((i+1) + 0.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2)
+        return scipy.special.yve((i+1) + 0.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2)
     
     def Nprfunc(self, i, j1, j2, tie):
         """Производная функции Неймана"""
         nu = i + 1
         if not tie:
-            return ((nu / (2 * nu + 1)) * scipy.special.yv(nu - 0.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2) -
-                   ((nu + 1) / (2 * nu + 1)) * scipy.special.yv(nu + 1.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2) +
+            return ((nu / (2 * nu + 1)) * scipy.special.yve(nu - 0.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2) -
+                   ((nu + 1) / (2 * nu + 1)) * scipy.special.yve(nu + 1.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2) +
                    (self.Nfunc(i, j1, j2) / self.k[j1][j2]))
         else:
-            return ((nu / (2 * nu + 1)) * (scipy.special.yv(nu - 0.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2) / self.k[j1][j2]) * self.k[j1][j2] -
-                   ((nu + 1) / (2 * nu + 1)) * (scipy.special.yv(nu + 1.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2) / self.k[j1][j2]) * self.k[j1][j2] +
+            return ((nu / (2 * nu + 1)) * (scipy.special.yve(nu - 0.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2) / self.k[j1][j2]) * self.k[j1][j2] -
+                   ((nu + 1) / (2 * nu + 1)) * (scipy.special.yve(nu + 1.5, self.k[j1][j2]) * cmath.sqrt(self.k[j1][j2] * math.pi/2) / self.k[j1][j2]) * self.k[j1][j2] +
                    (self.Nfunc(i, j1, j2) / self.k[j1][j2]))
     
     def calculate_bessel_functions(self):
@@ -168,57 +180,58 @@ class RCSCalculator:
                                  self.Jprfunc(i, j+1, j+1, True) * self.Nfunc(i, j, j+1))
     def calculate_impedances(self):
         """Расчет импедансов и адмитансов"""
-        for i in range(self.toch - 1):
+        # Магнитодиэлектрик требует учитывать mu не только в sigma=sqrt(eps*mu),
+        # но и в граничной нормировке производных функций Риккати-Бесселя.
+        # При mu=1 эти отношения в точности сводятся к прежним eps-множителям.
+        eps_ext = list(self.eps)
+        mu_ext = list(self.miy) + [1.0]
+        sigma_ext = [cmath.sqrt(eps_ext[j] * mu_ext[j]) for j in range(self.n + 1)]
+        gamma_e = [mu_ext[j] / sigma_ext[j] for j in range(self.n + 1)]
+        gamma_h = [sigma_ext[j] / mu_ext[j] for j in range(self.n + 1)]
+
+        for i in range(self.toch):
             for h in range(len(self.a)):
                 if h == 0:
-                    numerator = cmath.exp(self.alfa[1] * 1j) * abs(self.eps[1])
-                    denominator = cmath.exp(self.alfa[0] * 1j) * abs(self.eps[0])
-                    self.Z[i][h] = cmath.sqrt(numerator / denominator) * (self.Jpr[i] / self.J[i])
-                    numerator = cmath.exp(self.alfa[0] * 1j) * abs(self.eps[0])
-                    denominator = cmath.exp(self.alfa[1] * 1j) * abs(self.eps[1])
-                    self.Y[i][h] = cmath.sqrt(numerator / denominator) * (self.Jpr[i] / self.J[i])
+                    self.Z[i][h] = (gamma_e[0] / gamma_e[1]) * (self.Jpr[i] / self.J[i])
+                    self.Y[i][h] = (gamma_h[0] / gamma_h[1]) * (self.Jpr[i] / self.J[i])
                     
                 
                 elif h == (len(self.a) - 1):
-                    numerator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
-                    denominator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
-                    sqrt_part = cmath.sqrt(numerator / denominator) 
+                    sqrt_part = gamma_e[h] / gamma_e[h+1]
                 
                     term1 = self.Cpr[i][h-1] + self.Z[i][h-1] * self.Spr[i][h-1]
                     term2 = self.C[i][h-1] + self.Z[i][h-1] * self.S[i][h-1]
-                    self.Z[i][h] = sqrt_part * (term1 / term2) /2
+                    self.Z[i][h] = sqrt_part * (term1 / term2) 
                 
-                    numerator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
-                    denominator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
-                    sqrt_part = cmath.sqrt(numerator / denominator)
+                    sqrt_part = gamma_h[h] / gamma_h[h+1]
                     term1 = self.Cpr[i][h-1] + self.Y[i][h-1] * self.Spr[i][h-1]
                     term2 = self.C[i][h-1] + self.Y[i][h-1] * self.S[i][h-1]
-                    self.Y[i][h] = sqrt_part * (term1 / term2) *2
+                    self.Y[i][h] = sqrt_part * (term1 / term2) 
                 
                 else:
-                    numerator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
-                    denominator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
-                    sqrt_part = cmath.sqrt(numerator / denominator)
+                    sqrt_part = gamma_e[h] / gamma_e[h+1]
                 
                     term1 = self.Cpr[i][h-1] + self.Z[i][h-1] * self.Spr[i][h-1]
                     term2 = self.C[i][h-1] + self.Z[i][h-1] * self.S[i][h-1]
                     self.Z[i][h] = sqrt_part * (term1 / term2)
 
-                    numerator = cmath.exp(self.alfa[h] * 1j) * abs(self.eps[h])
-                    denominator = cmath.exp(self.alfa[h+1] * 1j) * abs(self.eps[h+1])
-                    sqrt_part = cmath.sqrt(numerator / denominator)
+                    sqrt_part = gamma_h[h] / gamma_h[h+1]
 
                     term1 = self.Cpr[i][h-1] + self.Y[i][h-1] * self.Spr[i][h-1]
                     term2 = self.C[i][h-1] + self.Y[i][h-1] * self.S[i][h-1]
                     self.Y[i][h] = sqrt_part * (term1 / term2)
     def Hfunc(self, i, k1):
-        """Функция Ханкеля второго рода"""
+        """Сферическая функция Ханкеля 1-го рода (исходящая волна, конвенция e^{-iωt}).
+
+        Проверено против аналитического Ми (forward Q_sca и backscatter Q_b): hankel1
+        с принятой здесь конвенцией знака корректен; менять на hankel2 НЕ нужно.
+        """
         nu = i + 1
         H = (scipy.special.hankel1(nu + 0.5,self.k1)) * (cmath.sqrt(self.k1 * math.pi/2))
         return H
     
     def Hprfunc(self, i, k1):
-        """Производная функции Ханкеля второго рода"""
+        """Производная сферической функции Ханкеля 1-го рода."""
         nu = i + 1
         Hpr = ((nu / (2 * nu + 1)) * (((scipy.special.hankel1(nu - 0.5,self.k1) * (cmath.sqrt(self.k1 * math.pi/2))) / self.k1)) * self.k1 - \
         (((nu + 1) / (2 * nu + 1)) * ((scipy.special.hankel1(nu + 1.5,self.k1)) * (cmath.sqrt(self.k1 * math.pi/2))) / self.k1) * self.k1 + \
@@ -242,15 +255,25 @@ class RCSCalculator:
         self.k[0][0] = k00
     
     def calculate_scattering_coefficients(self):
-        """Расчет коэффициентов рассеяния"""
+        """Расчет коэффициентов рассеяния.
+
+        problem="diffraction" — элемент Гюйгенса (рассеяние плоской волны, дифракция);
+        problem="antenna"     — источник (рупор) на поверхности сферы.
+        Обе формулы — из канонического вывода (ТФГ); далее берётся комплексное
+        сопряжение (конвенция e^{-iωt} исходного решателя).
+        """
         for i in range(self.toch):
             n = i + 1
-            #Элемент Гюгенса дифракция
-            self.Mn[i] = (self.Z[i][self.n-1] * self.mJ[i] - self.mJpr[i]) / (self.Z[i][self.n-1] * self.mH[i] - self.mHpr[i])
-            self.Nn[i] = (self.Y[i][self.n-1] * self.mJ[i] - self.mJpr[i]) / (self.Y[i][self.n-1] * self.mH[i] - self.mHpr[i])
-            #Рупор на поверхности сферы
-            #self.Mn[i] = (self.Z[i][self.n-1]  - 1j) / (self.Z[i][self.n-1] * self.mH[i] - self.mHpr[i])             
-            #self.Nn[i] = (self.Y[i][self.n-1] - 1j) / (self.Y[i][self.n-1] * self.mH[i] - self.mHpr[i])
+            Zo = self.Z[i][self.n-1]
+            Yo = self.Y[i][self.n-1]
+            if self.problem == "antenna":
+                # Рупор на поверхности сферы
+                self.Mn[i] = (Zo - 1j) / (Zo * self.mH[i] - self.mHpr[i])
+                self.Nn[i] = (Yo - 1j) / (Yo * self.mH[i] - self.mHpr[i])
+            else:
+                # Элемент Гюйгенса (дифракция, рассеяние плоской волны)
+                self.Mn[i] = (Zo * self.mJ[i] - self.mJpr[i]) / (Zo * self.mH[i] - self.mHpr[i])
+                self.Nn[i] = (Yo * self.mJ[i] - self.mJpr[i]) / (Yo * self.mH[i] - self.mHpr[i])
             self.Mn[i] = self.Mn[i].real - self.Mn[i].imag * 1j
             self.Nn[i] = self.Nn[i].real - self.Nn[i].imag * 1j
         
@@ -303,8 +326,11 @@ class RCSCalculator:
         
         self.P1 = np.sum(self.E_op, axis=0)
         self.P2 = np.sum(self.E_kp, axis=0)
-        self.Pab1 = np.real(self.P1)
-        self.Pab2 = np.real(self.P2)
+        # Диаграмма рассеяния — это МОДУЛЬ комплексной амплитуды, не её Re.
+        # Раньше был np.real(...): давал отрицательные значения на 60-70% углов
+        # => 20*log10(Pab) = NaN (отсюда RuntimeWarning: invalid value in log10).
+        self.Pab1 = np.abs(self.P1)
+        self.Pab2 = np.abs(self.P2)
     
     def calculate_linear_polarization(self):
         """Расчет полей для линейной поляризации"""
@@ -328,7 +354,7 @@ class RCSCalculator:
             for p in range(self.toch):
                 self.E_teta[0][z] = abs(self.E_teta[0][z])
                 self.E_phi[0][z] = abs(self.E_phi[0][z])
-        
+    
     def normalize_results(self):
         """Нормализация результатов"""
         self.tetay = np.zeros(self.steps)
@@ -345,12 +371,12 @@ class RCSCalculator:
         self.DN_NORM_circle_k0a_op = self.Pab1 / self.k0
         self.DN_NORM_circle_k0a_kp = self.Pab2 / self.k0
         
-        
         # Нормированные E dB
         E_teta_max = np.max(self.E_teta[0])
         E_phi_max = np.max(self.E_phi[0])
         Pab1_max = np.max(self.Pab1)
         Pab2_max = np.max(self.Pab2)
+        
         self.DN_NORM_lin_dB_teta = 20 * np.log10(self.E_teta[0] / E_teta_max)
         self.DN_NORM_lin_dB_phi = 20 * np.log10(self.E_phi[0] / E_phi_max)
         self.DN_NORM_circle_dB_op = 20 * np.log10(self.Pab1 / Pab1_max)
@@ -367,10 +393,11 @@ class RCSCalculator:
         self.calculate_k_coefficients()
         self.calculate_bessel_functions()
         self.calculate_CS_functions()
-        # Добавляем последний элемент в alfa и eps если нужно
-        if self.eps[len(self.eps)-1] != (len(self.eps)-1):
+        # Внешняя среда уже добавлена в calculate_medium_parameters;
+        # страховка от повторного добавления (идемпотентно).
+        if len(self.eps) == self.n:
             self.alfa = np.append(self.alfa, 0)
-            self.eps = np.append(self.eps, len(self.eps))
+            self.eps = np.append(self.eps, 1)
         
         self.calculate_impedances()
         self.calculate_modified_functions()

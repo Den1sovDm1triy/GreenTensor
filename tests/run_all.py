@@ -25,6 +25,7 @@ import test_gmm as gmt  # noqa: E402
 import test_cylinder as cyt  # noqa: E402
 import test_solvers as slv  # noqa: E402
 import test_cylinder_layered as cyl_l  # noqa: E402
+import test_hfss_reference as hfss  # noqa: E402
 
 
 def main() -> int:
@@ -100,15 +101,16 @@ def main() -> int:
         ("oblique cyl: subdivision invariance", cyl_l.test_oblique_subdivision_invariance),
         ("oblique cyl: energy conservation", cyl_l.test_oblique_energy_conservation),
         ("oblique cyl: cross-sec reduce + wrappers", cyl_l.test_oblique_cross_sections_reduce_and_wrapper),
+        ("sphere pattern vs Ansys HFSS (FEM)", hfss.test_pattern_vs_hfss_reference),
     ]
     failures = 0
     for name, fn in suite:
         try:
             fn()
-            print(f"  ✅ {name}")
+            print(f"  ok   {name}")
         except Exception:  # noqa: BLE001
             failures += 1
-            print(f"  ❌ {name}")
+            print(f"  FAIL {name}")
             traceback.print_exc()
     print(f"\n{'ВСЕ ТЕСТЫ ПРОЙДЕНЫ' if not failures else f'ПРОВАЛОВ: {failures}'}")
     return 1 if failures else 0

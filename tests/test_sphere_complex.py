@@ -23,7 +23,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from analytic_mie import mie_ab, mie_pec, wiscombe_nmax, _q_sca, _q_ext  # noqa: E402
+from analytic_mie import mie_ab, mie_pec, _q_sca, _q_ext  # noqa: E402
 from _loader import load_sphere  # noqa: E402
 
 warnings.filterwarnings("ignore")
@@ -125,7 +125,7 @@ if __name__ == "__main__":
         try:
             fn()
         except AssertionError as exc:
-            print(f"  ❌ {fn.__name__}: {exc}")
+            print(f"  FAIL {fn.__name__}: {exc}")
             ok = False
-    print("\n✅ Комплексные/металл проверки пройдены." if ok else "\n❌ Есть провалы.")
+    print("\nOK: Комплексные/металл проверки пройдены." if ok else "\nFAIL: Есть провалы.")
     sys.exit(0 if ok else 1)

@@ -37,7 +37,6 @@ dependencies = [
 dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-vie = ["numba>=0.59", "scikit-image>=0.22", "tqdm>=4.66"]
 examples = ["pandas>=2.0"]
 docs = ["sphinx>=7", "sphinx-rtd-theme>=2"]
 dev = ["pytest>=8", "pytest-cov>=5"]

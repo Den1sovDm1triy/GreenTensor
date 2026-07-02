@@ -23,7 +23,7 @@ unified solvers in [`green_tensor.solvers`](../solvers.py).
 | `examples.json` | Входные данные для скриптов выше / input data for the scripts above |
 
 > The canonical, maintained sphere solver lives in `green_tensor/01_sphere.py`
-> (mirrored as the importable `green_tensor.mie_core`) — **not** here.
+> (imported through the `green_tensor.sphere_core` facade) — **not** here.
 >
 > Каноническое поддерживаемое решение для сферы — в `green_tensor/01_sphere.py`
-> (импортируемая копия — `green_tensor.mie_core`), **не** здесь.
+> (импорт — через фасад `green_tensor.sphere_core`), **не** здесь.

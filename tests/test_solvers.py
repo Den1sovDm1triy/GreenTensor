@@ -107,7 +107,7 @@ def test_cylinder_solver_matches_module():
 
 
 def test_notimplemented_honesty():
-    print("\n[6] нереализованная ветвь → честный NotImplementedError:")
+    print("\n[6] нереализованная ветвь поднимает NotImplementedError:")
     # Конечный цилиндр несепарабелен и не имеет точного аналитического решения в этом
     # базисе; заглушка честно поднимает ошибку (точна только бесконечная аналитика).
     raised = False

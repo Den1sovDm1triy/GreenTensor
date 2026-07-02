@@ -85,7 +85,7 @@ def test_sphere_qsca_matches_analytic_mie():
 if __name__ == "__main__":
     try:
         test_sphere_qsca_matches_analytic_mie()
-        print("\n✅ PASS: GreenTensor совпадает с аналитическим Ми в пределах допуска.")
+        print("\nOK PASS: GreenTensor совпадает с аналитическим Ми в пределах допуска.")
     except AssertionError as exc:
-        print(f"\n❌ FAIL: {exc}")
+        print(f"\nFAIL FAIL: {exc}")
         sys.exit(1)
