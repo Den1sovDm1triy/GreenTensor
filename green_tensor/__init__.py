@@ -59,6 +59,7 @@ from . import (  # noqa: F401
     gmm,
     scatterer,
     solvers,
+    sphere_anisotropic,
     sphere_core,
     tmatrix,
     vswf,
@@ -80,6 +81,10 @@ from .solvers import (  # noqa: F401
     solve_layered_cylinder,
     solve_sphere,
 )
+from .sphere_anisotropic import (  # noqa: F401
+    cross_sections_anisotropic,
+    mie_multilayer_anisotropic,
+)
 
 __all__ = [
     "__version__",
@@ -91,7 +96,9 @@ __all__ = [
     # functional facade
     "solve_sphere",
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
+    # radially-anisotropic multilayer sphere (extension)
+    "mie_multilayer_anisotropic", "cross_sections_anisotropic",
     # modules
     "sphere_core", "tmatrix", "scatterer", "vswf", "gmm",
-    "cylinder", "solvers",
+    "cylinder", "solvers", "sphere_anisotropic",
 ]
