@@ -1040,7 +1040,7 @@ img{max-width:100%}
       <a href="#quickstart">Старт</a>
       <a href="#validation">Валидация</a>
       <a href="#calculator">Линзы</a>
-      <a href="solver.html">Расчётчик →</a>
+      <a href="studio.html">Studio →</a>
       <a href="guides.html">Guides</a>
       <a href="#publications">Публикации</a>
       <a href="#team">Команда</a>
@@ -1588,15 +1588,17 @@ plt.show()</code></pre>
       <div>
         <h3>Открыть веб-расчётчик</h3>
         <p>
-          Полный <strong style="color:var(--text)">RCSCalculator</strong> и <strong style="color:var(--text)">ScatteringCalculator</strong>
-          в отдельном окне с 3D-редактором задачи: задаёте слои сферы — структура отрисовывается в реальном времени,
-          расчёт идёт локально через Pyodide (CPython + numpy + scipy в WebAssembly).
+          <strong style="color:var(--text)">GreenTensor Studio</strong> — полный расчётчик рассеяния в&nbsp;отдельном окне
+          с&nbsp;3D-редактором сцены: слоистые&nbsp;<strong style="color:var(--text)">сферы</strong>, бесконечный&nbsp;<strong style="color:var(--text)">цилиндр</strong>
+          и&nbsp;<strong style="color:var(--text)">кластеры сфер (GMM)</strong>, эталонные задачи с&nbsp;наложением кривых&nbsp;<strong style="color:var(--text)">Ansys HFSS</strong>,
+          диаграммы, ЭПР, тепловые карты ближнего поля. Расчёт идёт локально через Pyodide (CPython + numpy + scipy в WebAssembly).
         </p>
         <div class="solver-cta-actions">
-          <a class="solver-cta-btn" href="solver.html">
+          <a class="solver-cta-btn" href="studio.html">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            Запустить расчётчик
+            Открыть GreenTensor Studio
           </a>
+          <a class="btn btn-ghost" href="solver.html">Быстрый расчётчик (сфера)</a>
           <a class="btn btn-ghost" href="https://github.com/Den1sovDm1triy/GreenTensor#web-solver" target="_blank" rel="noopener">Документация</a>
         </div>
       </div>

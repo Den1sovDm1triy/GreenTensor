@@ -1,0 +1,216 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MIT -->
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<script>(function(){try{var t=localStorage.getItem('gt-theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'dark');}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GreenTensor Studio — веб-расчётчик рассеяния</title>
+<meta name="description" content="GreenTensor Studio: интерактивный веб-расчётчик электромагнитного рассеяния. Слоистые сферы, бесконечный цилиндр и кластеры сфер (GMM), эталонные задачи с наложением кривых Ansys HFSS. Точная ТФГ-аналитика, Python в браузере." />
+<meta name="theme-color" content="#07090a" />
+
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+<link rel="icon" type="image/x-icon" href="favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+<link rel="manifest" href="site.webmanifest" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="studio/css/style.css" />
+
+<!-- Тяжёлые библиотеки — с CDN (те же версии, что и в остальном лендинге) -->
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+
+<!-- Модули Studio + браузерный мост к движку -->
+<script src="studio/js/presets.js" defer></script>
+<script src="studio/js/editor3d.js" defer></script>
+<script src="studio/js/input.js" defer></script>
+<script src="studio/js/results.js" defer></script>
+<script src="studio/js/pybridge.js" defer></script>
+<script src="studio/js/app.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-group">
+      <a class="brand" href="index.html" title="На лендинг GreenTensor">
+        <span class="brand-mark"></span>
+        Green<span class="brand-accent">Tensor</span><span class="brand-sub">Studio</span>
+      </a>
+    </div>
+    <div class="header-controls">
+      <label class="field inline">
+        <span>Эталонная задача</span>
+        <select id="preset-select" aria-label="Эталонная задача">
+          <option value="">— выбрать —</option>
+        </select>
+      </label>
+      <div class="seg" id="colormode" role="group" aria-label="Цветовой режим">
+        <button data-mode="color" class="active" type="button" title="Цветной">Цвет</button>
+        <button data-mode="bw" type="button" title="Чёрно-белый (линии различаются стилем)">Ч/Б</button>
+      </div>
+      <button id="btn-compute" class="btn primary" type="button">Рассчитать ▸</button>
+      <nav class="app-nav" aria-label="Навигация">
+        <a class="btn-link" href="index.html">← Лендинг</a>
+        <a class="btn-link" href="guides.html">Guides</a>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему" title="Светлая / тёмная тема">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a class="btn-cta" href="https://github.com/Den1sovDm1triy/GreenTensor" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <!-- ============ Модуль 2: ввод данных ============ -->
+    <aside class="sidebar" id="input-module" aria-label="Ввод данных">
+      <section class="panel">
+        <h2>Геометрия</h2>
+        <div class="add-bar">
+          <button class="chip" data-add="sphere" type="button">＋ Сфера</button>
+          <button class="chip" data-add="cylinder_inf" type="button" title="Бесконечный радиально-слоистый цилиндр (строгий ТФГ)">＋ Цилиндр ∞</button>
+        </div>
+        <ul class="scene-tree" id="scene-tree"></ul>
+      </section>
+
+      <section class="panel" id="body-props">
+        <h2>Свойства тела</h2>
+        <div id="body-form" class="muted">Тело не выбрано.</div>
+      </section>
+
+      <section class="panel" id="materials-panel">
+        <h2>Материалы (слои)</h2>
+        <div id="layers-form" class="muted">Тело не выбрано.</div>
+      </section>
+
+      <section class="panel">
+        <h2>Излучение</h2>
+        <div id="radiation-form"></div>
+      </section>
+    </aside>
+
+    <!-- ============ Модули 1 и 3: 3D-сцена / результаты ============ -->
+    <main class="main">
+      <nav class="tabs" id="main-tabs">
+        <button data-tab="editor" class="active" type="button">3D-сцена</button>
+        <button data-tab="results" type="button">Результаты</button>
+      </nav>
+
+      <!-- Модуль 1: 3D-редактор -->
+      <section class="tab-panel" id="tab-editor">
+        <div class="viewport-wrap">
+          <div id="viewport"></div>
+          <div class="viewport-hud">
+            <span class="hud-hint">ЛКМ — вращение · колесо — масштаб · ПКМ — панорама</span>
+            <div class="hud-axes">
+              <button data-view="iso" class="mini" type="button">ISO</button>
+              <button data-view="x" class="mini" type="button">X</button>
+              <button data-view="y" class="mini" type="button">Y</button>
+              <button data-view="z" class="mini" type="button">Z</button>
+              <button data-view="fit" class="mini" type="button">⤢</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Модуль 3: результаты -->
+      <section class="tab-panel hidden" id="tab-results">
+        <div class="results-toolbar">
+          <div class="seg" id="result-view" role="group" aria-label="Тип результата">
+            <button data-rv="pattern" class="active" type="button">Диаграмма (ДН)</button>
+            <button data-rv="bistatic" type="button" title="Бистатическая ЭПР σ(θ) при фикс. падении">Бистат. ЭПР</button>
+            <button data-rv="monostatic" type="button" title="Моностатическая ЭПР σ(ракурс), обратное рассеяние">Монос. ЭПР</button>
+            <button data-rv="heatmap" type="button">Тепловая карта</button>
+            <button data-rv="cross" type="button">Сечения</button>
+            <button data-rv="sweep" type="button">Спектр Q(k)</button>
+          </div>
+          <div class="seg" id="pattern-layout" role="group" aria-label="Раскладка ДН" title="Раскладка диаграммы">
+            <button data-pl="overlay" class="active" type="button">Совмещённо</button>
+            <button data-pl="split" type="button" title="Отдельная панель на каждую плоскость (E/H)">По плоскостям</button>
+          </div>
+          <div class="toolbar-spacer"></div>
+          <div class="result-actions">
+            <label class="field inline" id="polar-rot-wrap">
+              <span>Поворот оси, °</span>
+              <input type="range" id="polar-rot" min="0" max="360" value="0" step="5" />
+              <output id="polar-rot-val">0</output>
+            </label>
+            <label class="field inline" id="db-toggle-wrap">
+              <input type="checkbox" id="db-toggle" checked /> <span>дБ</span>
+            </label>
+            <div class="seg" id="hm-scale" role="group" aria-label="Шкала карты" title="Шкала тепловой карты (нормировка на максимум)">
+              <button data-hs="db" class="active" type="button" title="Логарифмическая (дБ отн. макс) — видны и пики, и переходы между слоями">лог дБ</button>
+              <button data-hs="lin" type="button" title="Линейная (|E|/|E|макс)">лин.</button>
+            </div>
+            <label class="field inline" id="hm-res-wrap" title="Разрешение тепловой карты (точек на сторону) — выше детализация, дольше расчёт">
+              <span>Разрешение</span>
+              <select id="hm-res" aria-label="Разрешение тепловой карты">
+                <option value="48">48 · черновое</option>
+                <option value="64" selected>64 · стандарт</option>
+                <option value="96">96 · высокое</option>
+                <option value="128">128 · детальное</option>
+                <option value="192">192 · максимум</option>
+              </select>
+            </label>
+            <button class="btn" id="btn-import" type="button" title="Импорт CSV для сравнения">⭱ Импорт CSV</button>
+            <button class="btn" id="btn-export" type="button" title="Экспорт активного графика в CSV">⭳ Экспорт CSV</button>
+            <button class="btn" id="btn-png" type="button" title="Сохранить PNG">⤓ PNG</button>
+            <input type="file" id="csv-file" accept=".csv,text/csv" hidden />
+          </div>
+        </div>
+        <div class="plot-stage">
+          <div id="plot" class="plot"></div>
+          <div id="plot-empty" class="plot-empty">
+            Нет результатов. Настройте сцену и нажмите <b>«Рассчитать»</b>
+            или выберите эталонную задачу.
+          </div>
+        </div>
+        <div class="imports-bar" id="imports-bar" hidden>
+          <span class="imports-title">Импортированные наборы:</span>
+          <ul id="imports-list"></ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Оверлей загрузки движка (Pyodide грузится в фоне при открытии страницы) -->
+  <div id="boot-overlay" class="boot-overlay">
+    <div class="boot-card">
+      <div class="spinner"></div>
+      <div class="boot-title">Загрузка расчётного движка</div>
+      <div class="boot-status" id="boot-status">Инициализация…</div>
+      <div class="boot-hint">Движок GreenTensor (Python + numpy/scipy) исполняется прямо в браузере — расчёт не покидает ваш компьютер. Первая загрузка занимает ~10–20 с, затем можно считать без ограничений.</div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="busy" class="busy hidden"><div class="spinner"></div><span id="busy-text">Расчёт…</span></div>
+
+  <script>
+  // Переключатель светлой/тёмной темы (общий с остальным лендингом: localStorage gt-theme)
+  (function () {
+    function setMeta(theme) {
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute('content', theme === 'light' ? '#f4f7f6' : '#07090a');
+    }
+    setMeta(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+    var btn = document.getElementById('theme-toggle');
+    if (btn) btn.addEventListener('click', function () {
+      var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      var next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('gt-theme', next); } catch (e) {}
+      setMeta(next);
+      // перерисовать графики/сцену под новую тему
+      if (window.GT && window.GT.results) window.GT.results.render();
+      if (window.GT && window.GT.editor && window.GT.editor.applyTheme) window.GT.editor.applyTheme();
+    });
+  })();
+  </script>
+</body>
+</html>

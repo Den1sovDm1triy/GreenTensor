@@ -1,0 +1,18 @@
+{
+"files": [
+"green_tensor/01_sphere.py",
+"green_tensor/__init__.py",
+"green_tensor/cylinder.py",
+"green_tensor/gmm.py",
+"green_tensor/scatterer.py",
+"green_tensor/solvers.py",
+"green_tensor/sphere_anisotropic.py",
+"green_tensor/sphere_core.py",
+"green_tensor/tmatrix.py",
+"green_tensor/vswf.py",
+"studio/__init__.py",
+"studio/compute.py",
+"studio/library_bridge.py",
+"studio/nearfield_sphere.py"
+]
+}
