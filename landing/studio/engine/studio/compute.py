@@ -143,9 +143,11 @@ MAX_HEMI_FEEDS = 32
 
 
 def _hemisphere_cfg(body):
-    """Конфиг полусферы тела или None.
+    """Конфиг антенного режима тела (облучатели на сфере) или None.
 
-    Возвращает {'feeds': [{'offset_deg', 'amp', 'phase_deg'}, ...]}.
+    Возвращает {'feeds': [...], 'screen': bool}. screen=True (по умолчанию) —
+    полусфера на PEC-экране (метод зеркальных изображений); screen=False —
+    полная сфера с линейкой облучателей без экрана (например, MIMO-ЛЛ).
     Одиночный облучатель задаётся либо feeds из одного элемента, либо
     (обратная совместимость) полем feed_offset_deg. Линейка облучателей с
     амплитудными весами формирует профилированные ДН (например, csc²).
@@ -175,7 +177,7 @@ def _hemisphere_cfg(body):
         feeds.append({"offset_deg": off, "amp": amp, "phase_deg": ph})
     if not any(f["amp"] > 0 for f in feeds):
         raise ComputeError("Полусфера: хотя бы один облучатель должен иметь амплитуду > 0.")
-    return {"feeds": feeds}
+    return {"feeds": feeds, "screen": bool(h.get("screen", True))}
 
 
 def _hemisphere_pattern(body, rad, gt):
@@ -195,10 +197,12 @@ def _hemisphere_pattern(body, rad, gt):
     точности равна мощности прямого поля, уходившей в нижнюю (P_i_up == P_d_down).
     """
     if rad["polarization"] != "linear":
-        raise ComputeError("Полусфера на PEC-экране: поддерживается линейная поляризация.")
+        raise ComputeError("Антенный режим (облучатели на сфере): поддерживается "
+                           "линейная поляризация.")
     radius = float(body.get("radius", 1.0))
     a_norm, eps, mu = _layers(body)
-    feeds = _hemisphere_cfg(body)["feeds"]
+    cfg = _hemisphere_cfg(body)
+    feeds, screen = cfg["feeds"], cfg["screen"]
     k = rad["k"]
     mie = gt.SphereSolver(radius, eps, a_norm=a_norm, miy=mu).mie(k, toch=rad["toch"])
     Mn, Nn = mie.coefficients()
@@ -232,7 +236,9 @@ def _hemisphere_pattern(body, rad, gt):
 
     theta_deg = (np.arange(HEMI_N_THETA) + 0.5) * (360.0 / HEMI_N_THETA)
     th = np.radians(theta_deg)
-    # когерентная сумма по линейке облучателей: каждый — прямой луч + зеркальный образ
+    # когерентная сумма по линейке облучателей; при screen=True каждый облучатель
+    # дополняется зеркальным образом под экраном, при screen=False (полная сфера,
+    # антенный режим MIMO-ЛЛ) — только прямые лучи, поле на всём круге направлений
     Et = np.zeros(th.shape, complex)
     Ep = np.zeros(th.shape, complex)
     for f in feeds:
@@ -240,22 +246,31 @@ def _hemisphere_pattern(body, rad, gt):
             continue
         wgt = f["amp"] * cmath.exp(1j * math.radians(f["phase_deg"]))
         tp = math.radians(f["offset_deg"])
-        ft_d, fp_d = base(th - tp)                # прямой (смещённый) облучатель
-        ft_i, fp_i = base(math.pi - th - tp)      # зеркальный образ под экраном
-        Et = Et + wgt * (ft_d + ft_i)             # нормальная компонента: образ с «+»
-        Ep = Ep + wgt * (fp_d - fp_i)             # касательная: образ с «−» (ноль на экране)
-    upper = np.cos(th) >= 0.0                     # верхнее полупространство |θ| ≤ 90°
-    Et = np.where(upper, Et, 0.0)
-    Ep = np.where(upper, Ep, 0.0)
+        ft_d, fp_d = base(th - tp)                    # прямой (смещённый) облучатель
+        if screen:
+            ft_i, fp_i = base(math.pi - th - tp)      # зеркальный образ под экраном
+            Et = Et + wgt * (ft_d + ft_i)             # нормальная компонента: образ с «+»
+            Ep = Ep + wgt * (fp_d - fp_i)             # касательная: образ с «−» (0 на экране)
+        else:
+            Et = Et + wgt * ft_d
+            Ep = Ep + wgt * fp_d
+    if screen:
+        upper = np.cos(th) >= 0.0                     # верхнее полупространство |θ| ≤ 90°
+        Et = np.where(upper, Et, 0.0)
+        Ep = np.where(upper, Ep, 0.0)
     aEt, aEp = np.abs(Et), np.abs(Ep)
     ref = max(float(aEt.max()), float(aEp.max())) or 1.0
     series = [
         {"name": "E_θ (верт. поляризация)", "E": _finite(aEt), "dB": _finite(_db(aEt, ref))},
         {"name": "E_φ (гориз. поляризация)", "E": _finite(aEp), "dB": _finite(_db(aEp, ref))},
     ]
+    note = ("θ отсчитывается от нормали к экрану; ниже экрана (|θ|>90°) поле = 0"
+            if screen else
+            "θ отсчитывается от оси +z; облучатель в θ′ даёт луч в противоположном "
+            "направлении θ = θ′ − 180°")
     return {"theta_deg": _finite(theta_deg), "series": series, "polar": True,
-            "plane": "E/H", "hemisphere": {"feeds": feeds},
-            "note": "θ отсчитывается от нормали к экрану; ниже экрана (|θ|>90°) поле = 0"}
+            "plane": "E/H", "hemisphere": {"feeds": feeds, "screen": screen},
+            "note": note}
 
 
 # --------------------------------------------------------------------------- #
@@ -720,13 +735,13 @@ def compute(scene: dict) -> dict:
     if single_sphere:
         body = bodies[0]
         radius = float(body.get("radius", 1.0))
-        if _hemisphere_cfg(body):
-            # Полусфера на PEC-экране: полупространственная задача, значима ДН.
-            # Интегральные величины полной сферы (сечения, ЭПР, спектр, ближнее
-            # поле плоской волны) к полупространству неприменимы — не выводятся.
-            note = ("Полусфера на PEC-экране: сечения, ЭПР, спектр Q(k) и тепловая "
-                    "карта для полупространственной задачи не выводятся — значима "
-                    "диаграмма направленности.")
+        hemi_cfg = _hemisphere_cfg(body)
+        if hemi_cfg:
+            # Антенный режим (облучатели на сфере/полусфере): значима ДН.
+            # Интегральные величины задачи рассеяния плоской волны (сечения, ЭПР,
+            # спектр, ближнее поле) к этому режиму неприменимы — не выводятся.
+            note = ("Антенный режим (облучатели на сфере): сечения, ЭПР, спектр Q(k) "
+                    "и тепловая карта не выводятся — значима диаграмма направленности.")
             if do_pattern:
                 out["pattern"] = _hemisphere_pattern(body, rad, gt)
             out["cross_sections"] = None
@@ -734,7 +749,10 @@ def compute(scene: dict) -> dict:
             out["monostatic"] = {"available": False, "note": note}
             out["sweep"] = None
             out["heatmap"] = None
-            out["meta"]["core"] = "01_sphere + зеркальный образ (полусфера на PEC-экране)"
+            out["meta"]["core"] = (
+                "01_sphere + зеркальный образ (полусфера на PEC-экране)"
+                if hemi_cfg["screen"] else
+                "01_sphere + линейка облучателей (сфера, антенный режим)")
             out["meta"]["warnings"].append(note)
             return out
         if rad["problem"] == "antenna":

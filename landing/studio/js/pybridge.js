@@ -7,7 +7,7 @@
   const GT = (window.GT = window.GT || {});
 
   const ENGINE_BASE = "studio/engine/";
-  const ENGINE_VER = "20260721";      // сброс HTTP-кэша файлов движка при обновлениях
+  const ENGINE_VER = "20260721b";      // сброс HTTP-кэша файлов движка при обновлениях
   const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/";
 
   let pyodide = null;

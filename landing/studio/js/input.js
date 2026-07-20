@@ -77,24 +77,36 @@
     });
 
     if (b.type === "sphere") {
-      // полусфера на проводящем экране (метод зеркальных изображений)
+      // антенный режим: полусфера на PEC-экране (image theory) либо полная сфера
+      // с линейкой облучателей без экрана (MIMO-ЛЛ)
       const h = b.hemisphere || (b.hemisphere = { enabled: false, feed_offset_deg: 0 });
-      const chk = el("input", { type: "checkbox" });
-      chk.checked = !!h.enabled;
-      chk.addEventListener("change", () => { h.enabled = chk.checked; GT.refresh(); });
-      grid.appendChild(el("label", { class: "field inline full",
-        title: "Полусферическая линза на бесконечном PEC-экране: расчёт методом " +
-               "зеркальных изображений (отбор гармоник по чётности)" },
-        [chk, el("span", {}, ["Полусфера на PEC-экране"])]));
+      const modeSel = el("select", {}, [
+        el("option", { value: "" }, ["— рассеяние плоской волны —"]),
+        el("option", { value: "screen" }, ["полусфера на PEC-экране"]),
+        el("option", { value: "array" }, ["сфера с линейкой облучателей"]),
+      ]);
+      modeSel.value = h.enabled ? (h.screen === false ? "array" : "screen") : "";
+      modeSel.addEventListener("change", () => {
+        h.enabled = modeSel.value !== "";
+        h.screen = modeSel.value !== "array";
+        GT.refresh();
+      });
+      grid.appendChild(el("label", { class: "field full",
+        title: "Полусфера на PEC-экране — метод зеркальных изображений (отбор гармоник " +
+               "по чётности); сфера с линейкой — когерентная сумма лучей облучателей " +
+               "без экрана (антенный режим MIMO-ЛЛ)" },
+        [el("span", {}, ["Антенный режим"]), modeSel]));
       if (h.enabled) {
         // линейка облучателей: одиночный луч — одна строка; линейка с весами —
-        // профилированные ДН (например, csc²). Луч выходит зеркально: θ = −θ′.
+        // профилированные ДН (например, csc²).
         if (!h.feeds || !h.feeds.length) {
           h.feeds = [{ offset_deg: h.feed_offset_deg || 0, amp: 1, phase_deg: 0 }];
         }
         const wrap = el("div", { class: "full" });
         wrap.appendChild(el("span", { class: "muted" },
-          ["Облучатели (луч выходит зеркально смещению: θ = −θ′)"]));
+          [h.screen === false
+            ? "Облучатели (луч выходит напротив облучателя: θ = θ′ − 180°)"
+            : "Облучатели (луч выходит зеркально смещению: θ = −θ′)"]));
         const table = el("table", { class: "layers" });
         table.appendChild(el("thead", {}, [el("tr", {},
           ["θ′, °", "ампл.", "фаза, °", ""].map((t) => el("th", {}, [t])))]));

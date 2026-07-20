@@ -122,8 +122,15 @@
     return m.multiply(rz(a)).multiply(ry(b)).multiply(rz(g)); // z-y-z (как в библиотеке)
   }
 
+  // Антенный режим тела: null | 'screen' (полусфера на PEC-экране) | 'array' (сфера
+  // с линейкой облучателей без экрана).
+  function hemiMode(b) {
+    if (b.type !== "sphere" || !b.hemisphere || !b.hemisphere.enabled) return null;
+    return b.hemisphere.screen === false ? "array" : "screen";
+  }
+
   function isHemisphere(b) {
-    return b.type === "sphere" && b.hemisphere && b.hemisphere.enabled;
+    return hemiMode(b) === "screen";
   }
 
   function geomFor(b) {
@@ -143,31 +150,33 @@
     return new THREE.SphereGeometry(0.5, 16, 12);
   }
 
-  // Атрибуты полусферы на PEC-экране: основание, экран, точечный облучатель.
-  function hemisphereExtras(b, sel) {
+  // Атрибуты антенного режима: экран с основанием (только полусфера) и облучатели.
+  function hemisphereExtras(b, sel, withScreen) {
     const r = b.radius || 1;
     const g = new THREE.Group();
-    // плоское основание купола (z=0)
-    const base = new THREE.Mesh(
-      new THREE.CircleGeometry(r, 48),
-      new THREE.MeshStandardMaterial({ color: sel ? COL.sel : COL.body, metalness: 0.1,
-        roughness: 0.55, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
-    base.position.z = 0.001;
-    g.add(base);
-    // проводящий экран (PEC) — большой полупрозрачный диск в плоскости z=0
-    const scr = new THREE.Mesh(
-      new THREE.CircleGeometry(3 * r, 64),
-      new THREE.MeshStandardMaterial({ color: 0x9aa4ad, metalness: 0.75, roughness: 0.35,
-        transparent: true, opacity: 0.28, side: THREE.DoubleSide }));
-    scr.position.z = -0.002;
-    g.add(scr);
-    const rim = new THREE.LineLoop(
-      new THREE.BufferGeometry().setFromPoints(Array.from({ length: 96 }, (_, i) => {
-        const a = (i / 96) * Math.PI * 2;
-        return new THREE.Vector3(3 * r * Math.cos(a), 3 * r * Math.sin(a), -0.002);
-      })),
-      new THREE.LineBasicMaterial({ color: 0x9aa4ad, transparent: true, opacity: 0.6 }));
-    g.add(rim);
+    if (withScreen) {
+      // плоское основание купола (z=0)
+      const base = new THREE.Mesh(
+        new THREE.CircleGeometry(r, 48),
+        new THREE.MeshStandardMaterial({ color: sel ? COL.sel : COL.body, metalness: 0.1,
+          roughness: 0.55, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
+      base.position.z = 0.001;
+      g.add(base);
+      // проводящий экран (PEC) — большой полупрозрачный диск в плоскости z=0
+      const scr = new THREE.Mesh(
+        new THREE.CircleGeometry(3 * r, 64),
+        new THREE.MeshStandardMaterial({ color: 0x9aa4ad, metalness: 0.75, roughness: 0.35,
+          transparent: true, opacity: 0.28, side: THREE.DoubleSide }));
+      scr.position.z = -0.002;
+      g.add(scr);
+      const rim = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints(Array.from({ length: 96 }, (_, i) => {
+          const a = (i / 96) * Math.PI * 2;
+          return new THREE.Vector3(3 * r * Math.cos(a), 3 * r * Math.sin(a), -0.002);
+        })),
+        new THREE.LineBasicMaterial({ color: 0x9aa4ad, transparent: true, opacity: 0.6 }));
+      g.add(rim);
+    }
     // точечные облучатели: красные конусы на куполе под углами θ′ от нормали,
     // остриями к центру; размер конуса ∝ амплитуде (линейка с весами — csc² и т.п.)
     const feeds = hemiFeeds(b);
@@ -221,7 +230,8 @@
         new THREE.LineBasicMaterial({ color: sel ? COL.sel : COL.edge, transparent: true, opacity: 0.6 }));
       const wrap = new THREE.Group();
       wrap.add(mesh); wrap.add(edges);
-      if (isHemisphere(b)) wrap.add(hemisphereExtras(b, sel));
+      const hm = hemiMode(b);
+      if (hm) wrap.add(hemisphereExtras(b, sel, hm === "screen"));
       wrap.position.set.apply(wrap.position, b.position || [0, 0, 0]);
       if (b.type !== "sphere") wrap.setRotationFromMatrix(rotationMatrix(b.euler));
       bodiesGroup.add(wrap);
@@ -233,7 +243,7 @@
     if (incidenceArrow) { scene.remove(incidenceArrow); incidenceArrow = null; }
     const bodies = GT.state.scene.bodies;
     const ci = bodies.length === 1 && bodies[0].type === "cylinder_inf" ? bodies[0] : null;
-    const hemi = bodies.length === 1 && isHemisphere(bodies[0]) ? bodies[0] : null;
+    const hemi = bodies.length === 1 && hemiMode(bodies[0]) ? bodies[0] : null;
     // у бесконечного цилиндра падение задаётся углом от оси z (90° = нормальное, ⊥ оси)
     let k = GT.state.scene.radiation.khat || [0, 0, 1];
     if (ci) {
@@ -311,8 +321,8 @@
       let entries = pat.theta_deg.map((td, j) => [td, s.dB[j]])
         .filter(([, dB]) => dB != null && isFinite(dB));
       let closed = true;
-      if (hemi) {
-        // только верхнее полупространство, разомкнутая дуга −90°..+90° через 0°
+      if (hemi && pat.hemisphere.screen !== false) {
+        // экран: только верхнее полупространство, разомкнутая дуга −90°..+90° через 0°
         entries = entries
           .map(([td, dB]) => [td > 180 ? td - 360 : td, dB])
           .filter(([td]) => Math.abs(td) <= 90)
