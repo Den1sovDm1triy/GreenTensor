@@ -7,6 +7,7 @@
   const GT = (window.GT = window.GT || {});
 
   const ENGINE_BASE = "studio/engine/";
+  const ENGINE_VER = "20260720";      // сброс HTTP-кэша файлов движка при обновлениях
   const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/";
 
   let pyodide = null;
@@ -34,7 +35,7 @@ for _name in ('plot','show','figure','subplots','savefig','close','xlabel','ylab
 `;
 
   async function loadEngineIntoFS(py) {
-    const manifest = await fetch(ENGINE_BASE + "manifest.json").then((r) => r.json());
+    const manifest = await fetch(ENGINE_BASE + "manifest.json?v=" + ENGINE_VER).then((r) => r.json());
     const files = manifest.files || [];
     // создаём каталоги пакетов и пишем каждый .py в виртуальную ФС Pyodide
     const dirs = new Set();
@@ -51,7 +52,7 @@ for _name in ('plot','show','figure','subplots','savefig','close','xlabel','ylab
     });
     let n = 0;
     for (const f of files) {
-      const src = await fetch(ENGINE_BASE + f).then((r) => {
+      const src = await fetch(ENGINE_BASE + f + "?v=" + ENGINE_VER).then((r) => {
         if (!r.ok) throw new Error("не найден " + f);
         return r.text();
       });

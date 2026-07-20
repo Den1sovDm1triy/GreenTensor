@@ -8,7 +8,7 @@
   async function load() {
     const sel = GT.$("#preset-select");
     try {
-      const resp = await fetch("studio/engine/presets.json");
+      const resp = await fetch("studio/engine/presets.json?v=20260720");
       const data = await resp.json();
       PRESETS = data.presets || [];
     } catch (e) {

@@ -87,9 +87,48 @@
                "зеркальных изображений (отбор гармоник по чётности)" },
         [chk, el("span", {}, ["Полусфера на PEC-экране"])]));
       if (h.enabled) {
-        grid.appendChild(numField("Смещение облучателя θ′, °",
-          h.feed_offset_deg != null ? h.feed_offset_deg : 0,
-          (v) => { h.feed_offset_deg = isFinite(v) ? v : 0; GT.editor.syncFromState(); }));
+        // линейка облучателей: одиночный луч — одна строка; линейка с весами —
+        // профилированные ДН (например, csc²). Луч выходит зеркально: θ = −θ′.
+        if (!h.feeds || !h.feeds.length) {
+          h.feeds = [{ offset_deg: h.feed_offset_deg || 0, amp: 1, phase_deg: 0 }];
+        }
+        const wrap = el("div", { class: "full" });
+        wrap.appendChild(el("span", { class: "muted" },
+          ["Облучатели (луч выходит зеркально смещению: θ = −θ′)"]));
+        const table = el("table", { class: "layers" });
+        table.appendChild(el("thead", {}, [el("tr", {},
+          ["θ′, °", "ампл.", "фаза, °", ""].map((t) => el("th", {}, [t])))]));
+        const tbody = el("tbody");
+        h.feeds.forEach((f, i) => {
+          const tr = el("tr");
+          [["offset_deg", 0], ["amp", 1], ["phase_deg", 0]].forEach(([key, dflt]) => {
+            const inp = el("input", { type: "number", step: "any",
+              value: f[key] != null ? f[key] : dflt });
+            inp.addEventListener("input", () => {
+              f[key] = parseFloat(inp.value);
+              GT.editor.syncFromState();
+            });
+            tr.appendChild(el("td", {}, [inp]));
+          });
+          const del = el("button", { class: "row-del", title: "Удалить облучатель" }, ["×"]);
+          del.addEventListener("click", () => {
+            if (h.feeds.length > 1) { h.feeds.splice(i, 1); GT.refresh(); }
+            else GT.toast("Нужен хотя бы один облучатель", "error");
+          });
+          tr.appendChild(el("td", {}, [del]));
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        wrap.appendChild(table);
+        const add = el("button", { class: "chip" }, ["＋ облучатель"]);
+        add.addEventListener("click", () => {
+          const last = h.feeds[h.feeds.length - 1] || { offset_deg: 0, amp: 1, phase_deg: 0 };
+          h.feeds.push({ offset_deg: (last.offset_deg || 0) + 10, amp: last.amp || 1,
+            phase_deg: last.phase_deg || 0 });
+          GT.refresh();
+        });
+        wrap.appendChild(add);
+        grid.appendChild(wrap);
       }
     }
 

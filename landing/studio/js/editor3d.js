@@ -168,22 +168,37 @@
       })),
       new THREE.LineBasicMaterial({ color: 0x9aa4ad, transparent: true, opacity: 0.6 }));
     g.add(rim);
-    // точечный облучатель: красный конус на куполе под углом θ′ от нормали, остриём к центру
-    const tp = ((b.hemisphere.feed_offset_deg || 0) * Math.PI) / 180;
-    const dir = new THREE.Vector3(Math.sin(tp), 0, Math.cos(tp));
-    const feed = new THREE.Mesh(
-      new THREE.ConeGeometry(0.06 * r, 0.16 * r, 20),
-      new THREE.MeshStandardMaterial({ color: 0xd23c3c, emissive: 0x551212,
-        metalness: 0.2, roughness: 0.4 }));
-    feed.position.copy(dir.clone().multiplyScalar(1.09 * r));
-    feed.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().negate());
-    g.add(feed);
-    const feedDot = new THREE.Mesh(
-      new THREE.SphereGeometry(0.035 * r, 16, 12),
-      new THREE.MeshStandardMaterial({ color: 0xd23c3c, emissive: 0x551212 }));
-    feedDot.position.copy(dir.clone().multiplyScalar(1.19 * r));
-    g.add(feedDot);
+    // точечные облучатели: красные конусы на куполе под углами θ′ от нормали,
+    // остриями к центру; размер конуса ∝ амплитуде (линейка с весами — csc² и т.п.)
+    const feeds = hemiFeeds(b);
+    const amax = Math.max.apply(null, feeds.map((f) => Math.abs(f.amp != null ? f.amp : 1))) || 1;
+    feeds.forEach((f) => {
+      const amp = Math.abs(f.amp != null ? f.amp : 1);
+      if (amp <= 0) return;
+      const s = 0.45 + 0.55 * (amp / amax);
+      const tp = ((f.offset_deg || 0) * Math.PI) / 180;
+      const dir = new THREE.Vector3(Math.sin(tp), 0, Math.cos(tp));
+      const feed = new THREE.Mesh(
+        new THREE.ConeGeometry(0.06 * r * s, 0.16 * r * s, 20),
+        new THREE.MeshStandardMaterial({ color: 0xd23c3c, emissive: 0x551212,
+          metalness: 0.2, roughness: 0.4 }));
+      feed.position.copy(dir.clone().multiplyScalar((1.03 + 0.06 * s) * r));
+      feed.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().negate());
+      g.add(feed);
+      const feedDot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.035 * r * s, 16, 12),
+        new THREE.MeshStandardMaterial({ color: 0xd23c3c, emissive: 0x551212 }));
+      feedDot.position.copy(dir.clone().multiplyScalar((1.03 + 0.06 * s) * r + 0.1 * r * s));
+      g.add(feedDot);
+    });
     return g;
+  }
+
+  // Линейка облучателей полусферы (fallback — одиночный feed_offset_deg).
+  function hemiFeeds(b) {
+    const h = b.hemisphere || {};
+    if (h.feeds && h.feeds.length) return h.feeds;
+    return [{ offset_deg: h.feed_offset_deg || 0, amp: 1, phase_deg: 0 }];
   }
 
   function syncFromState() {
@@ -226,8 +241,13 @@
       k = [Math.sin(th), 0, Math.cos(th)];
     }
     if (hemi) {
-      // полусфера: освещение со стороны облучателя (θ′ от нормали), волна идёт к линзе
-      const tp = ((hemi.hemisphere.feed_offset_deg || 0) * Math.PI) / 180;
+      // полусфера: освещение со стороны САМОГО СИЛЬНОГО облучателя, волна идёт к линзе
+      const feeds = hemiFeeds(hemi);
+      let best = feeds[0];
+      feeds.forEach((f) => {
+        if (Math.abs(f.amp != null ? f.amp : 1) > Math.abs(best.amp != null ? best.amp : 1)) best = f;
+      });
+      const tp = ((best.offset_deg || 0) * Math.PI) / 180;
       k = [-Math.sin(tp), 0, -Math.cos(tp)];
     }
     const dir = new THREE.Vector3(k[0], k[1], k[2]);
