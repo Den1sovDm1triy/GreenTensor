@@ -68,12 +68,14 @@
     return t;
   }
 
-  // Кривая Ansys HFSS (МКЭ), в дБ, по плоскости: E — красная пунктирная, H — оранжевая точечная.
+  // Эталонная кривая (Ansys HFSS, аналитический закон и т.п.), в дБ, по плоскости:
+  // E — красная пунктирная, H — оранжевая точечная; ref.color/ref.dash — переопределение.
   function refTrace(ref, subplot) {
-    const col = isBW() ? PAL().bwLine : (ref.plane === "H" ? "#ff7f0e" : "#d62728");
+    const col = isBW() ? PAL().bwLine
+      : (ref.color || (ref.plane === "H" ? "#ff7f0e" : "#d62728"));
     const t = { type: "scatterpolar", mode: "lines", name: ref.name,
       theta: ref.theta_deg, r: ref.dB,
-      line: { color: col, width: 2, dash: ref.plane === "H" ? "dot" : "dash" } };
+      line: { color: col, width: 2, dash: ref.dash || (ref.plane === "H" ? "dot" : "dash") } };
     if (subplot) { t.subplot = subplot; t.legendgroup = subplot; }
     return t;
   }

@@ -166,8 +166,8 @@ def _hemisphere_cfg(body):
             ph = float(f.get("phase_deg", 0.0))
         except (TypeError, ValueError, AttributeError):
             raise ComputeError(f"Полусфера: облучатель {i} — некорректные значения.")
-        if not (math.isfinite(off) and abs(off) <= 80.0):
-            raise ComputeError(f"Полусфера: облучатель {i} — смещение θ′ в пределах ±80°.")
+        if not (math.isfinite(off) and abs(off) <= 88.0):
+            raise ComputeError(f"Полусфера: облучатель {i} — смещение θ′ в пределах ±88°.")
         if not (math.isfinite(amp) and 0.0 <= amp <= 100.0):
             raise ComputeError(f"Полусфера: облучатель {i} — амплитуда в пределах 0..100.")
         if not math.isfinite(ph):
