@@ -44,6 +44,13 @@
     if (GT.state.reference && GT.state.reference.length) {   // кривые HFSS в дБ — включаем дБ
       const dbt = GT.$("#db-toggle"); if (dbt) dbt.checked = true;
     }
+    // полусфера на экране: нормаль (θ=0) — вверх, экран — горизонтально
+    const hemi = (p.scene.bodies || []).some((b) => b.hemisphere && b.hemisphere.enabled);
+    const rot = GT.$("#polar-rot");
+    if (rot) {
+      rot.value = hemi ? 90 : 0;
+      const out = GT.$("#polar-rot-val"); if (out) out.textContent = rot.value;
+    }
     GT.state.selected = 0;
     GT.state.results = null;
     GT.refresh();

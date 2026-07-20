@@ -97,6 +97,7 @@
       GT.toast("Готово · ядро: " + (data.meta && data.meta.core || "—"), "ok");
       switchTab("results");
       if (GT.results) GT.results.render();
+      if (GT.editor && GT.editor.syncOverlay) GT.editor.syncOverlay();  // ДН поверх 3D-модели
       return data;
     } catch (e) {
       GT.toast(e.message, "error");

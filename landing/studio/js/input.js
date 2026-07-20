@@ -76,6 +76,23 @@
         (v) => { b.position[i] = isFinite(v) ? v : 0; GT.editor.syncFromState(); }));
     });
 
+    if (b.type === "sphere") {
+      // полусфера на проводящем экране (метод зеркальных изображений)
+      const h = b.hemisphere || (b.hemisphere = { enabled: false, feed_offset_deg: 0 });
+      const chk = el("input", { type: "checkbox" });
+      chk.checked = !!h.enabled;
+      chk.addEventListener("change", () => { h.enabled = chk.checked; GT.refresh(); });
+      grid.appendChild(el("label", { class: "field inline full",
+        title: "Полусферическая линза на бесконечном PEC-экране: расчёт методом " +
+               "зеркальных изображений (отбор гармоник по чётности)" },
+        [chk, el("span", {}, ["Полусфера на PEC-экране"])]));
+      if (h.enabled) {
+        grid.appendChild(numField("Смещение облучателя θ′, °",
+          h.feed_offset_deg != null ? h.feed_offset_deg : 0,
+          (v) => { h.feed_offset_deg = isFinite(v) ? v : 0; GT.editor.syncFromState(); }));
+      }
+    }
+
     if (b.type === "cylinder_inf") {
       // бесконечный цилиндр (2D): падение задаётся углом от оси и поляризацией
       grid.appendChild(numField("Угол падения от оси, °", b.theta_deg != null ? b.theta_deg : 90,

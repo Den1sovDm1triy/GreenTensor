@@ -422,3 +422,8 @@ html[data-theme="light"] {
   color-scheme: light;
 }
 html[data-theme="light"] .brand-mark { box-shadow: 0 0 10px rgba(13,107,138,0.35); }
+
+/* Чекбокс «ДН» в HUD 3D-сцены: наложение диаграммы направленности на модель */
+label.hud-dn { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+label.hud-dn input { margin: 0; accent-color: var(--accent); }
+label.hud-dn:hover { border-color: var(--accent); color: var(--accent); }

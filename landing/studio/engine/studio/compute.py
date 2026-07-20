@@ -16,6 +16,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+import scipy.special as _sp
 
 from .library_bridge import load as _load_library
 
@@ -129,6 +130,96 @@ def _nmax_for(bodies, k):
     """Оценка nmax для GMM по РЕАЛЬНЫМ радиусам сфер (минимум nmax=4, максимум 16)."""
     rmax = max((float(b.get("radius", 0.0)) for b in bodies), default=0.0)
     return int(min(max(math.ceil(k * rmax + 4.0 * (k * rmax) ** (1 / 3) + 2.0), 4), 16))
+
+
+# --------------------------------------------------------------------------- #
+# Полусфера на проводящем экране (метод зеркальных изображений)
+# --------------------------------------------------------------------------- #
+HEMI_N_THETA = 720          # узлов по кругу; сетка сдвинута на полшага (углы ±90° не на узлах)
+
+
+def _hemisphere_cfg(body):
+    """Конфиг полусферы тела или None. {'feed_offset_deg': θ'} — смещение облучателя."""
+    h = body.get("hemisphere") or {}
+    if not h.get("enabled"):
+        return None
+    try:
+        tp = float(h.get("feed_offset_deg", 0.0))
+    except (TypeError, ValueError):
+        raise ComputeError("Полусфера: некорректное смещение облучателя θ′.")
+    if not (math.isfinite(tp) and abs(tp) <= 80.0):
+        raise ComputeError("Полусфера: смещение облучателя θ′ допустимо в пределах ±80°.")
+    return {"feed_offset_deg": tp}
+
+
+def _hemisphere_pattern(body, rad, gt):
+    """ДН полусферической линзы на бесконечном PEC-экране (image theory).
+
+    Полусфера на экране эквивалентна полной сфере + зеркальному образу источника:
+        E_θ(θ) = f_θ(θ−θ′) + f_θ(π−θ−θ′),   E_φ(θ) = f_φ(θ−θ′) − f_φ(π−θ−θ′),
+    где θ′ — смещение облучателя от нормали к экрану, θ — угол наблюдения от
+    нормали (+z), f — комплексная диаграмма полной сферы. Знаки закреплены
+    граничным условием E_tan=0 на экране (E_φ(±90°)≡0 при любом θ′). Комбинация
+    эквивалентна отбору сферических гармоник по чётности: τ_n(π−θ)=(−1)ⁿτ_n(θ),
+    π_n(π−θ)=(−1)ⁿ⁺¹π_n(θ), поэтому TE- и TM-семейства входят с разной чётностью.
+    Смещённый облучатель моделируется наклонным падением плоской волны
+    (взаимность); поворот диаграммы точен благодаря сферической симметрии линзы.
+    Поле определено в верхнем полупространстве |θ|≤90°; ниже экрана тождественно 0.
+    Энергобаланс проверен: мощность зеркального члена в верхней полусфере в
+    точности равна мощности прямого поля, уходившей в нижнюю (P_i_up == P_d_down).
+    """
+    if rad["polarization"] != "linear":
+        raise ComputeError("Полусфера на PEC-экране: поддерживается линейная поляризация.")
+    radius = float(body.get("radius", 1.0))
+    a_norm, eps, mu = _layers(body)
+    tp = math.radians(_hemisphere_cfg(body)["feed_offset_deg"])
+    k = rad["k"]
+    mie = gt.SphereSolver(radius, eps, a_norm=a_norm, miy=mu).mie(k, toch=rad["toch"])
+    Mn, Nn = mie.coefficients()
+    toch = len(Mn)
+    ns = np.arange(1, toch + 1)
+    w = ((2 * ns + 1) / (ns * (ns + 1))) * ((-1.0) ** ns)
+
+    def base(u):
+        """Комплексные f_θ(u), f_φ(u) полной сферы; u — произвольный угол (рад).
+
+        Чётное 2π-периодическое продолжение среза диаграммы через
+        w = arccos(cos u): при переходе через полюс знак присоединённого полинома
+        Лежандра компенсируется переворотом базисных векторов среза, поэтому
+        компоненты продолжаются чётно и «инверсия Лежандра» не нужна.
+        """
+        ww = np.arccos(np.clip(np.cos(np.asarray(u, float)), -1.0, 1.0))
+        ww = np.clip(ww, 1e-4, math.pi - 1e-4)
+        ct, st = np.cos(ww), np.sin(ww)
+        ft = np.zeros(ww.shape, complex)
+        fp = np.zeros(ww.shape, complex)
+        for i in range(toch):
+            n = i + 1
+            L0 = _sp.lpmv(0, n, ct)
+            L1 = _sp.lpmv(1, n, ct)
+            L2 = _sp.lpmv(2, n, ct) if n >= 2 else 0.0
+            pii = L1 / st
+            tay = 0.5 * (L2 - n * (n + 1) * L0)
+            ft = ft + w[i] * (tay * Mn[i] - pii * Nn[i])
+            fp = fp + w[i] * (pii * Mn[i] - tay * Nn[i])
+        return ft, fp
+
+    theta_deg = (np.arange(HEMI_N_THETA) + 0.5) * (360.0 / HEMI_N_THETA)
+    th = np.radians(theta_deg)
+    ft_d, fp_d = base(th - tp)                # прямой (смещённый) облучатель
+    ft_i, fp_i = base(math.pi - th - tp)      # зеркальный образ под экраном
+    upper = np.cos(th) >= 0.0                 # верхнее полупространство |θ| ≤ 90°
+    Et = np.where(upper, ft_d + ft_i, 0.0)    # нормальная компонента: образ с «+»
+    Ep = np.where(upper, fp_d - fp_i, 0.0)    # касательная: образ с «−» (ноль на экране)
+    aEt, aEp = np.abs(Et), np.abs(Ep)
+    ref = max(float(aEt.max()), float(aEp.max())) or 1.0
+    series = [
+        {"name": "E_θ (верт. поляризация)", "E": _finite(aEt), "dB": _finite(_db(aEt, ref))},
+        {"name": "E_φ (гориз. поляризация)", "E": _finite(aEp), "dB": _finite(_db(aEp, ref))},
+    ]
+    return {"theta_deg": _finite(theta_deg), "series": series, "polar": True,
+            "plane": "E/H", "hemisphere": {"feed_offset_deg": math.degrees(tp)},
+            "note": "θ отсчитывается от нормали к экрану; ниже экрана (|θ|>90°) поле = 0"}
 
 
 # --------------------------------------------------------------------------- #
@@ -593,6 +684,23 @@ def compute(scene: dict) -> dict:
     if single_sphere:
         body = bodies[0]
         radius = float(body.get("radius", 1.0))
+        if _hemisphere_cfg(body):
+            # Полусфера на PEC-экране: полупространственная задача, значима ДН.
+            # Интегральные величины полной сферы (сечения, ЭПР, спектр, ближнее
+            # поле плоской волны) к полупространству неприменимы — не выводятся.
+            note = ("Полусфера на PEC-экране: сечения, ЭПР, спектр Q(k) и тепловая "
+                    "карта для полупространственной задачи не выводятся — значима "
+                    "диаграмма направленности.")
+            if do_pattern:
+                out["pattern"] = _hemisphere_pattern(body, rad, gt)
+            out["cross_sections"] = None
+            out["bistatic"] = {"available": False, "note": note}
+            out["monostatic"] = {"available": False, "note": note}
+            out["sweep"] = None
+            out["heatmap"] = None
+            out["meta"]["core"] = "01_sphere + зеркальный образ (полусфера на PEC-экране)"
+            out["meta"]["warnings"].append(note)
+            return out
         if rad["problem"] == "antenna":
             # Задача ИЗЛУЧЕНИЯ (источник на поверхности сферы): значима диаграмма
             # направленности. Сечения рассеяния, ЭПР, свип Q(k) и ближнее поле плоской
