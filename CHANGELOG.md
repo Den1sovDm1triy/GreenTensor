@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.6.1] — 2026-08-14
+
+### Fixed
+- `RCSCalculator` (обе копии ядра: `green_tensor/01_sphere.py`, `green_tensor/calc.py`):
+  переполнение (nan/inf) при экстремальных |ε| ~ 1e8 с большой действительной
+  частью — рекурсия импедансов теряла обусловленность (полная взаимная отмена
+  в масштабированных функциях Бесселя, `term2 -> 0`). Введён PEC-прокси:
+  при |ε| > 2e7 модуль ε ограничивается с сохранением фазы; в этой области
+  результат уже неотличим от предела идеального проводника (< 0,1 %), режимы
+  с |ε| <= 2e7 не затронуты. Тест `test_pec_limit_is_finite_and_correct`
+  проходит; полный набор `tests/run_all.py` — 85/85 ok.
+
 ## [0.6.0] — 2026-08-13
 
 Релиз к статье PIERE-2026 «GreenTensor: An Open-Source Semi-Analytical Solver
@@ -13,6 +25,14 @@ for Electromagnetic Scattering by Multilayer Dielectric Spheres»: в пакет
 включены все модули, которыми получены результаты статьи.
 
 ### Added
+- `green_tensor/feed.py` — перехват мощности облучателя раскрывом (spill-over):
+  `spillover_efficiency(pattern, theta0)` — доля мощности первичного источника
+  в конусе полуугла θ₀ (обобщение η₁ с полусферы на произвольный конус;
+  θ₀ = arcsin(a/d) через `cone_half_angle`), `feed_directivity`, встроенные ДН
+  элемента Гюйгенса и вибратора, поддержка табличных ДН. Верификация:
+  канон η₁^(ЭГ)(π/2) = 7/8 = 0.875, замкнутая форма (8−(1+cos θ₀)³)/8,
+  предел узкого конуса η₁ → D·(1−cos θ₀)/2 (7 тестов в `tests/test_feed.py`,
+  включены в `run_all.py`).
 - `green_tensor/mie_reference.py` — эталонная Ми-реализация (downward-recurrence
   Уискомба--Ду): однородная сфера, PEC-сфера, интегральные сечения, критерий
   усечения Уискомба.

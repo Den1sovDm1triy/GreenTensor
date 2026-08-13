@@ -51,11 +51,12 @@ verifiable analytics.
 """
 from __future__ import annotations
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 
 # Низкоуровневые модули / low-level modules
 from . import (  # noqa: F401
     cylinder,
+    feed,
     gmm,
     mie_reference,
     multilayer_mie,
@@ -87,6 +88,11 @@ from .sphere_anisotropic import (  # noqa: F401
     cross_sections_anisotropic,
     mie_multilayer_anisotropic,
 )
+from .feed import (  # noqa: F401
+    cone_half_angle,
+    feed_directivity,
+    spillover_efficiency,
+)
 
 __all__ = [
     "__version__",
@@ -100,8 +106,10 @@ __all__ = [
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
     # radially-anisotropic multilayer sphere (extension)
     "mie_multilayer_anisotropic", "cross_sections_anisotropic",
+    # feed spill-over (aperture power interception)
+    "spillover_efficiency", "feed_directivity", "cone_half_angle",
     # modules
     "sphere_core", "tmatrix", "scatterer", "vswf", "gmm",
     "cylinder", "solvers", "sphere_anisotropic",
-    "multilayer_mie", "mie_reference",
+    "multilayer_mie", "mie_reference", "feed",
 ]

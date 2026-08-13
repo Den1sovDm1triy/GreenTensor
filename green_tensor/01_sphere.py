@@ -6,6 +6,9 @@ import scipy
 import scipy.special
 import matplotlib.pyplot as plt
 import numpy as np
+
+# Порог PEC-прокси: выше него |eps| клэмпится с сохранением фазы (см. run_calculation)
+_EPS_PEC_PROXY = 2e7
 import matplotlib.ticker as ticker
 from scipy.stats import pearsonr
 
@@ -389,7 +392,16 @@ class RCSCalculator:
         """Выполнение полного расчета"""
         #print('Параметры материалов:')
         #print(f'\na = {self.a}\neps = {self.eps}\nmiy = {self.miy}')
-        
+
+        # PEC-прокси (2026-08-14): при |eps| > _EPS_PEC_PROXY результат уже
+        # неотличим от предела идеального проводника (<0,1 %), а рекурсия
+        # импедансов теряет обусловленность (полная взаимная отмена в
+        # масштабированных функциях Бесселя, term2 -> 0 => nan/inf).
+        # Модуль eps ограничивается с сохранением фазы; на все режимы с
+        # |eps| <= порога клэмп не влияет вовсе.
+        self.eps = [e if abs(e) <= _EPS_PEC_PROXY
+                    else e / abs(e) * _EPS_PEC_PROXY for e in self.eps]
+
         self.calculate_medium_parameters()
         self.calculate_k_coefficients()
         self.calculate_bessel_functions()

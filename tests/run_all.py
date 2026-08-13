@@ -27,6 +27,7 @@ import test_solvers as slv  # noqa: E402
 import test_cylinder_layered as cyl_l  # noqa: E402
 import test_hfss_reference as hfss  # noqa: E402
 import test_multilayer_regression as mreg  # noqa: E402
+import test_feed as feed_t  # noqa: E402
 
 
 def main() -> int:
@@ -109,6 +110,13 @@ def main() -> int:
         ("extinction paradox Q_ext -> 2", mreg.test_extinction_paradox),
         ("Wiscombe truncation convergence", mreg.test_wiscombe_truncation),
         ("PEC coating: double vs mpmath branch", mreg.test_pec_coating_double_vs_mpmath),
+        ("feed: Huygens hemisphere = 0.875 (canon)", feed_t.test_huygens_hemisphere_canon),
+        ("feed: Huygens closed form", feed_t.test_huygens_closed_form),
+        ("feed: dipole hemisphere = 0.5", feed_t.test_dipole_hemisphere),
+        ("feed: eta1 limits & monotonic", feed_t.test_limits),
+        ("feed: small cone measures D", feed_t.test_small_cone_measures_directivity),
+        ("feed: tabulated == callable", feed_t.test_tabulated_pattern_matches_callable),
+        ("feed: cone geometry arcsin(a/d)", feed_t.test_cone_geometry),
     ]
     failures = 0
     for name, fn in suite:

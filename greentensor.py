@@ -31,5 +31,5 @@ References:
 """
 from green_tensor.calc import RCSCalculator, ScatteringCalculator
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 __all__ = ["RCSCalculator", "ScatteringCalculator"]
