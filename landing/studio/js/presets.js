@@ -31,6 +31,21 @@
       sel.appendChild(og);
     });
     sel.addEventListener("change", () => apply(sel.value));
+
+    // Глубокая ссылка: studio.html#preset=<id> (или ?preset=<id>) — авто-применить эталон.
+    // Работает и при переходе с галереи примеров лендинга.
+    applyFromLocation();
+    window.addEventListener("hashchange", applyFromLocation);
+  }
+
+  function applyFromLocation() {
+    const m = (location.hash + " " + location.search).match(/preset=([A-Za-z0-9_]+)/);
+    if (!m) return;
+    const id = m[1];
+    if (!PRESETS.find((x) => x.id === id)) return;
+    const sel = GT.$("#preset-select");
+    if (sel) sel.value = id;
+    apply(id);
   }
 
   function apply(id) {

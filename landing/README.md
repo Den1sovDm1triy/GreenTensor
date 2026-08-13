@@ -1,102 +1,108 @@
-# Landing page для greentenor
+# GreenTensor — веб (лендинг + расчётчик)
 
-Одностраничный сайт о библиотеке **GreenTensor** (расчёт рассеяния ЭМ-волн на многослойных сферах методом тензорных функций Грина).
+Веб-часть библиотеки **GreenTensor** (аналитический расчёт рассеяния ЭМ-волн на
+многослойных сферах, бесконечных цилиндрах и кластерах сфер методом тензорных
+функций Грина). Живёт на **https://greentensor.ru/**.
+
+Полностью статический сайт: HTML + CSS + JS, без сборки и `npm install`. Тяжёлые
+библиотеки (Plotly, Three.js, Pyodide) подгружаются с CDN.
+
+## Страницы
+
+| Файл | Что это |
+|---|---|
+| `index.html` | Витрина: о библиотеке, возможности, валидация против Ansys HFSS, галерея готовых задач, публикации, команда. |
+| `studio.html` | **GreenTensor Studio** — полноценный веб-расчётчик рассеяния (см. ниже). |
+| `solver.html` | Быстрый расчётчик одиночной слоистой сферы (бистатическая ЭПР, свип k₀a). |
+| `guides.html` | Документация и туториалы: постановка задач, соглашения, Python API. |
+
+Тёмная неон-тема по умолчанию + переключатель на светлую «научную» (ключ
+`localStorage.gt-theme` — общий для всех страниц).
+
+## GreenTensor Studio (`studio.html`)
+
+Полный расчётчик, **исполняющий научный движок прямо в браузере** через
+[Pyodide](https://pyodide.org) (CPython + numpy + scipy в WebAssembly) — расчёт
+идёт локально, без бэкенда, данные не покидают компьютер.
+
+Возможности:
+
+- **Геометрии** (точная ТФГ-аналитика): радиально-слоистая **сфера**, бесконечный
+  слоистый **цилиндр**, **кластер невзаимопересекающихся сфер** (GMM, теорема
+  сложения Крузана–Стейна).
+- **3D-редактор сцены** (Three.js): тела, слои (ε′, ε″, μ′, μ″), направление
+  падения и поляризация; наложение рассчитанной диаграммы направленности на модель.
+- **Результаты** (Plotly): диаграмма направленности, бистатическая и моностатическая
+  ЭПР, тепловая карта ближнего поля |E| (с анимацией фазы), сечения рассеяния,
+  спектр Q(k); режим Цвет/Ч-Б, импорт/экспорт CSV, экспорт PNG.
+- **Эталонные задачи** с наложением кривых **Ansys HFSS** (МКЭ) и др.: линза
+  Люнеберга (4/5 слоёв), металлические сферы, металл + диэлектрическое покрытие,
+  линза Максвелла, кластер сфер, а также диссертационные примеры синтеза ДН —
+  csc²-диаграмма на полусфере (ЛЛ на металлическом экране) и MIMO-ЛЛ.
+
+Тепловая карта ближнего поля (самая тяжёлая часть) считается по запросу — кнопкой
+на вкладке «Тепловая карта».
+
+### Глубокие ссылки на эталонные задачи
+
+Любую эталонную задачу можно открыть сразу рассчитанной:
+
+```
+studio.html#preset=<id>
+```
+
+например `studio.html#preset=luneburg4_hfss_eh`. Список `<id>` — в
+`studio/engine/presets.json`. Карточки галереи на `index.html` используют эти ссылки.
 
 ## Структура
 
 ```
 greentenor_landing/
-├── index.html   ← всё в одном файле: HTML + CSS + JS + Three.js-сцена
-└── README.md    ← этот файл
+├── index.html            витрина + галерея примеров
+├── studio.html           GreenTensor Studio (полный расчётчик)
+├── solver.html           быстрый расчётчик сферы
+├── guides.html           документация
+├── app-rcs.js, calc.py   движок быстрого solver.html (Pyodide)
+├── studio/
+│   ├── css/style.css      тема Studio (сшита с лендингом)
+│   ├── js/                app, presets, input, editor3d, results, pybridge
+│   └── engine/            движок для браузера:
+│       ├── green_tensor/  чистый Python-пакет (numpy/scipy)
+│       ├── studio/        compute.py, nearfield_sphere.py, library_bridge.py
+│       ├── presets.json   эталонные задачи (дамп; кривые Ansys HFSS внутри)
+│       ├── manifest.json  список .py для загрузки в ФС Pyodide
+│       └── _source/       presets.py + data + REGEN.md (регенерация presets.json)
+├── diagrams/, favicon*    статика
+└── README.md
 ```
 
-Страница полностью статична. Все зависимости (Three.js r128, Google Fonts) подгружаются по CDN — никакой сборки и `npm install` не требуется.
+`studio/engine/` — тот же пакет `green_tensor`, что и в корне репозитория
+[Den1sovDm1triy/GreenTensor](https://github.com/Den1sovDm1triy/GreenTensor);
+Studio грузит его в виртуальную ФС Pyodide и вызывает `studio.compute.compute(scene)`
+вместо серверного API. matplotlib в браузере не нужен и заглушается.
 
 ## Локальный предпросмотр
 
-Открыть `index.html` двойным кликом — работает, но из-за CORS некоторые браузеры могут не загрузить шрифты при `file://`. Лучше поднять локальный сервер:
-
-```bash
-# Python 3 (есть везде)
-cd greentenor_landing
-python -m http.server 8000
-# открыть http://localhost:8000
-
-# Или Node.js
-npx serve .
-```
-
-## Деплой — варианты по простоте
-
-### Самый простой — Netlify Drop
-
-1. Открыть https://app.netlify.com/drop
-2. Перетащить папку `greentenor_landing` в окно браузера
-3. Получить URL вида `https://random-name.netlify.app` — сразу работает
-4. В настройках сайта → **Domain management** → добавить кастомный домен `greentenor.*` и прописать DNS-записи (Netlify подскажет какие)
-
-### Vercel
-
-```bash
-npm i -g vercel
-cd greentenor_landing
-vercel --prod
-```
-
-Кастомный домен подключается через дашборд (Domains → Add).
-
-### Cloudflare Pages
-
-1. Залить папку в любой Git-репозиторий (GitHub / GitLab)
-2. Cloudflare Pages → Create project → Connect to Git
-3. Build command — оставить пустым, output directory — `/`
-4. Кастомный домен — через **Custom domains** в дашборде
-
-### Surge (минимум кликов)
-
-```bash
-npm i -g surge
-cd greentenor_landing
-surge . greentenor.surge.sh
-```
-
-### Любой обычный shared-хостинг через FTP/SFTP
-
-Папка `greentenor_landing/` — это и есть готовый «document root». Загрузить её содержимое в `public_html/` (или аналог) на хостинге — и сайт работает.
-
-### GitHub Pages
+Нужен http-сервер (Pyodide и загрузка движка не работают по `file://`):
 
 ```bash
 cd greentenor_landing
-git init
-git add .
-git commit -m "init: greentenor landing"
-git branch -M main
-git remote add origin https://github.com/<user>/greentenor.git
-git push -u origin main
+python3 -m http.server 8000
+# открыть http://localhost:8000/studio.html
 ```
 
-В настройках репозитория → **Pages** → выбрать ветку `main`, папка `/ (root)`.
-Подключить домен — через `Custom domain` + добавить файл `CNAME` с содержимым `greentenor.com` (или какой у вас домен).
+## Деплой
 
-## Что нужно изменить под себя
+Сайт статический — подходит любой веб-хостинг или CDN (содержимое
+`greentenor_landing/` — готовый document root). Прод (`greentensor.ru`) обновляется
+из основного репозитория проекта; правки в этой папке зеркалируются сюда, в
+`landing/`, автоматически.
 
-| Что | Где |
-|---|---|
-| Логотип / favicon | в шапке `index.html` (тег `<link rel="icon">` сейчас отсутствует — добавить при необходимости) |
-| Email авторов | секция `<footer>`, ссылки `mailto:` |
-| Ссылки на GitHub | поиск по тексту `Den1sovDm1triy/GreenTensor` |
-| Цветовая палитра | блок `:root` в `<style>`, переменные `--accent`, `--bg`, `--surface` |
-| Метаданные SEO | `<meta name="description">`, `<title>` в `<head>` |
-| Open Graph / Twitter card | сейчас не добавлены — стоит дописать перед публичным деплоем |
+## Регенерация эталонных задач
 
-## Размер и производительность
+`studio/engine/presets.json` — статический дамп. Источник и инструкция —
+`studio/engine/_source/REGEN.md`.
 
-- Один HTML-файл ~28 KB (без сжатия)
-- Three.js с CDN ~600 KB (кэшируется браузером)
-- Шрифты Google Fonts ~50 KB
-- Никаких трекеров, аналитики, кук — добавлять по необходимости
+## Лицензия
 
-## Лицензия контента
-
-Текст и оформление можно использовать как угодно в рамках вашего проекта. Three.js — MIT.
+MIT — наследует лицензию библиотеки GreenTensor.

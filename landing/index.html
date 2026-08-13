@@ -1600,7 +1600,7 @@ plt.show()</code></pre>
             Открыть GreenTensor Studio
           </a>
           <a class="btn btn-ghost" href="solver.html">Быстрый расчётчик (сфера)</a>
-          <a class="btn btn-ghost" href="https://github.com/Den1sovDm1triy/GreenTensor#web-solver" target="_blank" rel="noopener">Документация</a>
+          <a class="btn btn-ghost" href="https://github.com/Den1sovDm1triy/GreenTensor/tree/main/landing" target="_blank" rel="noopener">Документация</a>
         </div>
       </div>
       <div class="solver-cta-meta">
@@ -1611,6 +1611,71 @@ plt.show()</code></pre>
       </div>
     </div>
 
+  </div>
+</section>
+
+<!-- ========== GALLERY (примеры для Studio) ========== -->
+<style>
+#gallery .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-top:8px}
+#gallery .gallery-card{display:flex;flex-direction:column;gap:10px;padding:22px 22px 18px;border:1px solid var(--border);border-radius:16px;background:var(--surface);text-decoration:none;color:inherit;transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+#gallery .gallery-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+#gallery .gc-tag{align-self:flex-start;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--accent);background:var(--accent-dim);border:1px solid var(--border);border-radius:999px;padding:3px 10px}
+#gallery .gallery-card h3{margin:2px 0 0;font-size:18px;color:var(--text)}
+#gallery .gallery-card p{margin:0;color:var(--muted);font-size:14px;line-height:1.5;flex:1}
+#gallery .gc-open{margin-top:6px;font-weight:600;color:var(--accent);font-size:14px}
+#gallery .gallery-hint{color:var(--muted);font-size:14px;margin-top:6px}
+</style>
+<section class="gallery" id="gallery">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Примеры</span>
+      <h2>Готовые задачи в GreenTensor Studio</h2>
+      <p class="gallery-hint">Каждая карточка открывает расчётчик с предзаданной сценой — диаграмма считается в браузере сразу, эталонные кривые (Ansys&nbsp;HFSS, csc-закон) накладываются автоматически.</p>
+    </div>
+    <div class="gallery-grid">
+      <a class="gallery-card reveal" href="studio.html#preset=luneburg4_hfss_eh">
+        <span class="gc-tag">Валидация · HFSS</span>
+        <h3>Линза Люнеберга, 4 слоя</h3>
+        <p>Диаграмма рассеяния аналитики ТФГ, сверенная с расчётом Ansys HFSS (МКЭ) в E- и H-плоскостях.</p>
+        <span class="gc-open">Открыть в Studio →</span>
+      </a>
+      <a class="gallery-card reveal" href="studio.html#preset=hemisphere_csc">
+        <span class="gc-tag">Синтез ДН · ВАК-2021</span>
+        <h3>csc²-диаграмма на полусфере</h3>
+        <p>Линза Люнеберга на металлическом экране (теория изображений), наклонный облучатель θ′=83°; эталоны — идеальный csc-закон и HFSS для экрана d=8λ.</p>
+        <span class="gc-open">Открыть в Studio →</span>
+      </a>
+      <a class="gallery-card reveal" href="studio.html#preset=sphere_csc_mimo">
+        <span class="gc-tag">MIMO</span>
+        <h3>MIMO-ЛЛ: csc² группой облучателей</h3>
+        <p>Многолучевая линза Люнеберга с амплитудно-фазовым распределением питания по группе облучателей.</p>
+        <span class="gc-open">Открыть в Studio →</span>
+      </a>
+      <a class="gallery-card reveal" href="studio.html#preset=metal_coated_hfss">
+        <span class="gc-tag">РПМ · ЭПР</span>
+        <h3>Металл + диэлектрическое покрытие</h3>
+        <p>ЭПР проводящей сферы с диэлектрическим укрытием; сравнение с эталоном Ansys HFSS.</p>
+        <span class="gc-open">Открыть в Studio →</span>
+      </a>
+      <a class="gallery-card reveal" href="studio.html#preset=maxwell7">
+        <span class="gc-tag">Градиентные линзы</span>
+        <h3>Линза Максвелла «рыбий глаз»</h3>
+        <p>Градиентная фокусирующая линза, 7-слойная аппроксимация профиля показателя преломления.</p>
+        <span class="gc-open">Открыть в Studio →</span>
+      </a>
+      <a class="gallery-card reveal" href="studio.html#preset=two_spheres_gmm">
+        <span class="gc-tag">Кластеры · GMM</span>
+        <h3>Кластер двух сфер</h3>
+        <p>Строгая суперпозиция по теореме сложения Крузана–Стейна: диаграмма и тепловая карта ближнего поля |E|.</p>
+        <span class="gc-open">Открыть в Studio →</span>
+      </a>
+      <a class="gallery-card reveal" href="studio.html#preset=cylinder_inf_coated">
+        <span class="gc-tag">Цилиндр · ТФГ</span>
+        <h3>Бесконечный слоистый цилиндр</h3>
+        <p>Точная 2D-аналитика тензорных функций Грина: эффективности TM/TE и азимутальная диаграмма.</p>
+        <span class="gc-open">Открыть в Studio →</span>
+      </a>
+    </div>
   </div>
 </section>
 

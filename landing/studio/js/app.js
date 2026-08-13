@@ -69,14 +69,25 @@
   // ----- Расчёт ----- //
   GT.compute = async function (opts) {
     const o = opts || {};
+    // Тепловая карта ближнего поля — самая дорогая часть (сетка |E| по узлам), поэтому
+    // по умолчанию НЕ считается: диаграмма/сечения/ЭПР появляются за секунды, а карта
+    // считается по запросу (кнопкой на вкладке «Тепловая карта»). Явно heatmap:true — считаем.
     const want = Object.assign(
-      { pattern: true, heatmap: true, sweep: false, heatmap_res: GT.state.heatRes }, o);
+      { pattern: true, heatmap: false, sweep: false, heatmap_res: GT.state.heatRes }, o);
     const payload = Object.assign({}, GT.state.scene, { compute: want });
     const busyText = o.monostatic ? "Моностатическая ЭПР (развёртка ракурса)…"
-      : o.merge ? "Пересчёт карты…" : (want.sweep ? "Свип спектра…" : "Расчёт…");
+      : (want.heatmap && !want.pattern) ? "Тепловая карта ближнего поля…"
+      : o.merge ? "Пересчёт…" : (want.sweep ? "Свип спектра…" : "Расчёт…");
     // Движок считается в браузере (Pyodide). Пока он грузится — покажем это в статусе.
-    if (GT.py && !GT.py.isReady()) GT.busy(true, "Инициализация движка (Pyodide)…");
-    else GT.busy(true, busyText);
+    const booting = GT.py && !GT.py.isReady();
+    GT.busy(true, booting ? "Инициализация движка (Pyodide)…" : busyText);
+    // Таймер прошедших секунд — чтобы долгий расчёт (кластер/MIMO) не казался зависшим.
+    const t0 = Date.now();
+    const baseText = booting ? "Инициализация движка (Pyodide)…" : busyText;
+    const tick = setInterval(function () {
+      const s = Math.round((Date.now() - t0) / 1000);
+      if (s >= 2) GT.busy(true, baseText + "  (" + s + " с)");
+    }, 1000);
     try {
       const data = await GT.py.compute(payload);
       if (data.error) throw new Error(data.error);
@@ -103,6 +114,7 @@
       GT.toast(e.message, "error");
       return null;
     } finally {
+      clearInterval(tick);
       GT.busy(false);
     }
   };

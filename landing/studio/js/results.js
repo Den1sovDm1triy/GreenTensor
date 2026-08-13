@@ -166,14 +166,26 @@
   function renderHeatmap() {
     const res = GT.state.results;
     const host = GT.$("#plot");
-    if (res && !res.heatmap) {                       // расчёт есть, но поля нет (напр. беск. цилиндр)
+    if (!res) return showEmpty(true);
+    // Карта считается ПО ЗАПРОСУ (тяжёлая часть). Ключ отсутствует → ещё не считали: кнопка.
+    if (!("heatmap" in res)) {
+      showEmpty(true);
+      GT.$("#plot-empty").innerHTML =
+        "Тепловая карта ближнего поля считается отдельно (самая тяжёлая часть расчёта — " +
+        "сетка |E| по узлам). " +
+        '<button class="btn" id="hm-go" type="button">Рассчитать тепловую карту</button>';
+      const b = GT.$("#hm-go");
+      if (b) b.onclick = () => GT.compute({ pattern: false, cross: false, sweep: false,
+        heatmap: true, merge: true });
+      return;
+    }
+    if (!res.heatmap) {                              // null → поля нет для этой задачи
       showEmpty(true);
       GT.$("#plot-empty").innerHTML =
         "Тепловая карта недоступна для этой задачи: решатель не даёт ближнее поле " +
         "(2D-цилиндр, полусфера на экране). Используйте «Диаграмма (ДН)» и другие вкладки.";
       return;
     }
-    if (!res || !res.heatmap) return showEmpty(true);
     showEmpty(false);
     const hm = res.heatmap;
     const mx = fieldMax(hm.absE);                 // нормировка на максимум поля
