@@ -9,7 +9,7 @@ _EPS_PEC_PROXY = 2e7
 import matplotlib.ticker as ticker
 
 class RCSCalculator:
-    def __init__(self, k0=0.5, toch=10, n=3, phi=math.pi/2, a=None, eps=None, miy=None):
+    def __init__(self, k0=0.5, toch=10, n=3, phi=math.pi/2, a=None, eps=None, miy=None, n_max=None):
         """
         Инициализация калькулятора RCS
         
@@ -19,7 +19,10 @@ class RCSCalculator:
         n - число слоев (последний слой - воздух)
         phi - азимутальный угол (по умолчанию pi)
         a, eps, miy - параметры слоев (радиусы, диэлектрические проницаемости, магнитные проницаемости)
+        toch имеет английский алиас n_max
         """
+        if n_max is not None:
+            toch = n_max
         self.k0 = k0
         self.toch = toch
         self.n = n
@@ -434,7 +437,7 @@ class RCSCalculator:
 
 
 class ScatteringCalculator:
-    def __init__(self, toch=10, k0a_start=0.25, k0a_stop=5.0, k0a_step=0.05):
+    def __init__(self, toch=10, k0a_start=0.25, k0a_stop=5.0, k0a_step=0.05, n_max=None):
         """
         Параметры:
             toch: количество членов в разложении
@@ -442,6 +445,8 @@ class ScatteringCalculator:
             k0a_stop: конечное значение k0a
             k0a_step: шаг изменения k0a
         """
+        if n_max is not None:  # английский алиас параметра toch
+            toch = n_max
         self.toch = toch
         self.k0a_start = k0a_start
         self.k0a_stop = k0a_stop

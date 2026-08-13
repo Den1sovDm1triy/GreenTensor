@@ -6,7 +6,39 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.6.2] — 2026-08-14
+
+### Added
+- Кросс-чек с независимым open-source кодом **scattnlay** (Peña & Pal, CPC 2009):
+  `tests/test_multilayer_regression.py::test_cross_check_scattnlay` — N-слойные
+  сферы (L = 3, 8), согласие Q_sca/Q_back ≤ 1e-12; опциональная зависимость,
+  тест пропускается без scattnlay. Внимание: нормировка сечений — на внешнюю
+  границу структуры x_L (несогласованная нормировка даёт ложные ~%-е
+  расхождения (x_a/x_L)²).
+- Английский алиас **`n_max`** для параметра `toch` в `RCSCalculator` и
+  `ScatteringCalculator` (обе копии ядра; `toch` сохранён для совместимости).
+
+### Fixed
+- `pyproject.toml`/`requirements.txt`: минимум NumPy снижен до `>=1.25` —
+  полный тестовый набор подтверждён на NumPy 1.25.2 (среда результатов
+  статьи PIERE-2026); прежний пин `>=1.26` противоречил заявленной среде.
+
 ## [0.6.1] — 2026-08-14
+
+### Added
+- `green_tensor/feed.py` — перехват мощности облучателя раскрывом (spill-over):
+  `spillover_efficiency(pattern, theta0)` — доля мощности первичного источника
+  в конусе полуугла θ₀ (обобщение η₁ с полусферы на произвольный конус;
+  θ₀ = arcsin(a/d) через `cone_half_angle`), `feed_directivity`, встроенные ДН
+  элемента Гюйгенса и вибратора, поддержка табличных ДН. Верификация:
+  канон η₁^(ЭГ)(π/2) = 7/8 = 0.875, замкнутая форма (8−(1+cos θ₀)³)/8,
+  предел узкого конуса η₁ → D·(1−cos θ₀)/2 (7 тестов в `tests/test_feed.py`,
+  включены в `run_all.py`).
+- `examples/Example 9 - Feed Spillover Efficiency` — таблица и график η₁(θ₀)
+  для элемента Гюйгенса и вибратора с отмеченным каноном 0.875 и точкой
+  конуса 5° (d/a ≈ 11.5). Тот же расчёт добавлен в GreenTensor Studio —
+  эталонная задача «Раскрыв облучателя (spill-over η₁)» (greentensor.ru/studio.html,
+  deeplink `#preset=feed_spillover`).
 
 ### Fixed
 - `RCSCalculator` (обе копии ядра: `green_tensor/01_sphere.py`, `green_tensor/calc.py`):
@@ -25,14 +57,6 @@ for Electromagnetic Scattering by Multilayer Dielectric Spheres»: в пакет
 включены все модули, которыми получены результаты статьи.
 
 ### Added
-- `green_tensor/feed.py` — перехват мощности облучателя раскрывом (spill-over):
-  `spillover_efficiency(pattern, theta0)` — доля мощности первичного источника
-  в конусе полуугла θ₀ (обобщение η₁ с полусферы на произвольный конус;
-  θ₀ = arcsin(a/d) через `cone_half_angle`), `feed_directivity`, встроенные ДН
-  элемента Гюйгенса и вибратора, поддержка табличных ДН. Верификация:
-  канон η₁^(ЭГ)(π/2) = 7/8 = 0.875, замкнутая форма (8−(1+cos θ₀)³)/8,
-  предел узкого конуса η₁ → D·(1−cos θ₀)/2 (7 тестов в `tests/test_feed.py`,
-  включены в `run_all.py`).
 - `green_tensor/mie_reference.py` — эталонная Ми-реализация (downward-recurrence
   Уискомба--Ду): однородная сфера, PEC-сфера, интегральные сечения, критерий
   усечения Уискомба.

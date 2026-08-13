@@ -110,6 +110,7 @@ def main() -> int:
         ("extinction paradox Q_ext -> 2", mreg.test_extinction_paradox),
         ("Wiscombe truncation convergence", mreg.test_wiscombe_truncation),
         ("PEC coating: double vs mpmath branch", mreg.test_pec_coating_double_vs_mpmath),
+        ("multilayer cross-check vs scattnlay", mreg.test_cross_check_scattnlay),
         ("feed: Huygens hemisphere = 0.875 (canon)", feed_t.test_huygens_hemisphere_canon),
         ("feed: Huygens closed form", feed_t.test_huygens_closed_form),
         ("feed: dipole hemisphere = 0.5", feed_t.test_dipole_hemisphere),

@@ -130,6 +130,30 @@ def test_pec_coating_double_vs_mpmath():
     assert err < 1e-9, f"double vs mpmath: {err:.3e}"
 
 
+def test_cross_check_scattnlay():
+    """N-слойная сверка с независимым open-source кодом scattnlay (<= 1e-12).
+
+    Опциональная зависимость: пропускается, если scattnlay не установлен.
+    ВАЖНО: нормировка сечений — на внешнюю границу слоистой структуры x_L
+    (у scattnlay всегда так; несогласованная нормировка даёт ложные ~%-е
+    расхождения (x_a/x_L)^2)."""
+    try:
+        from scattnlay import scattnlay as snl
+    except ImportError:
+        print("  (scattnlay не установлен — пропуск кросс-чека)")
+        return
+    rng = np.random.default_rng(7)
+    for L in (3, 8):
+        x = np.sort(rng.uniform(1, 12, L)); x[-1] = 12.0
+        m = rng.uniform(1.1, 1.9, L)
+        _, _, Qs_ref, _, Qb_ref, *_ = snl(np.array([x]), np.array([m], dtype=complex))
+        n_max = wiscombe_nmax(float(m.max()) * x[-1]) + 8
+        a_n, b_n = mie_multilayer(1.0, list(x), list(m**2), [1.0] * L, n_max)
+        qs, _, qb = cross_sections(a_n, b_n, x[-1])
+        assert abs(Qs_ref[0] - qs) / qs < 1e-12, f"L={L}: Qsca vs scattnlay"
+        assert abs(Qb_ref[0] - qb) / abs(qb) < 1e-11, f"L={L}: Qback vs scattnlay"
+
+
 ALL_TESTS = [
     test_reg1_homogeneous_bh_and_kerker,
     test_reg2_subdivision_invariance,
@@ -137,6 +161,7 @@ ALL_TESTS = [
     test_extinction_paradox,
     test_wiscombe_truncation,
     test_pec_coating_double_vs_mpmath,
+    test_cross_check_scattnlay,
 ]
 
 if __name__ == "__main__":
