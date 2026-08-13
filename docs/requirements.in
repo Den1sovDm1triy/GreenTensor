@@ -1,2 +1,2 @@
-Sphinx>=5,<6
-sphinx_rtd_theme
+sphinx>=7
+sphinx-rtd-theme>=2

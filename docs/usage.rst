@@ -1,3 +1,5 @@
+.. SPDX-License-Identifier: MIT
+
 Usage
 =====
 
@@ -6,123 +8,109 @@ Usage
 Installation
 ------------
 
-Clone the repository and install the dependencies:
+.. code-block:: console
 
-.. code-block:: bash
+   $ pip install .            # from a checkout
+   $ pip install ".[docs]"    # + Sphinx docs
+   $ pip install ".[dev]"     # + pytest, coverage
 
-   git clone https://github.com/Den1sovDm1triy/GreenTensor.git
-   cd GreenTensor
-   pip install -r requirements.txt
+Requires Python ≥ 3.9 with NumPy, SciPy, Matplotlib. The distribution is named
+``greentensor``; the import package is ``green_tensor``.
 
-GreenTensor requires **Python 3.9 or newer**. The runtime dependencies
-are NumPy, SciPy and Matplotlib.
+Conventions
+-----------
 
-To verify the installation, run a one-line import test:
-
-.. code-block:: bash
-
-   python -c "from greentensor import RCSCalculator, ScatteringCalculator; print('OK')"
-
+- Time dependence :math:`e^{-i\omega t}`; outgoing waves :math:`\sim h_n^{(1)}`.
+- Vacuum host medium (:math:`\varepsilon_m = 1` unless ``eps_m`` is given).
+- ``k`` is the wavenumber in the host; the size parameter is :math:`x = k\,R`.
+- ``Im(eps) > 0`` denotes absorption; ``a_norm`` are layer-boundary radii
+  normalized so the outer radius is 1.
 
 Quick start
 -----------
 
-GreenTensor exposes two main classes from the public entry point
-``greentensor``:
-
-* :class:`green_tensor.calc.RCSCalculator` — single-frequency analysis of
-  bistatic radar cross-section (RCS) for a multilayer sphere.
-* :class:`green_tensor.calc.ScatteringCalculator` — parametric sweep of
-  integrated cross-sections over the electrical size :math:`k_0 a`.
-
-Single-frequency RCS calculation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Compute the bistatic RCS pattern of a four-layer Luneburg lens at
-:math:`k_0 a = 2\pi` (i.e. :math:`a = \lambda`):
+Layered sphere (exact core)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-   from greentensor import RCSCalculator
-   import math
+   import green_tensor as gt
 
-   calc = RCSCalculator(
-       k0=2 * math.pi,
-       toch=10,                     # series truncation
-       n=4,                         # number of layers (last = air)
-       a=[0.25, 0.5, 0.75, 1.0],    # normalized layer radii
-       eps=[1.94, 1.75, 1.44, 1.0], # eps_r per layer
-       miy=[1, 1, 1, 1],            # mu_r per layer
-   )
-   calc.run_calculation()
-   calc.plot_results()              # 4-panel matplotlib figure
+   # one-line facade: cross sections normalized to πR²
+   gt.solve_sphere(radius=1.0, eps=[2.25], k=3.0)
+   # -> {'q_sca': ..., 'q_ext': ..., 'q_abs': ..., 'q_back': ...}
 
-After ``run_calculation()`` the following arrays are populated on the
-calculator instance:
+   # object API
+   sphere = gt.SphereSolver(radius=1.0, eps=[2.25])
+   sphere.cross_sections(k=3.0)
+   T = sphere.t_matrix(k=3.0)          # DiagonalTMatrix in the VSWF basis
+   diagram = sphere.pattern(k=3.0)     # scattering diagram (linear/circular)
 
-* ``Mn``, ``Nn`` — modal coefficients :math:`M_n,\,N_n`
-* ``E_op``, ``E_kp`` — main and cross polarization (circular case)
-* ``E_teta``, ``E_phi`` — field components (linear case)
-* ``DN_NORM_lin_dB_*``, ``DN_NORM_circle_dB_*`` — normalized patterns in dB
+   # multilayer + absorption + magnetic layers
+   gt.SphereSolver(radius=1.0, eps=[4 + 0.5j, 2.25],
+                   a_norm=[0.5, 1.0], miy=[1.0, 1.0]).cross_sections(k=2.0)
 
-Parametric sweep over electrical size
+Infinite cylinder (exact 2-D)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   # homogeneous
+   gt.solve_cylinder(radius=1.0, eps=4.0, k=2.0, mode="TM")   # or mode="TE"
+
+   # radially layered (TGF), normal incidence
+   gt.solve_layered_cylinder(radius=1.0, eps=[4 + 0.5j, 2.0], mu=[1, 1],
+                             a_norm=[0.6, 1.0], k=2.0, mode="TM")
+
+   # oblique incidence (theta measured from the cylinder axis; couples polarizations)
+   import numpy as np
+   gt.solve_layered_cylinder(radius=1.0, eps=[4 + 0.5j, 2.0], a_norm=[0.6, 1.0],
+                             k=2.0, theta=np.deg2rad(45))
+   # per-harmonic co/cross-polarized coefficients:
+   gt.LayeredCylinderSolver(1.0, [4 + 0.5j, 2.0], a_norm=[0.6, 1.0]) \
+     .coeff_oblique(k=2.0, theta=np.deg2rad(45), n=1)   # -> (A_E, A_H)
+
+Clusters and complex geometry (GMM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Compute the integrated scattering cross-section :math:`\sigma_s(k_0 a)`
-and the radar cross-section :math:`\sigma_r(k_0 a)` for a default sphere:
+.. code-block:: python
+
+   # two coupled spheres
+   s1 = gt.SphereSolver(0.5, [2.25], position=(-1, 0, 0)).as_scatterer()
+   s2 = gt.SphereSolver(0.5, [2.25], position=(+1, 0, 0)).as_scatterer()
+   cluster = gt.Cluster([s1, s2])
+   cluster.cross_sections(k=3.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=6)
+   a, c, d = cluster.solve(k=3.0, khat=(0, 0, 1), pol=(1, 0, 0), nmax=6)
+
+   # a multi-sphere chain (circumscribing spheres must not overlap)
+   spheres = [gt.SphereSolver(0.5, [2.25], position=(0, 0, z)).as_scatterer()
+              for z in (-1.5, 0.0, 1.5)]
+   gt.Cluster(spheres).cross_sections(k=3.0, khat=(1, 0, 0), pol=(0, 0, 1), nmax=6)
+
+Out-of-scope (honest) branches
+------------------------------
+
+Non-separable geometries with no exact closed-form solution are out of scope and
+raise :class:`NotImplementedError` rather than returning an unverified stub — e.g.
+the finite cylinder:
 
 .. code-block:: python
 
-   from greentensor import ScatteringCalculator
-   import matplotlib.pyplot as plt
+   gt.CylinderSolver(1, 2.0).finite()   # raises NotImplementedError (use the infinite cylinder)
 
-   sweep = ScatteringCalculator(
-       toch=15,
-       k0a_start=0.25,
-       k0a_stop=10.0,
-       k0a_step=0.05,
-   )
-   k0a, sigma_s, sigma_r, sigma_p, sigma_theta, sigma_phi = sweep.calculate()
-   sweep.plot_results()
+Running the tests
+-----------------
 
+.. code-block:: console
 
-Reference datasets
-------------------
+   $ python3 tests/run_all.py     # self-contained, no pytest required
+   $ pytest tests/                # equivalent
 
-The file ``green_tensor/examples.json`` ships canonical parameter sets
-together with reference scattering patterns produced in Ansys HFSS:
+Browser front-end
+-----------------
 
-* ``DN_NORM1`` — Luneburg lens in vacuum, 5 equispaced layers, :math:`k_0 a = 10\pi`.
-* ``DN_NORM4`` — metallic spheres of 2 and 5 homogeneous shells, :math:`k_0 a = 4\pi`.
-* ``DN_NORM5`` — metallic sphere with a dielectric coating, :math:`k_0 a = 4\pi`.
+A small web UI for the layered-sphere core lives in ``webapp/``:
 
-Worked examples are in the ``examples/`` folder:
+.. code-block:: console
 
-* ``examples/Example 1 — Luneburg Lens Bistatic RCS`` reproduces Fig. 11
-  of Greenwood & Jin (1999).
-* ``examples/Example 2 — Luneburg Lens Scattering Diagram`` provides a
-  ready-to-open Ansys Electronics Desktop project
-  (``LuneburgLens_Layer4_ravnoshagApprox.aedtz``) and CSV exports of the
-  HFSS pattern (``Ephi=0_from_HFSS.csv``, ``Ephi=90_from_HFSS.csv``) for
-  side-by-side validation against GreenTensor.
-* ``examples/Example 3 — Luneburg Lens for UAV Scattering Diagram``
-  computes the diagram for a UAV-borne Luneburg reflector.
-
-
-References
-----------
-
-#. Panchenko B.A. *Scattering and Absorption of Electromagnetic Waves by
-   Inhomogeneous Spherical Bodies.* Moscow: Radiotekhnika, 2013.
-#. Denisov D.V. *Antenna and Diffraction Characteristics of Luneburg
-   Lenses under Circular Polarization.* PhD thesis, NNGTU, 2015.
-#. Denisov D.V., Skumatenko I.O., Fadeev V.O., Shesterov M.A.
-   *GreenTensor Electromagnetic Library for Calculate Scattering on
-   Multilayer Spherical Structures.* IEEE EDM 2024,
-   `DOI 10.1109/EDM61683.2024.10615009
-   <https://doi.org/10.1109/EDM61683.2024.10615009>`_.
-#. Denisov D.V., Skumatenko I.O., Shesterov M.A. *GreenTensor
-   Electromagnetic Library for Calculating Scattering Patterns on a
-   Human Head Model.* IEEE USBEREIT 2024,
-   `DOI 10.1109/USBEREIT61901.2024.10584060
-   <https://doi.org/10.1109/USBEREIT61901.2024.10584060>`_.
+   $ python3 webapp/server.py

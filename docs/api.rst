@@ -1,46 +1,43 @@
+.. SPDX-License-Identifier: MIT
+
 API Reference
 =============
 
-GreenTensor exposes a class-based API in :mod:`green_tensor.calc`. The
-public entry point :mod:`greentensor` re-exports the two main classes for
-convenience.
+Полный справочник по модулям пакета :mod:`green_tensor` (автодокументация из
+докстрингов). / Full module reference for the :mod:`green_tensor` package
+(auto-generated from docstrings).
 
-Public entry point
-------------------
+Package overview
+----------------
 
-.. automodule:: greentensor
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. automodule:: green_tensor
+   :no-members:
 
-Class-based API (single-frequency RCS, parametric sweep)
---------------------------------------------------------
+Public solvers
+--------------
 
-.. automodule:: green_tensor.calc
-   :members: RCSCalculator, ScatteringCalculator
-   :undoc-members:
-   :show-inheritance:
+.. automodule:: green_tensor.solvers
 
+Core — layered sphere (Mie / TFG)
+---------------------------------
 
-Legacy monolithic scripts
--------------------------
+.. automodule:: green_tensor.sphere_core
 
-The following scripts in :mod:`green_tensor` are preserved as historical
-references — they were the source from which the class-based API in
-``calc.py`` was refactored. New user code should prefer
-:class:`green_tensor.calc.RCSCalculator` and
-:class:`green_tensor.calc.ScatteringCalculator`.
+.. automodule:: green_tensor.tmatrix
 
-* ``green_tensor.lin_polar`` — diffraction at linear polarization,
-  superseded by :class:`RCSCalculator`.
-* ``green_tensor.Bistatic_RCS_lin_polar`` — bistatic RCS, linear polarization.
-* ``green_tensor.Bistatic_RCS_lin_circle_polar`` (file is named
-  ``Bistatic_RCS_lin+circle_polar.py``) — bistatic RCS, both polarizations.
+.. automodule:: green_tensor.scatterer
 
+Vector spherical wave functions & translation
+----------------------------------------------
 
-Reference datasets
-------------------
+.. automodule:: green_tensor.vswf
 
-``green_tensor/examples.json`` is a multi-document JSON file with parameter
-sets and reference scattering patterns from Ansys HFSS. See
-:doc:`usage` for description of the available reference cases.
+Sphere-cluster assembly (GMM)
+-----------------------------
+
+.. automodule:: green_tensor.gmm
+
+Infinite cylinder (exact 2D analytics / TGF)
+--------------------------------------------
+
+.. automodule:: green_tensor.cylinder

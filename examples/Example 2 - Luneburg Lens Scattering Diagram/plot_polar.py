@@ -1,11 +1,15 @@
+# SPDX-License-Identifier: MIT
+
 #DATA FROM HFSS // need upload Ephi=0.csv
 #########################################
 
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 import os
 
-# Загружаем данные из файла
-file_path = "/content/Ephi=0.csv"
+# Загружаем данные из файла — положите CSV рядом со скриптом
+file_path = "Ephi=0_from_HFSS.csv"
 print(os.path.exists(file_path))  # Проверяем, существует ли файл
 
 df = pd.read_csv(file_path)
