@@ -53,7 +53,7 @@ All notable changes to this project are documented here. The format is based on
 ## [0.6.0] — 2026-08-13
 
 Релиз к статье PIERE-2026 «GreenTensor: An Open-Source Semi-Analytical Solver
-for Electromagnetic Scattering by Multilayer Dielectric Spheres»: в пакет
+for Electromagnetic Scattering by Multilayer Dielectric Structures»: в пакет
 включены все модули, которыми получены результаты статьи.
 
 ### Added
