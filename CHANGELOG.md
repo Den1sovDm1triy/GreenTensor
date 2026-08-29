@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Открытые датасеты** — `DATASETS.md`: единая витрина двух наборов, посчитанных
+  библиотекой (`LL-Surrogate-6000` — прямая задача, линза Люнеберга;
+  `RPM-Inverse-6000` — обратная задача, идентификация покрытия): схемы, диапазоны,
+  опорные метрики, рецепт проверки, ссылки на репозитории. Раздел
+  «Open datasets» добавлен в `README.rst`.
+- **Example 10 — NN Coating Parameter Identification**: прямой отклик покрытой
+  PEC-сферы и постановка обратной задачи «спектр → параметры».
+- **Example 11 — NN Luneburg Lens Surrogate**: прямая карта «профиль → сечения»
+  как задача для сети-суррогата.
+- **Example 12 — Open Datasets**: экскурсия по обоим датасетам — состав, диапазоны
+  и **проверка меток пересчётом** (линза — через `MieSphere` этой библиотеки,
+  покрытие — через решатель из самого датасета; совпадение до ~1e-14). Датасеты
+  ищутся по `GT_LL_DATASET` / `GT_RPM_DATASET`, в текущей папке и рядом с
+  репозиторием; ничего не скачивает.
+
 ## [0.6.2] — 2026-08-14
 
 ### Added

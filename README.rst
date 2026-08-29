@@ -46,6 +46,42 @@ Features
   numerical methods (EBCM for edged bodies, Rayleigh quasi-statics, sphere-packing
   decomposition) are not included.
 
+Open datasets
+-------------
+
+Two open benchmark datasets are generated with this library — the same physics
+taken in both directions:
+
+- **LL-Surrogate-6000** — forward (surrogate) map of a four-layer Luneburg lens:
+  ``k0a, eps1..eps4`` → ``Q_sca``, ``log10 Q_back``; 6000 rows, labels from
+  ``green_tensor.sphere_core.MieSphere``.
+  `luneburg-lens-nn-dataset <https://github.com/Den1sovDm1triy/luneburg-lens-nn-dataset>`_
+- **RPM-Inverse-6000** — inverse identification of a magnetodielectric coating on
+  a PEC sphere: a 32-point back-scattering spectrum → ``t/R``, ``eps'``, ``eps''``,
+  ``mu'``, ``mu''``; 6000 rows, self-contained solver bundled.
+  `rpm-coating-inverse-dataset <https://github.com/Den1sovDm1triy/rpm-coating-inverse-dataset>`_
+
+.. figure:: https://raw.githubusercontent.com/Den1sovDm1triy/luneburg-lens-nn-dataset/main/figures/gt-surrogate-parity.png
+   :width: 100%
+   :alt: Surrogate predictions against GreenTensor labels
+   :target: https://github.com/Den1sovDm1triy/luneburg-lens-nn-dataset
+
+   LL-Surrogate-6000 — a plain MLP against the GreenTensor labels: ``R² = 0.992``
+   for ``Q_sca``, ``0.804`` for the deliberately sharp ``log10 Q_back``.
+
+.. figure:: https://raw.githubusercontent.com/Den1sovDm1triy/rpm-coating-inverse-dataset/main/figures/spectra-examples.png
+   :width: 100%
+   :alt: Back-scattering spectra of a bare PEC sphere and three coatings
+   :target: https://github.com/Den1sovDm1triy/rpm-coating-inverse-dataset
+
+   RPM-Inverse-6000 — the input signal: back-scattering of a bare PEC sphere
+   against three coating types; the network reads exactly this reshaping.
+
+Both are MIT-licensed, fixed-seed reproducible and ship reference models,
+robustness scripts and figures. Overview, schemas and verification recipe:
+`DATASETS.md <DATASETS.md>`_; a runnable tour is
+``examples/Example 12 - Open Datasets``.
+
 Installation
 ------------
 
