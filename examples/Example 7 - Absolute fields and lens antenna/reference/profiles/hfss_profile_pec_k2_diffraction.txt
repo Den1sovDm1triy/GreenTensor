@@ -1,0 +1,6 @@
+# HFSS FEM profile — pec_k2_diffraction
+tag: pec_k2_diffraction
+k0a: 2.0
+mode: diffraction
+peak_memory_MB: 392.0
+tetrahedra: 5839

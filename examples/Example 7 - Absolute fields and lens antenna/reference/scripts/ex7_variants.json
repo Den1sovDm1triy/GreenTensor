@@ -1,0 +1,437 @@
+{
+  "description": "Example 7 (см. ../MODELS.md): абсолютные поля. 3 тела × 3 размера × 2 режима. θ=0 — рассеяние вперёд (k=-z), θ=180 — обратное. Всё в АБСОЛЮТЕ (В/м, В), без нормировки.",
+  "frequency_Hz": 10000000000.0,
+  "k0_rad_m": 209.5845,
+  "lambda0_mm": 29.979246,
+  "obs_r_m": 10.0,
+  "incident_E0_Vm": 1.0,
+  "antenna": {
+    "current_A": 1.0,
+    "dipole_len_mm": 0.599585,
+    "Z0_ohm": 376.730313,
+    "E0_at_1m_Vm": 3.768,
+    "E0_at_10m_Vm": 0.3768
+  },
+  "sizes": [
+    {
+      "tag": "k0p5",
+      "k0a": 0.5,
+      "a_mm": 2.3857
+    },
+    {
+      "tag": "k2",
+      "k0a": 2.0,
+      "a_mm": 9.5427
+    },
+    {
+      "tag": "k15",
+      "k0a": 15.0,
+      "a_mm": 71.5702
+    }
+  ],
+  "materials": {
+    "PTFE_radome": {
+      "kind": "dielectric",
+      "eps_re": 2.1,
+      "tand_e": 0.00019
+    },
+    "lens_eps4": {
+      "kind": "dielectric",
+      "eps_re": 4.0,
+      "tand_e": 0.0
+    },
+    "pec": {
+      "kind": "pec"
+    }
+  },
+  "variants": [
+    {
+      "key": "pec_k0p5",
+      "body": "pec",
+      "size": "k0p5",
+      "title": "Голый PEC-шар, k0a=0.5",
+      "k0a": 0.5,
+      "a_mm": 2.3857,
+      "near_half_mm": 62.3442,
+      "sbr_valid": false,
+      "sbr_attempt": false,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 2.3857,
+          "material": {
+            "kind": "pec"
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": 8.6865e-05,
+          "Hplane": 8.6865e-05
+        },
+        "antenna": {
+          "Eplane": 0.39968,
+          "Hplane": 0.39968
+        }
+      }
+    },
+    {
+      "key": "pec_k2",
+      "body": "pec",
+      "size": "k2",
+      "title": "Голый PEC-шар, k0a=2",
+      "k0a": 2.0,
+      "a_mm": 9.5427,
+      "near_half_mm": 69.5012,
+      "sbr_valid": false,
+      "sbr_attempt": false,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 9.5427,
+          "material": {
+            "kind": "pec"
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": 0.001085,
+          "Hplane": 0.001085
+        },
+        "antenna": {
+          "Eplane": 3.6127,
+          "Hplane": 3.6127
+        }
+      }
+    },
+    {
+      "key": "pec_k15",
+      "body": "pec",
+      "size": "k15",
+      "title": "Голый PEC-шар, k0a=15",
+      "k0a": 15.0,
+      "a_mm": 71.5702,
+      "near_half_mm": 131.5287,
+      "sbr_valid": true,
+      "sbr_attempt": true,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 71.5702,
+          "material": {
+            "kind": "pec"
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": 0.054831,
+          "Hplane": 0.054831
+        },
+        "antenna": {
+          "Eplane": 51.15,
+          "Hplane": 51.15
+        }
+      }
+    },
+    {
+      "key": "radome_k0p5",
+      "body": "radome",
+      "size": "k0p5",
+      "title": "PEC + радом PTFE (d=0.1a), k0a=0.5",
+      "k0a": 0.5,
+      "a_mm": 2.3857,
+      "near_half_mm": 62.3442,
+      "sbr_valid": false,
+      "sbr_attempt": false,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 2.1471,
+          "material": {
+            "kind": "pec"
+          }
+        },
+        {
+          "index": 2,
+          "r_inner_mm": 2.1471,
+          "r_outer_mm": 2.3857,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 2.1,
+            "tand_e": 0.00019
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": 7.2494e-05,
+          "Hplane": 7.2494e-05
+        },
+        "antenna": {
+          "Eplane": 0.39465,
+          "Hplane": 0.39465
+        }
+      }
+    },
+    {
+      "key": "radome_k2",
+      "body": "radome",
+      "size": "k2",
+      "title": "PEC + радом PTFE (d=0.1a), k0a=2",
+      "k0a": 2.0,
+      "a_mm": 9.5427,
+      "near_half_mm": 69.5012,
+      "sbr_valid": false,
+      "sbr_attempt": false,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 8.5884,
+          "material": {
+            "kind": "pec"
+          }
+        },
+        {
+          "index": 2,
+          "r_inner_mm": 8.5884,
+          "r_outer_mm": 9.5427,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 2.1,
+            "tand_e": 0.00019
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": 0.0011585,
+          "Hplane": 0.0011585
+        },
+        "antenna": {
+          "Eplane": 3.6537,
+          "Hplane": 3.6537
+        }
+      }
+    },
+    {
+      "key": "radome_k15",
+      "body": "radome",
+      "size": "k15",
+      "title": "PEC + радом PTFE (d=0.1a), k0a=15",
+      "k0a": 15.0,
+      "a_mm": 71.5702,
+      "near_half_mm": 131.5287,
+      "sbr_valid": true,
+      "sbr_attempt": true,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 64.4132,
+          "material": {
+            "kind": "pec"
+          }
+        },
+        {
+          "index": 2,
+          "r_inner_mm": 64.4132,
+          "r_outer_mm": 71.5702,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 2.1,
+            "tand_e": 0.00019
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": 0.055366,
+          "Hplane": 0.055366
+        },
+        "antenna": {
+          "Eplane": 47.567,
+          "Hplane": 47.567
+        }
+      }
+    },
+    {
+      "key": "lens_k0p5",
+      "body": "lens",
+      "size": "k0p5",
+      "title": "Однородная линза ε=4, k0a=0.5",
+      "k0a": 0.5,
+      "a_mm": 2.3857,
+      "near_half_mm": 62.3442,
+      "sbr_valid": false,
+      "sbr_attempt": false,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 2.3857,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 4.0,
+            "tand_e": 0.0
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": 3.3425e-05,
+          "Hplane": 3.3425e-05
+        },
+        "antenna": {
+          "Eplane": 0.38411,
+          "Hplane": 0.38411
+        }
+      }
+    },
+    {
+      "key": "lens_k2",
+      "body": "lens",
+      "size": "k2",
+      "title": "Однородная линза ε=4, k0a=2",
+      "k0a": 2.0,
+      "a_mm": 9.5427,
+      "near_half_mm": 69.5012,
+      "sbr_valid": false,
+      "sbr_attempt": false,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 9.5427,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 4.0,
+            "tand_e": 0.0
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": 0.0025072,
+          "Hplane": 0.0025072
+        },
+        "antenna": {
+          "Eplane": 4.3864,
+          "Hplane": 4.3864
+        }
+      }
+    },
+    {
+      "key": "lens_k15",
+      "body": "lens",
+      "size": "k15",
+      "title": "Однородная линза ε=4, k0a=15",
+      "k0a": 15.0,
+      "a_mm": 71.5702,
+      "near_half_mm": 131.5287,
+      "sbr_valid": false,
+      "sbr_attempt": true,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 71.5702,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 4.0,
+            "tand_e": 0.0
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": 0.068355,
+          "Hplane": 0.068355
+        },
+        "antenna": {
+          "Eplane": 46.739,
+          "Hplane": 46.739
+        }
+      }
+    },
+    {
+      "key": "luneburg_k15",
+      "body": "luneburg",
+      "size": "k15",
+      "title": "Линза Люнеберга (4 слоя), k0a=15",
+      "k0a": 15.0,
+      "a_mm": 71.5702,
+      "near_half_mm": 131.5287,
+      "sbr_valid": false,
+      "sbr_attempt": false,
+      "layers_hfss": [
+        {
+          "index": 1,
+          "r_inner_mm": 0.0,
+          "r_outer_mm": 14.314,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 1.96,
+            "tand_e": 0.0
+          }
+        },
+        {
+          "index": 2,
+          "r_inner_mm": 14.314,
+          "r_outer_mm": 28.6281,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 1.84,
+            "tand_e": 0.0
+          }
+        },
+        {
+          "index": 3,
+          "r_inner_mm": 28.6281,
+          "r_outer_mm": 42.9421,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 1.64,
+            "tand_e": 0.0
+          }
+        },
+        {
+          "index": 4,
+          "r_inner_mm": 42.9421,
+          "r_outer_mm": 57.2561,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 1.36,
+            "tand_e": 0.0
+          }
+        },
+        {
+          "index": 5,
+          "r_inner_mm": 57.2561,
+          "r_outer_mm": 71.5702,
+          "material": {
+            "kind": "dielectric",
+            "eps_re": 1.0,
+            "tand_e": 0.0
+          }
+        }
+      ],
+      "reference_Vm": {
+        "diffraction": {
+          "Eplane": null,
+          "Hplane": null
+        },
+        "antenna": {
+          "Eplane": null,
+          "Hplane": null
+        }
+      }
+    }
+  ]
+}

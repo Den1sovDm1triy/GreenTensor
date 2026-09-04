@@ -36,7 +36,7 @@ from . import tmatrix as _tmatrix
 __all__ = [
     "SphereSolver",
     "CylinderSolver", "LayeredCylinderSolver", "Cluster",
-    "solve_sphere",
+    "solve_sphere", "bistatic_rcs_sphere", "far_field_sphere", "field_sphere",
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
 ]
 
@@ -76,6 +76,40 @@ class SphereSolver:
     def pattern(self, k: float, theta=None, **mie_kwargs) -> dict:
         """Диаграмма рассеяния (линейная/круговая поляризация) — формулы ``01_sphere.py``."""
         return self.mie(k, **mie_kwargs).pattern(theta)
+
+    def bistatic_rcs(self, k: float, theta, *, toch: int | None = None) -> dict:
+        """Абсолютная бистатическая ЭПР σ(θ) [м²] в плоскостях φ=0 (``sigma_E``) и
+        φ=π/2 (``sigma_H``). См. :meth:`sphere_core.MieSphere.bistatic_rcs`."""
+        return self.mie(k, toch=toch).bistatic_rcs(theta, self.radius)
+
+    def far_field(self, k: float, theta, *, e0: float = 1.0, r: float | None = None,
+                  toch: int | None = None) -> dict:
+        """Абсолютная амплитуда рассеянного поля: ``rE`` [В] и (если задан ``r``)
+        ``E`` [В/м]. См. :meth:`sphere_core.MieSphere.far_field`."""
+        return self.mie(k, toch=toch).far_field(theta, self.radius, e0=e0, r=r)
+
+    def field(self, k: float, theta, *, e0: complex = 1.0,
+              current: float | None = None, length: float | None = None,
+              r: float | None = None, z0: float = _sphere_core.MieSphere.Z0_FREE_SPACE,
+              problem: str = "antenna", phi: float = 0.0,
+              polarization: str = "linear", orientation: str = "vertical",
+              toch: int | None = None) -> dict:
+        """Абсолютная напряжённость поля :math:`E_\\theta`, :math:`E_\\varphi` [В/м]
+        с амплитудным множителем источника (опускаемым в записи диаграммы).
+
+        Амплитуда :math:`E_0` задаётся либо напрямую (``e0``), либо параметрами
+        элементарного вибратора (Панченко, ф-ла 3.18): ток ``current`` [А], длина
+        ``length`` [м], расстояние ``r`` [м], импеданс ``z0`` [Ом] — тогда
+        :math:`E_0` вычисляется при ФИЗИЧЕСКОМ волновом числе ``k``. По умолчанию —
+        антенная задача (источник на поверхности), срез плоскости φ=0.
+        См. :meth:`sphere_core.MieSphere.field` и :meth:`sphere_core.MieSphere.dipole_e0`."""
+        m = self.mie(k, toch=toch, problem=problem, phi=phi,
+                     polarization=polarization, orientation=orientation)
+        if current is not None:
+            if length is None or r is None:
+                raise ValueError("для амплитуды вибратора задайте current, length и r")
+            e0 = m.dipole_e0(current, length, k, r, z0)
+        return m.field(theta, e0=e0)
 
     def as_scatterer(self) -> "_scatterer.LayeredSphere":
         """Представление для движка сборки кластера (GMM)."""
@@ -187,6 +221,52 @@ class Cluster:
 def solve_sphere(radius, eps, k: float, *, a_norm=None, miy=None, toch: int | None = None) -> dict:
     """Сечения слоистой сферы одной строкой (см. :class:`SphereSolver`)."""
     return SphereSolver(radius, eps, a_norm=a_norm, miy=miy).cross_sections(k, toch=toch)
+
+
+def bistatic_rcs_sphere(radius, eps, k: float, theta, *, a_norm=None, miy=None,
+                        toch: int | None = None) -> dict:
+    """Абсолютная бистатическая ЭПР σ(θ) [м²] слоистой сферы одной строкой.
+
+    Возвращает ``{"theta", "sigma_E", "sigma_H"}``: ``sigma_E`` — плоскость φ=0
+    (параллельная поляризация), ``sigma_H`` — φ=π/2 (перпендикулярная). Угол θ —
+    стандартный угол рассеяния (0 — вперёд, π — обратное). См. :class:`SphereSolver`.
+    """
+    return SphereSolver(radius, eps, a_norm=a_norm, miy=miy).bistatic_rcs(k, theta, toch=toch)
+
+
+def far_field_sphere(radius, eps, k: float, theta, *, e0: float = 1.0, r: float | None = None,
+                     a_norm=None, miy=None, toch: int | None = None) -> dict:
+    """Абсолютная амплитуда рассеянного поля дальней зоны слоистой сферы.
+
+    Возвращает ``rE_E``/``rE_H`` [В] (= r·E, не зависит от расстояния) и, если задан
+    ``r`` [м], ``E_E``/``E_H`` [В/м]. Прямо сопоставляется с HFSS ``rETheta``/``rEPhi``.
+    """
+    return SphereSolver(radius, eps, a_norm=a_norm, miy=miy).far_field(
+        k, theta, e0=e0, r=r, toch=toch)
+
+
+def field_sphere(radius, eps, k: float, theta, *, e0: complex = 1.0,
+                 current: float | None = None, length: float | None = None,
+                 r: float | None = None, z0: float = _sphere_core.MieSphere.Z0_FREE_SPACE,
+                 problem: str = "antenna", phi: float = 0.0,
+                 polarization: str = "linear", orientation: str = "vertical",
+                 a_norm=None, miy=None, toch: int | None = None) -> dict:
+    r"""Абсолютная напряжённость поля слоистой сферы с амплитудным множителем.
+
+    Физическое поле :math:`\vec E = E_0\,\vec F(\theta,\varphi)` — угловая диаграмма
+    :math:`\vec F` (``pattern``), умноженная на амплитуду источника :math:`E_0`.
+    :math:`E_0` задаётся напрямую (``e0``) либо параметрами элементарного вибратора
+    (Панченко, ф-ла 3.18): ``current`` [А], ``length`` [м], ``r`` [м], ``z0`` [Ом].
+    Возвращает модули ``E_theta``/``E_phi`` [В/м] и их максимумы ``*_max``.
+
+    ``problem="antenna"`` — источник на поверхности (коэффициенты :math:`M_n'`);
+    ``phi`` — азимут плоскости среза (0 — E-плоскость, π/2 — H-плоскость).
+    См. :class:`SphereSolver` и :meth:`sphere_core.MieSphere.field`.
+    """
+    return SphereSolver(radius, eps, a_norm=a_norm, miy=miy).field(
+        k, theta, e0=e0, current=current, length=length, r=r, z0=z0,
+        problem=problem, phi=phi, polarization=polarization,
+        orientation=orientation, toch=toch)
 
 
 def solve_cylinder(radius, eps, k: float, *, eps_m: complex = 1.0,

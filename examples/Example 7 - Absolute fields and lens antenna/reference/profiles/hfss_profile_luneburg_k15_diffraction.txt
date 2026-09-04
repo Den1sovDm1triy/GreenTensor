@@ -1,0 +1,6 @@
+# HFSS FEM profile — luneburg_k15_diffraction
+tag: luneburg_k15_diffraction
+k0a: 15.0
+mode: diffraction
+peak_memory_MB: 3962.9
+tetrahedra: 41126

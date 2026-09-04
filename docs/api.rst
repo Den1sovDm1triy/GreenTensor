@@ -23,6 +23,13 @@ Core — layered sphere (Mie / TFG)
 
 .. automodule:: green_tensor.sphere_core
 
+Поле в произвольных точках
+--------------------------
+
+.. automodule:: green_tensor.nearfield
+   :members: external_field_sphere, magnetic_field_sphere,
+             antenna_pattern_sphere, near_field_sphere
+
 .. automodule:: green_tensor.tmatrix
 
 .. automodule:: green_tensor.scatterer

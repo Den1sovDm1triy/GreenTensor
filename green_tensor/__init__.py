@@ -60,6 +60,7 @@ from . import (  # noqa: F401
     gmm,
     mie_reference,
     multilayer_mie,
+    nearfield,
     scatterer,
     solvers,
     sphere_anisotropic,
@@ -74,11 +75,19 @@ from .scatterer import (  # noqa: F401
     Scatterer,
 )
 from .tmatrix import DiagonalTMatrix  # noqa: F401
+from .nearfield import (  # noqa: F401
+    antenna_pattern_sphere,
+    magnetic_field_sphere,
+    near_field_sphere,
+)
 from .solvers import (  # noqa: F401
     Cluster,
     CylinderSolver,
     LayeredCylinderSolver,
     SphereSolver,
+    bistatic_rcs_sphere,
+    far_field_sphere,
+    field_sphere,
     solve_cluster,
     solve_cylinder,
     solve_layered_cylinder,
@@ -102,7 +111,8 @@ __all__ = [
     "SphereSolver",
     "CylinderSolver", "LayeredCylinderSolver", "Cluster",
     # functional facade
-    "solve_sphere",
+    "solve_sphere", "bistatic_rcs_sphere", "far_field_sphere", "field_sphere",
+    "near_field_sphere", "magnetic_field_sphere", "antenna_pattern_sphere",
     "solve_cylinder", "solve_layered_cylinder", "solve_cluster",
     # radially-anisotropic multilayer sphere (extension)
     "mie_multilayer_anisotropic", "cross_sections_anisotropic",
@@ -111,5 +121,5 @@ __all__ = [
     # modules
     "sphere_core", "tmatrix", "scatterer", "vswf", "gmm",
     "cylinder", "solvers", "sphere_anisotropic",
-    "multilayer_mie", "mie_reference", "feed",
+    "multilayer_mie", "mie_reference", "feed", "nearfield",
 ]

@@ -1,0 +1,6 @@
+# HFSS FEM profile — luneburg_k15_antenna
+tag: luneburg_k15_antenna
+k0a: 15.0
+mode: antenna
+peak_memory_MB: None
+tetrahedra: 728033
