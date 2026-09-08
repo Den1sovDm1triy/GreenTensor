@@ -11,6 +11,11 @@ Huffman 4.52, эквивалент коэффициентов прохожден
 j_n(mka)). Рассеянные a_n, b_n сверяются с каноном 01_sphere по сечению (validate()).
 
 Конвенция: e^{-iωt}, k̂ ∥ z, ê ∥ x (общая ориентация — поворотом точек/поля).
+
+Падающая волна СНАРУЖИ берётся в замкнутом виде ê·exp(i k·r) (а не рядом по ψ_n):
+ряд регулярных ВСВФ сходится лишь при n ≳ k·r, и при усечении на Wiscombe(k·R)
+он «разваливается» уже при r ≳ nmax/k. Рассеянный ряд по ξ_n сходится всюду
+вне сферы, поэтому карта поля корректна на любом экстенте (±3a и дальше).
 """
 from __future__ import annotations
 
@@ -132,16 +137,13 @@ def field_sphere(a_norm, eps, mu, k, radius, pts, toch=None, khat=(0, 0, 1), pol
 
     if np.any(out):
         ro = r[out]; rho_o = k * ro
-        pj, ppj, xh, xph = _riccati(n, rho_o)
-        # падающее: A=E_n (M), B=−iE_n (N), регулярные ψ
-        Ai = En[:, None]; Bi = (-1j * En)[:, None]
-        e1 = _region_field(Ai, Bi, pj, ppj, rho_o, pin[:, out], taun[:, out],
-                           cphi[out], sphi[out], sint[out])
+        _, _, xh, xph = _riccati(n, rho_o)
         # рассеянное: A=−b_n E_n (M), B=i a_n E_n (N), исходящие ξ
+        # (падающее добавляется ниже в декартовых координатах в замкнутом виде)
         As = (-b * En)[:, None]; Bs = (1j * a * En)[:, None]
         e2 = _region_field(As, Bs, xh, xph, rho_o, pin[:, out], taun[:, out],
                            cphi[out], sphi[out], sint[out])
-        Er[out] = e1[0] + e2[0]; Eth[out] = e1[1] + e2[1]; Eph[out] = e1[2] + e2[2]
+        Er[out] = e2[0]; Eth[out] = e2[1]; Eph[out] = e2[2]
 
     if np.any(inn):
         ri = r[inn]; rho_i = m_in * k * ri
@@ -158,6 +160,7 @@ def field_sphere(a_norm, eps, mu, k, radius, pts, toch=None, khat=(0, 0, 1), pol
     ey = Er * st * sphi + Eth * ct * sphi + Eph * cphi
     ez = Er * ct - Eth * st
     Eloc = np.stack([ex, ey, ez], axis=1) * amp
+    Eloc[out, 0] += amp * np.exp(1j * k * loc[out, 2])     # падающая: ê·e^{ikz} (аналитически)
     return Eloc @ R                                        # локал->глобал
 
 
@@ -186,13 +189,12 @@ def _assemble(AM, BM, PM, PpM, PN, PpN, rho, pin, taun, cphi, sphi, sint):
     return Er, Eth, Eph
 
 
-def field_sphere_layered(a_norm, eps, mu, k, radius, pts, toch=None,
-                         khat=(0, 0, 1), pol=(1, 0, 0)):
-    """Полное поле СЛОИСТОЙ сферы: та же схема, что для однородной, но импедансы Z/Y
-    пересчитываются ПО СЛОЯМ каноном 01_sphere. β/α в слое — из Z[l]/Y[l]; амплитуда —
-    непрерывностью снаружи внутрь; снаружи — падающее+рассеянное. Металл-слои маскируются
-    (поле NaN). Возвращает (E (Q,3) комплекс, mask (Q,) bool — True там, где маска/металл)."""
-    pts = np.asarray(pts, float)
+def layered_coeffs(a_norm, eps, mu, k, radius, toch=None):
+    """Коэффициенты слоистой сферы (трансфер-матрица ядро→хост каноном 01_sphere).
+
+    Возвращает dict: n, a_n/b_n (рассеянные TM/TE), AB_TE/AB_TM (коэффициенты [ψ,ξ]
+    в каждом слое, изнутри наружу), sig (относит. показатели слоёв + хост), nmax, x0.
+    """
     a_norm = [float(x) for x in a_norm]
     epsL = [complex(x) for x in eps]
     muL = [complex(x) for x in mu]
@@ -241,7 +243,24 @@ def field_sphere_layered(a_norm, eps, mu, k, radius, pts, toch=None,
 
     b_n, AB_TE = solve_kind("TE")                # рассеянный TE, коэффициенты слоёв TE
     a_n, AB_TM = solve_kind("TM")               # рассеянный TM, коэффициенты слоёв TM
-    px, ppx, xix, xipx = _riccati(n, x0)
+    return {"n": n, "a_n": a_n, "b_n": b_n, "AB_TE": AB_TE, "AB_TM": AB_TM,
+            "sig": sig, "nmax": nmax, "x0": x0, "a_norm": a_norm,
+            "eps": epsL, "mu": muL}
+
+
+def field_sphere_layered(a_norm, eps, mu, k, radius, pts, toch=None,
+                         khat=(0, 0, 1), pol=(1, 0, 0)):
+    """Полное поле СЛОИСТОЙ сферы: та же схема, что для однородной, но импедансы Z/Y
+    пересчитываются ПО СЛОЯМ каноном 01_sphere. β/α в слое — из Z[l]/Y[l]; амплитуда —
+    непрерывностью снаружи внутрь; снаружи — падающее (аналитически) + рассеянное (ряд).
+    Металл-слои маскируются (поле NaN). Возвращает (E (Q,3) комплекс, mask (Q,) bool —
+    True там, где маска/металл)."""
+    pts = np.asarray(pts, float)
+    C = layered_coeffs(a_norm, eps, mu, k, radius, toch)
+    a_norm, epsL, muL, sig = C["a_norm"], C["eps"], C["mu"], C["sig"]
+    n, a_n, b_n, AB_TE, AB_TM, nmax, x0 = (C["n"], C["a_n"], C["b_n"], C["AB_TE"],
+                                            C["AB_TM"], C["nmax"], C["x0"])
+    L = len(a_norm)
 
     # сборка поля по точкам
     amp = np.linalg.norm(pol) or 1.0
@@ -268,16 +287,15 @@ def field_sphere_layered(a_norm, eps, mu, k, radius, pts, toch=None,
     # металл экранирует всё внутри: если слой l металл, маскируем r<=a[l]
     metal_to = max([a_norm[l] for l in range(L) if metal_layer[l]] + [0.0])
 
-    # снаружи
+    # снаружи: рассеянное — ряд по ξ_n (сходится всюду при r ≥ R);
+    # падающее — в замкнутом виде ê·e^{ikz} (добавляется в декартовых координатах ниже)
     out = rn >= 1.0
     if np.any(out):
         ro = r[out]; rho = k * ro
-        pj, ppj, xh, xph = _riccati(n, rho)
-        Ai = En[:, None]; Bi = (-1j * En)[:, None]
-        e1 = _assemble(Ai, Bi, pj, ppj, pj, ppj, rho, pin[:, out], taun[:, out], cphi[out], sphi[out], sint[out])
+        _, _, xh, xph = _riccati(n, rho)
         As = (-b_n * En)[:, None]; Bs = (1j * a_n * En)[:, None]
         e2 = _assemble(As, Bs, xh, xph, xh, xph, rho, pin[:, out], taun[:, out], cphi[out], sphi[out], sint[out])
-        Er[out] = e1[0] + e2[0]; Eth[out] = e1[1] + e2[1]; Eph[out] = e1[2] + e2[2]
+        Er[out] = e2[0]; Eth[out] = e2[1]; Eph[out] = e2[2]
 
     # по слоям (изнутри): U_l = A_l·ψ(arg) + B_l·ξ(arg), arg = σ_l·x0·r_norm
     for l in range(L):
@@ -304,6 +322,7 @@ def field_sphere_layered(a_norm, eps, mu, k, radius, pts, toch=None,
     ey = Er * st * sphi + Eth * ct * sphi + Eph * cphi
     ez = Er * ct - Eth * st
     Eloc = np.stack([ex, ey, ez], axis=1) * amp
+    Eloc[out, 0] += amp * np.exp(1j * k * loc[out, 2])     # падающая волна ê·e^{ikz}
     return Eloc @ Rm, mask
 
 
@@ -319,3 +338,40 @@ def validate(eps, mu, k, radius, gt=None):
         info["q_sca_core"] = ref
         info["rel_err"] = abs(q_sca - ref) / abs(ref)
     return info
+
+
+def validate_layered(a_norm, eps, mu, k, radius, gt=None, toch=None):
+    """Сверка слоистых a_n,b_n с каноном 01_sphere по Q_sca (через публичный SphereSolver)."""
+    C = layered_coeffs(a_norm, eps, mu, k, radius, toch)
+    n, a, b, x = C["n"], C["a_n"], C["b_n"], C["x0"]
+    q_sca = float((2.0 / x ** 2) * np.sum((2 * n + 1) * (np.abs(a) ** 2 + np.abs(b) ** 2)))
+    info = {"q_sca": q_sca, "nmax": int(C["nmax"])}
+    if gt is not None:
+        ref = gt.SphereSolver(radius, list(eps), a_norm=list(a_norm),
+                              miy=list(mu)).cross_sections(k)["q_sca"]
+        info["q_sca_core"] = float(ref)
+        info["rel_err"] = float(abs(q_sca - ref) / abs(ref)) if ref else None
+    return info
+
+
+def continuity_check(a_norm, eps, mu, k, radius, khat=(0, 0, 1), pol=(1, 0, 0),
+                     delta=1.0e-6, toch=None):
+    """Непрерывность касательной (доминирующей) компоненты E на границах слоёв вдоль
+    оси k̂ (там ê касательна к сфере). Относительный скачок |E(a⁺)−E(a⁻)| / max|E|."""
+    kh = np.asarray(khat, float); kh = kh / (np.linalg.norm(kh) or 1.0)
+    dom = int(np.argmax(np.abs(np.asarray(pol, float))))
+    rows = []
+    worst = 0.0
+    for ai in a_norm:
+        rec = {"a_rel": float(ai)}
+        for name, sgn in (("front", -1.0), ("back", +1.0)):     # front — освещённая сторона
+            pts = np.array([kh * sgn * ai * radius * (1 - delta),
+                            kh * sgn * ai * radius * (1 + delta)])
+            E, _ = field_sphere_layered(a_norm, eps, mu, k, radius, pts, toch, khat, pol)
+            e = E[:, dom]
+            ref = max(abs(e[0]), abs(e[1]), 1e-300)
+            jump = float(abs(e[1] - e[0]) / ref)
+            rec[name] = jump
+            worst = max(worst, jump)
+        rows.append(rec)
+    return {"boundaries": rows, "max_rel_jump": worst, "component": "xyz"[dom]}

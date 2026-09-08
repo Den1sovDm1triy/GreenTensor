@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-<link rel="stylesheet" href="studio/css/style.css?v=20260813a" />
+<link rel="stylesheet" href="studio/css/style.css?v=20260908a" />
 
 <!-- Тяжёлые библиотеки — с CDN (те же версии, что и в остальном лендинге) -->
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
@@ -27,12 +27,13 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
 
 <!-- Модули Studio + браузерный мост к движку (?v= — сброс кэша при обновлениях) -->
-<script src="studio/js/presets.js?v=20260813a" defer></script>
-<script src="studio/js/editor3d.js?v=20260813a" defer></script>
-<script src="studio/js/input.js?v=20260813a" defer></script>
-<script src="studio/js/results.js?v=20260813a" defer></script>
-<script src="studio/js/pybridge.js?v=20260813a" defer></script>
-<script src="studio/js/app.js?v=20260813a" defer></script>
+<script src="studio/js/presets.js?v=20260908a" defer></script>
+<script src="studio/js/editor3d.js?v=20260908a" defer></script>
+<script src="studio/js/input.js?v=20260908a" defer></script>
+<script src="studio/js/gifenc.js?v=20260908a" defer></script>
+<script src="studio/js/results.js?v=20260908a" defer></script>
+<script src="studio/js/pybridge.js?v=20260908a" defer></script>
+<script src="studio/js/app.js?v=20260908a" defer></script>
 </head>
 <body>
   <header class="app-header">
@@ -146,6 +147,21 @@
             <label class="field inline" id="db-toggle-wrap">
               <input type="checkbox" id="db-toggle" checked /> <span>дБ</span>
             </label>
+            <div class="seg" id="hm-mode" role="group" aria-label="Режим карты" title="Что показывать: амплитуду |E| или мгновенное поле со знаком Re[E·e^{jωt}] (бегущая волна, конвенция диссертации)">
+              <button data-hm="abs" class="active" type="button" title="Амплитуда поля |E| (лог/лин шкала)">|E|</button>
+              <button data-hm="re" type="button" title="Мгновенное поле со знаком Re[E·e^{jωt}]: дивергентная палитра, симметричная шкала; анимация — бегущая волна">Re±(E)</button>
+            </div>
+            <div class="seg" id="hm-comp" role="group" aria-label="Компонента поля" title="Компонента поля: норма |E| или декартова компонента (Ex — компонента поляризации по умолчанию)">
+              <button data-hc="abs" class="active" type="button" title="Норма вектора |E|">|E|</button>
+              <button data-hc="x" type="button" title="Компонента Ex">E<sub>x</sub></button>
+              <button data-hc="y" type="button" title="Компонента Ey">E<sub>y</sub></button>
+              <button data-hc="z" type="button" title="Компонента Ez">E<sub>z</sub></button>
+            </div>
+            <div class="seg" id="hm-plane" role="group" aria-label="Плоскость разреза" title="Плоскость разреза (пересчёт карты): xz (φ=0), yz (φ=90°), xy (z=0)">
+              <button data-hp="xz" class="active" type="button" title="Плоскость xz (φ = 0°, y = 0) — E-плоскость при ê∥x">xz</button>
+              <button data-hp="yz" type="button" title="Плоскость yz (φ = 90°, x = 0) — H-плоскость при ê∥x">yz</button>
+              <button data-hp="xy" type="button" title="Плоскость xy (z = 0) — поперечный разрез">xy</button>
+            </div>
             <div class="seg" id="hm-scale" role="group" aria-label="Шкала карты" title="Шкала тепловой карты (нормировка на максимум)">
               <button data-hs="db" class="active" type="button" title="Логарифмическая (дБ отн. макс) — видны и пики, и переходы между слоями">лог дБ</button>
               <button data-hs="lin" type="button" title="Линейная (|E|/|E|макс)">лин.</button>
@@ -162,6 +178,7 @@
             </label>
             <button class="btn" id="btn-import" type="button" title="Импорт CSV для сравнения">⭱ Импорт CSV</button>
             <button class="btn" id="btn-export" type="button" title="Экспорт активного графика в CSV">⭳ Экспорт CSV</button>
+            <button class="btn" id="btn-gif" type="button" title="Собрать GIF бегущей волны: 30 кадров Re[E·e^{jωt}] по ωt = 0…2π, 800×600, бесконечный цикл">⬇ GIF</button>
             <button class="btn" id="btn-png" type="button" title="Сохранить PNG">⤓ PNG</button>
             <input type="file" id="csv-file" accept=".csv,text/csv" hidden />
           </div>

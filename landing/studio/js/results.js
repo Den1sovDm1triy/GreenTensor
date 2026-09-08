@@ -147,8 +147,16 @@
     return Array.from({ length: n }, (_, i) => (i / n) * 360);   // только y -> индекс на круг
   }
 
-  // ===================== Тепловая карта ===================== //
+  // ===================== Тепловая карта / ближнее поле ===================== //
   const DB_HM_FLOOR = -30;            // нижний предел лог-шкалы карты, дБ отн. максимума
+  const ANIM_FRAMES = 30;             // кадров на период ωt = 0…2π (как в эталоне Example 13)
+  const ANIM_DT = 70;                 // мс/кадр live-анимации
+  const GIF_DT = 80;                  // мс/кадр GIF (эталон: 80 мс, 30 кадров)
+  const GIF_W = 800, GIF_H = 600;
+  const GIF_LEVELS = 48;              // градаций палитры поля в GIF (сжатие LZW ≤ 3 МБ)
+  let animPhase = 0;                  // текущая фаза ωt, рад (сохраняется между кадрами)
+  let wtAnnIdx = -1;                  // индекс annotation с подписью ωt (обновляется в анимации)
+
   // спокойная дивергентная палитра «синий → красный» (типа coolwarm), без ярких пиков;
   // ч-б — оттенки серого (низк.→свет., выс.→тёмн.)
   function heatScale() {
@@ -158,11 +166,165 @@
          [0.50, "#c4c8d8"], [0.64, "#dcb39f"], [0.82, "#cc7155"],
          [1.0, "#a52a2a"]];   // синий → приглушённый красный
   }
+  // Дивергентная RdBu (как matplotlib RdBu_r на слайде диссертации): −A синий, 0 белый, +A красный.
+  // Ч-б: тёмный (−) → средне-серый (0) → светлый (+).
+  function divScale() {
+    return isBW()
+      ? [[0, "#0b0f14"], [0.5, "#8a8f94"], [1, "#f7f8f9"]]
+      : [[0.0, "#053061"], [0.1, "#2166ac"], [0.2, "#4393c3"], [0.3, "#92c5de"],
+         [0.4, "#d1e5f0"], [0.5, "#f7f7f7"], [0.6, "#fddbc7"], [0.7, "#f4a582"],
+         [0.8, "#d6604d"], [0.9, "#b2182b"], [1.0, "#67001f"]];
+  }
   function fieldMax(absE) {
     let mx = 0;
     absE.forEach((row) => row.forEach((v) => { if (v != null && v > mx) mx = v; }));
     return mx > 0 ? mx : 1;
   }
+  // амплитуда комплексной компоненты: max|re+i·im| — граница всех кадров (симметричная шкала)
+  function compAmp(arr) {
+    let a = 0;
+    arr.re.forEach((row, r) => row.forEach((v, k) => {
+      if (v == null) return;
+      const m = Math.hypot(v, arr.im[r][k] || 0); if (m > a) a = m;
+    }));
+    return a > 0 ? a : 1;
+  }
+  // мгновенное поле E(t) = re·cos(ωt) + im·sin(ωt): физически одно и то же в обеих
+  // конвенциях — движок e^{−iωt} даёт Re[E·e^{−iωt}], диссертация e^{+jωt} даёт Re[E*·e^{+jωt}].
+  // С ростом ωt волна бежит в +z (фазор движка ∝ e^{+ikz}).
+  function instFrame(arr, phase, absolute) {
+    const c = Math.cos(phase), s = Math.sin(phase);
+    return arr.re.map((row, r) => row.map((v, k) => {
+      if (v == null) return null;
+      const val = v * c + (arr.im[r][k] || 0) * s;
+      return absolute ? Math.abs(val) : val;
+    }));
+  }
+
+  // --- выбор компоненты/режима ---
+  function effComp(hm) {
+    const comp = GT.state.heatComp || "abs";
+    if (GT.state.heatMode === "re" && comp === "abs") return hm.dominant || "x";   // знак у нормы не определён
+    return comp;
+  }
+  function compArrays(hm, comp) {
+    if (hm.comp && hm.comp[comp]) return hm.comp[comp];
+    if (comp === (hm.dominant || "x") && hm.reField) return { re: hm.reField, im: hm.imField };
+    return null;
+  }
+  function compHtml(comp) { return comp === "abs" ? "|E|" : "E<sub>" + comp + "</sub>"; }
+  function fmtRu(v, d) { return Number(v).toFixed(d == null ? 2 : d).replace(/\.?0+$/, "").replace(".", ","); }
+  function fmtDeg(phase) {
+    const deg = Math.round(((phase % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) * 180 / Math.PI);
+    return "ωt = " + String(deg).padStart(3, " ") + "°";
+  }
+
+  // --- оверлей геометрии: контур сферы, пунктир границ слоёв, стрелка падения, подписи ---
+  function overlayColor() { return "#ffffff"; }
+  function overlayShapes(hm) {
+    const g = hm.geometry;
+    if (!g || !g.bodies) return [];
+    const shapes = [];
+    const white = overlayColor();
+    g.bodies.forEach((b) => {
+      const circ = (r, line) => ({ type: "circle", xref: "x", yref: "y",
+        x0: b.cu - r, x1: b.cu + r, y0: b.cv - r, y1: b.cv + r, line, layer: "above" });
+      // границы слоёв (кроме внешней) — пунктир
+      (b.layers_r || []).forEach((r, i) => {
+        if (r == null || i === b.layers_r.length - 1) return;
+        shapes.push(circ(r, { color: "rgba(255,255,255,0.75)", width: 1, dash: "dash" }));
+      });
+      // внешний контур: тёмный «ореол» + белая линия (видна на любом фоне палитры)
+      shapes.push(circ(b.r, { color: "rgba(0,0,0,0.35)", width: 4 }));
+      shapes.push(circ(b.r, { color: white, width: 2 }));
+    });
+    return shapes;
+  }
+  function overlayAnnotations(hm, opts) {
+    const g = hm.geometry || {};
+    const P = PAL();
+    const ann = [];
+    const hs = hm.x, vs = hm.y;
+    const hmin = hs[0], hmax = hs[hs.length - 1], vmin = vs[0], vmax = vs[vs.length - 1];
+    const W = hmax - hmin, H = vmax - vmin;
+    const boxStyle = { bgcolor: themeDark() ? "rgba(7,9,10,0.62)" : "rgba(255,255,255,0.82)",
+      bordercolor: themeDark() ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)", borderwidth: 1,
+      borderpad: 3, font: { color: P.font, size: 12 } };
+    // заголовок
+    ann.push({ x: 0.5, y: 1.06, xref: "paper", yref: "paper", showarrow: false,
+      text: opts.title, font: { color: P.muted, size: 12 } });
+    // стрелка направления падения (проекция k̂ на плоскость) с подписью E_пад, k
+    const kd = g.k_dir || [1, 0];
+    const kl = Math.hypot(kd[0], kd[1]);
+    // стрелка центрирована на якоре в левом верхнем углу кадра — не выходит за рамку
+    // при любом направлении k̂ в плоскости (в т. ч. вертикальном)
+    const cx = hmin + 0.16 * W, cy = vmax - 0.13 * H;
+    const label = g.pol_inplane === false
+      ? "<b>k</b> (<b>E</b><sub>пад</sub> ⊥ плоскости)" : "<b>E</b><sub>пад</sub>, <b>k</b>";
+    if (g.k_inplane !== false && kl > 1e-6) {
+      const len = 0.18 * W, dx = kd[0] / kl, dy = kd[1] / kl;
+      const ax0 = cx - dx * len / 2, ay0 = cy - dy * len / 2;
+      const tx = cx + dx * len / 2, ty = cy + dy * len / 2;
+      ann.push({ x: tx, y: ty, ax: ax0, ay: ay0, xref: "x", yref: "y", axref: "x", ayref: "y",
+        showarrow: true, arrowhead: 2, arrowsize: 1.2, arrowwidth: 2.5, arrowcolor: "#ffffff",
+        text: label, xanchor: "left", yshift: 14, font: { color: "#ffffff", size: 13 },
+        bgcolor: "rgba(0,0,0,0.30)", borderpad: 2 });
+    } else {
+      ann.push({ x: hmin + 0.06 * W, y: cy, xref: "x", yref: "y", showarrow: false, xanchor: "left",
+        text: "⊙ <b>k</b> ⊥ плоскости", font: { color: "#ffffff", size: 13 },
+        bgcolor: "rgba(0,0,0,0.30)", borderpad: 2 });
+    }
+    // плашка слоёв: «4 слоя, ε = 1,94 / 1,75 / 1,44 / 1,0»
+    const bodies = g.bodies || [];
+    let layersText = "";
+    if (bodies.length === 1) {
+      const b = bodies[0];
+      const eps = (b.eps_re || []).map((e, i) => fmtRu(e, 2) + ((b.eps_im || [])[i] ? "−j" + fmtRu(Math.abs(b.eps_im[i]), 2) : ""));
+      const n = eps.length;
+      const sl = n === 1 ? "однородная" : n + (n >= 2 && n <= 4 ? " слоя" : " слоёв");
+      layersText = (hm.quantity === "scattered" ? "рассеянное поле · " : "") + sl + ", ε = " + eps.join(" / ");
+    } else if (bodies.length > 1) {
+      layersText = "кластер: " + bodies.length + " тел · рассеянное поле";
+    }
+    if (layersText) ann.push(Object.assign({ x: 0.5, y: 0.02, xref: "paper", yref: "paper",
+      showarrow: false, xanchor: "center", yanchor: "bottom", text: layersText }, boxStyle));
+    // счётчик ωt (только для мгновенного поля)
+    wtAnnIdx = -1;
+    if (opts.showPhase) {
+      wtAnnIdx = ann.length;
+      ann.push(Object.assign({ x: 0.99, y: 0.02, xref: "paper", yref: "paper", showarrow: false,
+        xanchor: "right", yanchor: "bottom", text: fmtDeg(opts.phase || 0) },
+        boxStyle, { font: { color: P.font, size: 12, family: "ui-monospace, SFMono-Regular, Menlo, monospace" } }));
+    }
+    return ann;
+  }
+
+  function heatLayout(hm, opts) {
+    const P = PAL();
+    return baseLayout({
+      showlegend: false,
+      margin: { l: 56, r: 24, t: 34, b: 48 },
+      xaxis: { title: hm.xlabel || "x", scaleanchor: "y", constrain: "domain", zeroline: false, gridcolor: P.grid },
+      yaxis: { title: hm.ylabel || "z", zeroline: false, gridcolor: P.grid },
+      shapes: overlayShapes(hm),
+      annotations: overlayAnnotations(hm, opts),
+    });
+  }
+
+  function logCheckOnce(hm) {
+    if (!hm.check || hm._checkLogged) return;
+    hm._checkLogged = true;
+    const c = hm.check;
+    if (c.error) { console.warn("[GreenTensor] проверка ближнего поля не выполнена:", c.error); return; }
+    const okQ = c.q_sca_rel_err != null && c.q_sca_rel_err < 1e-6;
+    const okC = c.continuity_max_rel_jump != null && c.continuity_max_rel_jump < 1e-3;
+    console.info("[GreenTensor] validate(): Q_sca = " + c.q_sca + " (ядро 01_sphere: " + c.q_sca_core +
+      ", отн. ошибка " + (c.q_sca_rel_err == null ? "—" : c.q_sca_rel_err.toExponential(2)) + ") " + (okQ ? "✓" : "✗") +
+      "; непрерывность E_" + c.continuity_component + " на границах слоёв вдоль k̂: max отн. скачок " +
+      (c.continuity_max_rel_jump == null ? "—" : c.continuity_max_rel_jump.toExponential(2)) + " " + (okC ? "✓ (≤1e-3)" : "✗"),
+      c.continuity);
+  }
+
   function renderHeatmap() {
     const res = GT.state.results;
     const host = GT.$("#plot");
@@ -188,67 +350,365 @@
     }
     showEmpty(false);
     const hm = res.heatmap;
-    const mx = fieldMax(hm.absE);                 // нормировка на максимум поля
-    const log = GT.state.heatScale !== "lin";
-    let z, title, zmin, zmax;
-    if (log) {                                    // лог (дБ отн. макс): и пики, и переходы слоёв
-      z = hm.absE.map((r) => r.map((v) => (v == null ? null : Math.max(DB_HM_FLOOR, 20 * Math.log10(v / mx)))));
-      title = "дБ отн. макс"; zmin = DB_HM_FLOOR; zmax = 0;
-    } else {                                      // линейная, нормированная
-      z = hm.absE.map((r) => r.map((v) => (v == null ? null : v / mx)));
-      title = "|E| / |E|ₘₐₖₛ"; zmin = 0; zmax = 1;
+    logCheckOnce(hm);
+    syncHeatControls(hm);
+    const mode = GT.state.heatMode || "abs";
+    const comp = effComp(hm);
+    const arr = comp === "abs" ? null : compArrays(hm, comp);
+    const planeTxt = "плоскость " + (hm.plane_title || hm.plane || "xz");
+    const resTxt = hm.res ? " · " + hm.res + "×" + hm.res : "";
+    const maskTxt = hm.metal_masked ? " · металл-области скрыты" : "";
+    const qty = hm.quantity === "scattered" ? "рассеянное поле" : "ближнее поле";
+    let trace, title;
+    if (mode === "re" && arr) {
+      // мгновенное поле СО ЗНАКОМ; шкала симметричная и фиксированная на всю анимацию
+      const A = compAmp(arr);
+      trace = { type: "heatmap", x: hm.x, y: hm.y, z: instFrame(arr, animPhase, false),
+        colorscale: divScale(), zmin: -A, zmax: A, zsmooth: "best",
+        colorbar: { title: { text: "Re[E<sub>" + comp + "</sub>·e<sup>jωt</sup>], отн. ед." }, outlinewidth: 0 } };
+      title = "Re[E<sub>" + comp + "</sub>·e<sup>jωt</sup>] (конв. дисс.) · " + qty + " · " + planeTxt + resTxt + maskTxt;
+    } else {
+      let absZ;
+      if (comp === "abs" || !arr) absZ = hm.absE;
+      else absZ = arr.re.map((row, r) => row.map((v, k) => (v == null ? null : Math.hypot(v, arr.im[r][k] || 0))));
+      const mx = fieldMax(absZ);                    // нормировка на максимум поля
+      const log = GT.state.heatScale !== "lin";
+      let z, cbTitle, zmin, zmax;
+      if (log) {                                    // лог (дБ отн. макс): и пики, и переходы слоёв
+        z = absZ.map((r) => r.map((v) => (v == null ? null : Math.max(DB_HM_FLOOR, 20 * Math.log10(Math.max(v, 1e-300) / mx)))));
+        cbTitle = "дБ отн. макс"; zmin = DB_HM_FLOOR; zmax = 0;
+      } else {                                      // линейная, нормированная
+        z = absZ.map((r) => r.map((v) => (v == null ? null : v / mx)));
+        cbTitle = compHtml(comp) + " / макс"; zmin = 0; zmax = 1;
+      }
+      trace = { type: "heatmap", x: hm.x, y: hm.y, z, colorscale: heatScale(),
+        zmin, zmax, colorbar: { title: { text: cbTitle }, outlinewidth: 0 }, zsmooth: "best" };
+      title = (comp === "abs" ? "|E|" : "|E<sub>" + comp + "</sub>|") + " · " + qty + " · " +
+        (log ? "лог (дБ отн. макс)" : "линейная, норм.") + " · " + planeTxt + resTxt + maskTxt;
     }
-    const trace = {
-      type: "heatmap", x: hm.x, y: hm.y, z, colorscale: heatScale(),
-      zmin, zmax, colorbar: { title, outlinewidth: 0 }, zsmooth: "best",
-    };
-    const sub = (log ? "лог (дБ отн. макс)" : "линейная, норм.") +
-      (hm.res ? " · " + hm.res + "×" + hm.res : "") +
-      (hm.metal_masked ? " · металл-области скрыты" : "");
-    const layout = baseLayout({
-      showlegend: false,
-      xaxis: { title: "x", scaleanchor: "y", constrain: "domain", zeroline: false, gridcolor: PAL().grid },
-      yaxis: { title: "z", zeroline: false, gridcolor: PAL().grid },
-      annotations: [{ x: 0.5, y: 1.06, xref: "paper", yref: "paper", showarrow: false,
-        text: (hm.quantity === "scattered" ? "Рассеянное поле |E_расс| в плоскости xz · "
-          : "Ближнее поле |E| в плоскости xz · ") + sub, font: { color: PAL().muted, size: 12 } }],
-    });
-    Plotly.react(host, [trace], layout, config("greentensor_heatmap"));
+    Plotly.react(host, [trace], heatLayout(hm, { title, showPhase: mode === "re" && !!arr, phase: animPhase }),
+      config(mode === "re" ? "greentensor_field" : "greentensor_heatmap"));
   }
 
-  // Анимация НАПРЯЖЁННОСТИ: мгновенное |Re[E·e^{-iωt}]| = |reField·cos(ωt)+imField·sin(ωt)|
-  function toggleAnim() {
-    const res = GT.state.results;
-    if (!res || !res.heatmap || !res.heatmap.reField) return;
-    const host = GT.$("#plot");
-    const re = res.heatmap.reField, im = res.heatmap.imField;
+  // --- анимация бегущей волны: кадры Re[E·e^{jωt}] по ωt = 0…2π, шкала фиксирована ---
+  function setAnimBtn(on) {
     const btn = GT.$("#anim-btn");
-    if (animTimer) { stopAnim(); if (btn) btn.textContent = "▶ Напряжённость (аним.)"; renderHeatmap(); return; }
-    if (btn) btn.textContent = "⏸ Стоп";
-    // амплитуда (для фиксированной шкалы цвета)
-    let amax = 0;
-    re.forEach((row, r) => row.forEach((v, k) => {
-      if (v == null) return;
-      const a = Math.hypot(v, im[r][k] || 0); if (a > amax) amax = a;
-    }));
-    const frame = (c, s) => re.map((row, r) => row.map((v, k) =>
-      (v == null ? null : Math.abs(v * c + (im[r][k] || 0) * s))));
-    Plotly.react(host, [{ type: "heatmap", x: res.heatmap.x, y: res.heatmap.y,
-      z: frame(1, 0), colorscale: heatScale(), zmin: 0, zmax: amax || 1,
-      colorbar: { title: "|E(t)|" }, zsmooth: "best" }],
-      baseLayout({ showlegend: false,
-        xaxis: { scaleanchor: "y", constrain: "domain", title: "x" }, yaxis: { title: "z" },
-        annotations: [{ x: 0.5, y: 1.06, xref: "paper", yref: "paper", showarrow: false,
-          text: (res.heatmap.quantity === "scattered"
-            ? "Мгновенная напряжённость рассеянного поля |E_расс(r,t)|"
-            : "Мгновенная напряжённость поля |E(r,t)| (колебание во времени)"),
-          font: { color: PAL().muted, size: 12 } }] }),
-      config("greentensor_field"));
-    let t = 0;
+    if (btn) btn.textContent = on ? "⏸ Стоп" : "▶ Бегущая волна";
+  }
+  function setHeatMode(mode) {
+    GT.state.heatMode = mode;
+    GT.$$("#hm-mode button").forEach((x) => x.classList.toggle("active", x.dataset.hm === mode));
+  }
+  function startAnim() {
+    const res = GT.state.results;
+    if (!res || !res.heatmap) return false;
+    const hm = res.heatmap;
+    if (GT.state.heatMode !== "re") setHeatMode("re");     // бегущая волна = поле со знаком
+    const arr = compArrays(hm, effComp(hm));
+    if (!arr) return false;
+    stopAnim();
+    renderHeatmap();
+    setAnimBtn(true);
+    const host = GT.$("#plot");
+    const step = 2 * Math.PI / ANIM_FRAMES;
     animTimer = setInterval(() => {
-      t += 0.18;
-      Plotly.restyle(host, { z: [frame(Math.cos(t), Math.sin(t))] }, [0]);
-    }, 60);
+      if (!host._fullLayout) { stopAnim(); setAnimBtn(false); return; }   // график очищен
+      animPhase = (animPhase + step) % (2 * Math.PI);
+      const upd = wtAnnIdx >= 0 ? { ["annotations[" + wtAnnIdx + "].text"]: fmtDeg(animPhase) } : {};
+      Plotly.update(host, { z: [instFrame(arr, animPhase, false)] }, upd, [0]).catch(() => {});
+    }, ANIM_DT);
+    return true;
+  }
+  function toggleAnim() {
+    if (animTimer) { stopAnim(); setAnimBtn(false); return; }
+    startAnim();
+  }
+
+  // ===================== GIF: кадры на offscreen-canvas → GT.GIFEncoder ===================== //
+  function hex2rgb(h) { const v = parseInt(h.slice(1), 16); return [(v >> 16) & 255, (v >> 8) & 255, v & 255]; }
+  function scaleLUT(scale, levels) {                 // Plotly-colorscale → массив [r,g,b] длиной levels
+    const stops = scale.map((s) => [s[0], hex2rgb(s[1])]);
+    const lut = [];
+    for (let i = 0; i < levels; i++) {
+      const t = levels === 1 ? 0 : i / (levels - 1);
+      let j = 0; while (j < stops.length - 2 && t > stops[j + 1][0]) j++;
+      const [t0, c0] = stops[j], [t1, c1] = stops[j + 1];
+      const u = t1 > t0 ? Math.min(1, Math.max(0, (t - t0) / (t1 - t0))) : 0;
+      lut.push([0, 1, 2].map((k) => Math.round(c0[k] + (c1[k] - c0[k]) * u)));
+    }
+    return lut;
+  }
+  function niceTicks(lo, hi, n) {
+    const raw = (hi - lo) / n, p = Math.pow(10, Math.floor(Math.log10(raw)));
+    let step = 10 * p;
+    for (const c of [1, 2, 2.5, 5, 10]) if (raw <= c * p) { step = c * p; break; }
+    const out = [];
+    for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+    return out;
+  }
+  // текст с под-/надстрочными фрагментами: parts = [{t:"Re[E"},{t:"x",sub:1},{t:"·e"},{t:"jωt",sup:1},{t:"]"}]
+  function drawRich(ctx, parts, x, y, size, color, bold) {
+    ctx.save(); ctx.fillStyle = color; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+    let cx = x;
+    parts.forEach((p) => {
+      const s = p.sub || p.sup ? Math.round(size * 0.7) : size;
+      ctx.font = (p.bold || bold ? "bold " : "") + (p.italic ? "italic " : "") + s + "px Inter, -apple-system, Segoe UI, Roboto, sans-serif";
+      const dy = p.sub ? size * 0.25 : p.sup ? -size * 0.45 : 0;
+      ctx.fillText(p.t, cx, y + dy);
+      cx += ctx.measureText(p.t).width;
+    });
+    ctx.restore();
+    return cx - x;
+  }
+  function richWidth(ctx, parts, size, bold) {
+    let w = 0;
+    parts.forEach((p) => {
+      const s = p.sub || p.sup ? Math.round(size * 0.7) : size;
+      ctx.font = (p.bold || bold ? "bold " : "") + (p.italic ? "italic " : "") + s + "px Inter, -apple-system, Segoe UI, Roboto, sans-serif";
+      w += ctx.measureText(p.t).width;
+    });
+    return w;
+  }
+
+  // Рисует один кадр анимации 800×600 (стиль слайда: заголовок, оси, контур, стрелка, шкала, ωt).
+  // lut — палитра поля; возвращает индексы палитры для области карты не нужны: квантуется энкодером.
+  function drawGifFrame(ctx, hm, arr, comp, phase, A, lut, colors) {
+    const Wc = GIF_W, Hc = GIF_H;
+    ctx.fillStyle = colors.paper; ctx.fillRect(0, 0, Wc, Hc);
+    // область карты: квадрат
+    const px0 = 118, py0 = 58, S = 490;
+    const hs = hm.x, vs = hm.y, n = hs.length, m = vs.length;
+    const hmin = hs[0], hmax = hs[n - 1], vmin = vs[0], vmax = vs[m - 1];
+    const c = Math.cos(phase), s = Math.sin(phase);
+    const img = ctx.createImageData(S, S);
+    const d = img.data;
+    const re = arr.re, im = arr.im;
+    const bg = hex2rgb(colors.paper);
+    const L = lut.length;
+    for (let py = 0; py < S; py++) {
+      const gv = (1 - (py + 0.5) / S) * (m - 1);            // строка 0 — верх = vmax
+      const j0 = Math.min(m - 2, Math.floor(gv)), tv = gv - j0;
+      for (let px = 0; px < S; px++) {
+        const gh = (px + 0.5) / S * (n - 1);
+        const i0 = Math.min(n - 2, Math.floor(gh)), th = gh - i0;
+        const r00 = re[j0][i0], r01 = re[j0][i0 + 1], r10 = re[j0 + 1][i0], r11 = re[j0 + 1][i0 + 1];
+        const o = (py * S + px) * 4;
+        if (r00 == null || r01 == null || r10 == null || r11 == null) {
+          d[o] = bg[0]; d[o + 1] = bg[1]; d[o + 2] = bg[2]; d[o + 3] = 255; continue;
+        }
+        const v00 = r00 * c + im[j0][i0] * s, v01 = r01 * c + im[j0][i0 + 1] * s;
+        const v10 = r10 * c + im[j0 + 1][i0] * s, v11 = r11 * c + im[j0 + 1][i0 + 1] * s;
+        const val = (v00 * (1 - th) + v01 * th) * (1 - tv) + (v10 * (1 - th) + v11 * th) * tv;
+        let idx = Math.round((val + A) / (2 * A) * (L - 1));
+        if (idx < 0) idx = 0; else if (idx >= L) idx = L - 1;
+        const col = lut[idx];
+        d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, px0, py0);
+    const X = (h) => px0 + (h - hmin) / (hmax - hmin) * S;
+    const Y = (v) => py0 + (vmax - v) / (vmax - vmin) * S;
+    const g = hm.geometry || {};
+    // геометрия: пунктир слоёв + контур
+    (g.bodies || []).forEach((b) => {
+      ctx.save();
+      (b.layers_r || []).forEach((r, i) => {
+        if (r == null || i === b.layers_r.length - 1) return;
+        ctx.beginPath(); ctx.setLineDash([6, 5]); ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.arc(X(b.cu), Y(b.cv), r / (hmax - hmin) * S, 0, 2 * Math.PI); ctx.stroke();
+      });
+      ctx.setLineDash([]);
+      ctx.beginPath(); ctx.lineWidth = 5; ctx.strokeStyle = "rgba(0,0,0,0.35)";
+      ctx.arc(X(b.cu), Y(b.cv), b.r / (hmax - hmin) * S, 0, 2 * Math.PI); ctx.stroke();
+      ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#ffffff";
+      ctx.arc(X(b.cu), Y(b.cv), b.r / (hmax - hmin) * S, 0, 2 * Math.PI); ctx.stroke();
+      ctx.restore();
+    });
+    // рамка области и оси с делениями
+    ctx.save();
+    ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.strokeRect(px0 + 0.5, py0 + 0.5, S, S);
+    ctx.fillStyle = colors.font; ctx.font = "13px Inter, -apple-system, Segoe UI, Roboto, sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    niceTicks(hmin, hmax, 6).forEach((t) => {
+      const x = X(t); ctx.beginPath(); ctx.moveTo(x, py0 + S); ctx.lineTo(x, py0 + S + 5); ctx.stroke();
+      ctx.fillText(fmtRu(t, 2).replace("-", "−"), x, py0 + S + 8);
+    });
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    niceTicks(vmin, vmax, 6).forEach((t) => {
+      const y = Y(t); ctx.beginPath(); ctx.moveTo(px0 - 5, y); ctx.lineTo(px0, y); ctx.stroke();
+      ctx.fillText(fmtRu(t, 2).replace("-", "−"), px0 - 9, y);
+    });
+    ctx.font = "italic 16px Inter, -apple-system, Segoe UI, Roboto, sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText(hm.xlabel || "x", px0 + S / 2, py0 + S + 26);
+    ctx.save(); ctx.translate(px0 - 58, py0 + S / 2); ctx.rotate(-Math.PI / 2);
+    ctx.textBaseline = "middle"; ctx.fillText(hm.ylabel || "z", 0, 0); ctx.restore();
+    ctx.restore();
+    // заголовок
+    const kA = hm.k != null && hm.radius != null ? fmtRu(hm.k * hm.radius, 2) : null;
+    const titleParts = [{ t: "Ближнее поле: " + (hm.quantity === "scattered" ? "рассеянное" : "полное") + ", Re[E" },
+      { t: comp, sub: 1, italic: 1 }, { t: "·e" }, { t: "jωt", sup: 1, italic: 1 }, { t: "]" },
+      { t: kA ? "  ·  k₀a = " + kA : "" }, { t: "  (GreenTensor)" }];
+    const tw = richWidth(ctx, titleParts, 19);
+    drawRich(ctx, titleParts, px0 + S / 2 - tw / 2, 36, 19, colors.font);
+    // стрелка E_пад, k
+    const kd = g.k_dir || [1, 0], kl = Math.hypot(kd[0], kd[1]);
+    const cxp = X(hmin + 0.16 * (hmax - hmin)), cyp = Y(vmax - 0.13 * (vmax - vmin));
+    ctx.save(); ctx.strokeStyle = "#ffffff"; ctx.fillStyle = "#ffffff"; ctx.lineWidth = 3;
+    if (g.k_inplane !== false && kl > 1e-6) {
+      const len = 0.18 * S, dx = kd[0] / kl, dy = -kd[1] / kl;   // экран: y вниз
+      const ax0 = cxp - dx * len / 2, ay0 = cyp - dy * len / 2;
+      const tx = cxp + dx * len / 2, ty = cyp + dy * len / 2;
+      ctx.beginPath(); ctx.moveTo(ax0, ay0); ctx.lineTo(tx, ty); ctx.stroke();
+      const ang = Math.atan2(dy, dx);
+      ctx.beginPath(); ctx.moveTo(tx, ty);
+      ctx.lineTo(tx - 12 * Math.cos(ang - 0.45), ty - 12 * Math.sin(ang - 0.45));
+      ctx.lineTo(tx - 12 * Math.cos(ang + 0.45), ty - 12 * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill();
+      const lbl = g.pol_inplane === false
+        ? [{ t: "k", bold: 1 }, { t: " (E", bold: 1 }, { t: "пад", sub: 1 }, { t: " ⊥ плоскости)" }]
+        : [{ t: "E", bold: 1 }, { t: "пад", sub: 1 }, { t: ", " }, { t: "k", bold: 1 }];
+      drawRich(ctx, lbl, Math.min(ax0, tx), Math.min(ay0, ty) - 10, 15, "#ffffff");
+    } else {
+      drawRich(ctx, [{ t: "⊙ " }, { t: "k", bold: 1 }, { t: " ⊥ плоскости" }],
+        X(hmin + 0.06 * (hmax - hmin)), cyp, 15, "#ffffff");
+    }
+    ctx.restore();
+    // плашка слоёв + ωt
+    const bodies = g.bodies || [];
+    let layersText = "";
+    if (bodies.length === 1) {
+      const b = bodies[0];
+      const eps = (b.eps_re || []).map((e) => fmtRu(e, 2));
+      const nl = eps.length;
+      layersText = (nl === 1 ? "однородная" : nl + (nl >= 2 && nl <= 4 ? " слоя" : " слоёв")) + ", ε = " + eps.join(" / ");
+    } else if (bodies.length > 1) layersText = "кластер: " + bodies.length + " тел · рассеянное поле";
+    const box = (text, xRight, yBottom, mono) => {
+      ctx.save();
+      ctx.font = (mono ? "13px ui-monospace, SFMono-Regular, Menlo, monospace" : "13px Inter, -apple-system, Segoe UI, Roboto, sans-serif");
+      const w = ctx.measureText(text).width + 14, h = 24;
+      const x = xRight - w, y = yBottom - h;
+      ctx.fillStyle = colors.box; ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = colors.boxBorder; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+      ctx.fillStyle = colors.font; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(text, x + 7, y + h / 2 + 1);
+      ctx.restore();
+      return w;
+    };
+    const wtW = box(fmtDeg(phase), px0 + S - 8, py0 + S - 8, true);
+    if (layersText) box(layersText, px0 + S - 8 - wtW - 8, py0 + S - 8, false);
+    // цветовая шкала
+    const cbx = px0 + S + 28, cby = py0, cbw = 22, cbh = S;
+    for (let i = 0; i < cbh; i++) {
+      const t = 1 - i / (cbh - 1);
+      const col = lut[Math.round(t * (L - 1))];
+      ctx.fillStyle = "rgb(" + col[0] + "," + col[1] + "," + col[2] + ")";
+      ctx.fillRect(cbx, cby + i, cbw, 1);
+    }
+    ctx.save();
+    ctx.strokeStyle = colors.axis; ctx.strokeRect(cbx + 0.5, cby + 0.5, cbw, cbh);
+    ctx.fillStyle = colors.font; ctx.font = "13px Inter, -apple-system, Segoe UI, Roboto, sans-serif";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    niceTicks(-A, A, 5).forEach((t) => {
+      const y = cby + (1 - (t + A) / (2 * A)) * cbh;
+      ctx.beginPath(); ctx.moveTo(cbx + cbw, y); ctx.lineTo(cbx + cbw + 4, y); ctx.stroke();
+      ctx.fillText(fmtRu(t, 2).replace("-", "−"), cbx + cbw + 7, y);
+    });
+    ctx.translate(cbx + cbw + 62, cby + cbh / 2); ctx.rotate(-Math.PI / 2);
+    const cbParts = [{ t: "Re[E" }, { t: comp, sub: 1, italic: 1 }, { t: "·e" }, { t: "jωt", sup: 1, italic: 1 }, { t: "], отн. ед." }];
+    const cw = richWidth(ctx, cbParts, 15);
+    drawRich(ctx, cbParts, -cw / 2, 0, 15, colors.font);
+    ctx.restore();
+  }
+
+  async function exportGIF() {
+    const res = GT.state.results;
+    if (!res || !res.heatmap) { GT.toast("Сначала рассчитайте тепловую карту", "error"); return; }
+    if (!GT.GIFEncoder) { GT.toast("GIF-энкодер не загружен", "error"); return; }
+    const hm = res.heatmap;
+    if (GT.state.heatMode !== "re") setHeatMode("re");
+    const comp = effComp(hm);
+    const arr = compArrays(hm, comp);
+    if (!arr) { GT.toast("Для этой карты нет комплексного поля (re/im)", "error"); return; }
+    const wasAnim = !!animTimer;
+    stopAnim(); setAnimBtn(false);
+    const P = PAL();
+    const colors = { paper: P.paper, font: P.font, axis: P.axis,
+      box: themeDark() ? "rgba(7,9,10,0.62)" : "rgba(255,255,255,0.85)",
+      boxBorder: themeDark() ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" };
+    const lut = scaleLUT(divScale(), GIF_LEVELS);
+    // палитра GIF: градации поля + цвета темы + переходы (сглаживание текста/линий)
+    const pal = lut.slice();
+    const bg = hex2rgb(P.paper), fg = hex2rgb(P.font);
+    const blend = (a, b, t) => [0, 1, 2].map((k) => Math.round(a[k] + (b[k] - a[k]) * t));
+    pal.push(bg, fg, [255, 255, 255], [0, 0, 0], hex2rgb(P.muted));
+    for (let i = 1; i < 24; i++) pal.push(blend(bg, fg, i / 24));                  // текст на фоне
+    for (let i = 1; i < 12; i++) pal.push(blend(fg, [255, 255, 255], i / 12));
+    // белый контур/стрелка поверх поля: смеси белого с центральными цветами палитры
+    const mids = [lut[0], lut[Math.floor(L4(lut, 0.25))], lut[Math.floor(L4(lut, 0.5))], lut[Math.floor(L4(lut, 0.75))], lut[lut.length - 1]];
+    mids.forEach((c) => { for (let i = 1; i < 6; i++) pal.push(blend(c, [255, 255, 255], i / 6)); });
+    while (pal.length > 256) pal.pop();
+    const A = compAmp(arr);
+    const canvas = document.createElement("canvas");
+    canvas.width = GIF_W; canvas.height = GIF_H;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const enc = new GT.GIFEncoder(GIF_W, GIF_H, pal, { loop: 0, delay: GIF_DT });
+    GT.busy(true, "Сборка GIF… 0/" + ANIM_FRAMES);
+    const timing = { draw: 0, encode: 0, total: 0 };
+    const t0 = performance.now();
+    try {
+      for (let f = 0; f < ANIM_FRAMES; f++) {
+        const phase = 2 * Math.PI * f / ANIM_FRAMES;
+        const ta = performance.now();
+        drawGifFrame(ctx, hm, arr, comp, phase, A, lut, colors);
+        const tb = performance.now();
+        enc.addFrame(ctx.getImageData(0, 0, GIF_W, GIF_H), GIF_DT);
+        timing.draw += tb - ta; timing.encode += performance.now() - tb;
+        GT.busy(true, "Сборка GIF… " + (f + 1) + "/" + ANIM_FRAMES);
+        await yieldToUI();
+      }
+      const blob = enc.finish();
+      timing.total = performance.now() - t0;
+      const name = "greentensor_nearfield_wave_" + (hm.plane || "xz") + "_E" + comp + ".gif";
+      GT.download(name, blob, "image/gif");
+      GT.toast("GIF: " + ANIM_FRAMES + " кадров, " + (blob.size / 1048576).toFixed(2) + " МБ", "ok");
+      GT.lastGif = { name, size: blob.size, frames: ANIM_FRAMES, blob, timing };
+      console.info("[GreenTensor] GIF " + name + ": " + ANIM_FRAMES + " кадров, " +
+        (blob.size / 1024).toFixed(0) + " кБ, " + timing.total.toFixed(0) + " мс (рисование " +
+        timing.draw.toFixed(0) + ", кодирование " + timing.encode.toFixed(0) + ")");
+    } catch (e) {
+      console.error(e);
+      GT.toast("Не удалось собрать GIF: " + e.message, "error");
+    } finally {
+      GT.busy(false);
+      if (wasAnim) startAnim();
+    }
+  }
+  function L4(lut, t) { return t * (lut.length - 1); }
+  // Уступить поток UI между кадрами. НЕ setTimeout: в фоновой/скрытой вкладке Chrome
+  // троттлит таймеры до 1 раза в секунду (30 кадров → полминуты); MessageChannel не троттлится.
+  function yieldToUI() {
+    return new Promise((resolve) => {
+      const ch = new MessageChannel();
+      ch.port1.onmessage = () => { ch.port1.close(); resolve(); };
+      ch.port2.postMessage(0);
+    });
+  }
+
+  // --- синхронизация контролов карты с состоянием ---
+  function syncHeatControls(hm) {
+    const mode = GT.state.heatMode || "abs";
+    GT.$$("#hm-mode button").forEach((x) => x.classList.toggle("active", x.dataset.hm === mode));
+    const comp = GT.state.heatComp || "abs";
+    GT.$$("#hm-comp button").forEach((x) => {
+      x.classList.toggle("active", x.dataset.hc === comp);
+      x.disabled = mode === "re" && x.dataset.hc === "abs";         // знак у |E| не определён
+    });
+    const plane = GT.state.heatPlane || "xz";
+    GT.$$("#hm-plane button").forEach((x) => x.classList.toggle("active", x.dataset.hp === plane));
+    const sc = GT.$("#hm-scale"); if (sc) sc.style.display = mode === "re" ? "none" : "";
+    const hasComplex = !!(hm && (hm.comp || hm.reField));
+    const gif = GT.$("#btn-gif"); if (gif) gif.disabled = !hasComplex;
+    const anim = GT.$("#anim-btn"); if (anim) anim.disabled = !hasComplex;
   }
 
   // ===================== Сечения ===================== //
@@ -371,6 +831,23 @@
     }
     showEmpty(false);
     const sw = res.sweep;
+    // Генерик-кривая (не Q(k)): произвольные оси/серии — например η₁(θ₀)
+    // режима «раскрыв облучателя» (spill-over, green_tensor/feed.py).
+    if (sw.generic) {
+      const traces = (sw.series || []).map((s, i) => ({
+        type: "scatter", mode: s.mode || "lines", name: s.name,
+        x: s.x || sw.x, y: s.y, line: lineStyle(i),
+      }));
+      (sw.marks || []).forEach((m, j) => traces.push({
+        type: "scatter", mode: "markers", name: m.name, x: m.x, y: m.y,
+        marker: { size: 9, symbol: j ? "square" : "circle" },
+      }));
+      Plotly.react(host, traces, baseLayout({
+        xaxis: { title: sw.xlabel || "x", gridcolor: PAL().grid },
+        yaxis: { title: sw.ylabel || "y", gridcolor: PAL().grid },
+      }), config("greentensor_curve"));
+      return;
+    }
     const keys = ["q_sca", "q_ext", "q_abs", "q_back"];
     const traces = keys.filter((k) => sw[k]).map((k, i) => ({
       type: "scatter", mode: "lines", name: k.replace("q_", "Q_"),
@@ -409,17 +886,23 @@
     GT.$("#polar-rot-wrap").style.display = polarV ? "" : "none";
     GT.$("#db-toggle-wrap").style.display = v === "pattern" ? "" : "none";
     GT.$("#pattern-layout").style.display = v === "pattern" ? "" : "none";
-    GT.$("#hm-scale").style.display = v === "heatmap" ? "" : "none";
-    GT.$("#hm-res-wrap").style.display = v === "heatmap" ? "" : "none";
-    // кнопка анимации только в тепловой карте
+    const hmV = v === "heatmap";
+    GT.$("#hm-scale").style.display = hmV && (GT.state.heatMode || "abs") !== "re" ? "" : "none";
+    GT.$("#hm-res-wrap").style.display = hmV ? "" : "none";
+    ["#hm-mode", "#hm-comp", "#hm-plane", "#btn-gif"].forEach((id) => {
+      const el = GT.$(id); if (el) el.style.display = hmV ? "" : "none";
+    });
+    // кнопка анимации бегущей волны только в тепловой карте
     let anim = GT.$("#anim-btn");
-    if (v === "heatmap") {
+    if (hmV) {
       if (!anim) {
         anim = document.createElement("button");
         anim.id = "anim-btn"; anim.className = "btn"; anim.type = "button";
-        anim.textContent = "▶ Напряжённость (аним.)";
+        anim.title = "Анимация бегущей волны: кадры Re[E·e^{jωt}] по ωt = 0…2π (шкала фиксирована)";
+        anim.textContent = "▶ Бегущая волна";
         anim.addEventListener("click", toggleAnim);
-        GT.$("#btn-png").parentNode.insertBefore(anim, GT.$("#btn-png"));
+        const gif = GT.$("#btn-gif");
+        gif.parentNode.insertBefore(anim, gif);
       }
       anim.style.display = "";
     } else if (anim) { anim.style.display = "none"; }
@@ -428,8 +911,14 @@
 
   function render() {
     stopAnim();
-    const a = GT.$("#anim-btn"); if (a) a.textContent = "▶ Напряжённость (аним.)";
+    setAnimBtn(false);
     syncToolbar();
+    // Вкладка спектра меняет подпись, если результат несёт генерик-кривую (η₁(θ₀) и т. п.)
+    const res0 = GT.state.results;
+    const swBtn = GT.$('[data-rv="sweep"]');
+    if (swBtn) swBtn.textContent =
+      (res0 && res0.sweep && res0.sweep.generic && res0.sweep.tab_title)
+        ? res0.sweep.tab_title : "Спектр Q(k)";
     const v = GT.state.resultView;
     if (v === "pattern") renderPattern();
     else if (v === "bistatic") renderBistatic();
@@ -552,9 +1041,24 @@
       Object.entries(res.cross_sections).forEach(([k, val]) => { csv += k + "," + val + "\n"; });
     } else if (v === "heatmap" && res && res.heatmap) {
       const hm = res.heatmap;
-      csv = "# |E| heatmap; first row = x, first col = y\n,";
-      csv += hm.x.join(",") + "\n";
-      hm.absE.forEach((row, r) => { csv += hm.y[r] + "," + row.join(",") + "\n"; });
+      const comp = effComp(hm);
+      const arr = comp === "abs" ? null : compArrays(hm, comp);
+      const hl = hm.xlabel || "x", vl = hm.ylabel || "z";
+      if (GT.state.heatMode === "re" && arr) {
+        csv = "# Re/Im E_" + comp + " (engine e^{-iwt}; E(t) = re*cos(wt) + im*sin(wt)); plane " +
+          (hm.plane || "xz") + "; first row = " + hl + ", first col = " + vl + "; blocks: re, im\n";
+        ["re", "im"].forEach((part) => {
+          csv += "# " + part + "\n," + hm.x.join(",") + "\n";
+          arr[part].forEach((row, r) => { csv += hm.y[r] + "," + row.join(",") + "\n"; });
+        });
+      } else {
+        const absZ = (comp === "abs" || !arr) ? hm.absE
+          : arr.re.map((row, r) => row.map((val, k) => (val == null ? null : Math.hypot(val, arr.im[r][k] || 0))));
+        csv = "# " + (comp === "abs" ? "|E|" : "|E_" + comp + "|") + " heatmap; plane " + (hm.plane || "xz") +
+          "; first row = " + hl + ", first col = " + vl + "\n,";
+        csv += hm.x.join(",") + "\n";
+        absZ.forEach((row, r) => { csv += hm.y[r] + "," + row.join(",") + "\n"; });
+      }
     } else { GT.toast("Нет данных для экспорта", "error"); return; }
     GT.download("greentensor_" + v + ".csv", csv, "text/csv;charset=utf-8");
   }
@@ -566,13 +1070,47 @@
 
   function onShow() {
     const host = GT.$("#plot");
-    if (host && host.data) Plotly.Plots.resize(host);
+    // resize отложен внутри Plotly на ~100 мс; если за это время график очищен
+    // (purge при смене представления/пресета) — промис отклоняется, это не ошибка
+    if (host && host.data) Plotly.Plots.resize(host).catch(() => {});
     else render();
   }
 
   function init() {
     if (!GT.state.patternLayout) GT.state.patternLayout = "overlay";
     if (!GT.state.heatScale) GT.state.heatScale = "db";
+    if (!GT.state.heatMode) GT.state.heatMode = "abs";       // abs | re  (Re± — бегущая волна)
+    if (!GT.state.heatComp) GT.state.heatComp = "abs";       // abs | x | y | z
+    if (!GT.state.heatPlane) GT.state.heatPlane = "xz";      // xz | yz | xy
+    GT.$$("#hm-mode button").forEach((b) =>
+      b.addEventListener("click", () => {
+        stopAnim(); setAnimBtn(false);
+        setHeatMode(b.dataset.hm);
+        if (GT.state.heatMode === "re" && (GT.state.heatComp || "abs") === "abs") {
+          const hm = GT.state.results && GT.state.results.heatmap;
+          GT.state.heatComp = (hm && hm.dominant) || "x";
+        }
+        syncToolbar();
+        if (GT.state.resultView === "heatmap") renderHeatmap();
+      }));
+    GT.$$("#hm-comp button").forEach((b) =>
+      b.addEventListener("click", () => {
+        if (b.disabled) return;
+        stopAnim(); setAnimBtn(false);
+        GT.state.heatComp = b.dataset.hc;
+        if (GT.state.resultView === "heatmap") renderHeatmap();
+      }));
+    GT.$$("#hm-plane button").forEach((b) =>
+      b.addEventListener("click", async () => {
+        if (GT.state.heatPlane === b.dataset.hp) return;
+        GT.state.heatPlane = b.dataset.hp;
+        GT.$$("#hm-plane button").forEach((x) => x.classList.toggle("active", x === b));
+        if (!GT.state.results) return;              // применится при следующем расчёте
+        stopAnim(); setAnimBtn(false);
+        await GT.compute({ pattern: false, heatmap: true, sweep: false, merge: true });
+      }));
+    const gifBtn = GT.$("#btn-gif");
+    if (gifBtn) gifBtn.addEventListener("click", exportGIF);
     GT.$$("#hm-scale button").forEach((b) =>
       b.addEventListener("click", () => {
         GT.state.heatScale = b.dataset.hs;
@@ -617,5 +1155,18 @@
     });
   }
 
-  GT.results = { init, render, onShow };
+  // Установка режима карты извне (пресеты): {heatMode, heatComp, heatPlane, resultView}
+  function setHeatOptions(o) {
+    o = o || {};
+    if (o.heatMode) GT.state.heatMode = o.heatMode;
+    if (o.heatComp) GT.state.heatComp = o.heatComp;
+    if (o.heatPlane) GT.state.heatPlane = o.heatPlane;
+    if (o.resultView) {
+      GT.state.resultView = o.resultView;
+      GT.$$("#result-view button").forEach((x) => x.classList.toggle("active", x.dataset.rv === o.resultView));
+    }
+    syncHeatControls(GT.state.results && GT.state.results.heatmap);
+  }
+
+  GT.results = { init, render, onShow, setHeatOptions, startAnim, stopAnim, exportGIF };
 })();

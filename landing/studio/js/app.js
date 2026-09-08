@@ -29,6 +29,10 @@
     colorMode: "color",    // 'color' | 'bw'
     resultView: "pattern", // pattern | heatmap | cross | sweep
     heatRes: 64,           // разрешение тепловой карты (точек на сторону)
+    heatMode: "abs",       // 'abs' (|E|, лог/лин) | 're' (мгновенное поле со знаком, бегущая волна)
+    heatComp: "abs",       // компонента: 'abs' (|E|) | 'x' | 'y' | 'z'
+    heatPlane: "xz",       // плоскость разреза: 'xz' | 'yz' | 'xy'
+    heatExtent: 2.5,       // полу-экстент кадра одиночной сферы, в радиусах (эталон Example 13 — 3)
   };
 
   // ----- Хелперы ----- //
@@ -51,7 +55,8 @@
   };
 
   GT.download = function (filename, text, mime) {
-    const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
+    // text — строка ИЛИ готовый Blob (GIF/бинарные файлы)
+    const blob = text instanceof Blob ? text : new Blob([text], { type: mime || "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = filename; document.body.appendChild(a); a.click();
@@ -73,7 +78,8 @@
     // по умолчанию НЕ считается: диаграмма/сечения/ЭПР появляются за секунды, а карта
     // считается по запросу (кнопкой на вкладке «Тепловая карта»). Явно heatmap:true — считаем.
     const want = Object.assign(
-      { pattern: true, heatmap: false, sweep: false, heatmap_res: GT.state.heatRes }, o);
+      { pattern: true, heatmap: false, sweep: false, heatmap_res: GT.state.heatRes,
+        heatmap_plane: GT.state.heatPlane || "xz", heatmap_extent: GT.state.heatExtent || 2.5 }, o);
     const payload = Object.assign({}, GT.state.scene, { compute: want });
     const busyText = o.monostatic ? "Моностатическая ЭПР (развёртка ракурса)…"
       : (want.heatmap && !want.pattern) ? "Тепловая карта ближнего поля…"

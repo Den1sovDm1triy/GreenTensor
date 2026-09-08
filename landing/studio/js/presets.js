@@ -8,7 +8,7 @@
   async function load() {
     const sel = GT.$("#preset-select");
     try {
-      const resp = await fetch("studio/engine/presets.json?v=20260721b");
+      const resp = await fetch("studio/engine/presets.json?v=20260908a");
       const data = await resp.json();
       PRESETS = data.presets || [];
     } catch (e) {
@@ -68,9 +68,37 @@
     }
     GT.state.selected = 0;
     GT.state.results = null;
+    // экстент кадра ближнего поля — параметр пресета (эталон Example 13: ±3a), иначе стандарт
+    const view = p.view || null;
+    GT.state.heatExtent = (view && view.heatExtent) || 2.5;
+    // компонента поля — свойство задачи (поляризация): без явного view возвращаем |E|;
+    // в режиме Re± карта сама возьмёт доминирующую компоненту поляризации
+    if (!view) GT.state.heatComp = "abs";
+    if (view && view.heatRes) {
+      GT.state.heatRes = view.heatRes;
+      const rs = GT.$("#hm-res"); if (rs) rs.value = String(view.heatRes);
+    }
     GT.refresh();
     GT.toast("Эталон: " + p.title, "ok");
+    if (view && view.resultView === "heatmap") {
+      applyNearFieldView(view);
+      return;
+    }
     GT.compute();   // сразу считаем + (если есть) накладываем эталон Ansys
+  }
+
+  // Пресет ближнего поля: сразу считаем карту, открываем «Тепловая карта» в заданном режиме
+  // (Re±/компонента/плоскость) и, если просили, запускаем анимацию бегущей волны.
+  async function applyNearFieldView(view) {
+    if (GT.results && GT.results.setHeatOptions) {
+      GT.results.setHeatOptions({ heatMode: view.heatMode || "re", heatComp: view.heatComp || "x",
+        heatPlane: view.heatPlane || "xz", resultView: "heatmap" });
+    }
+    const data = await GT.compute({ pattern: true, heatmap: true, sweep: false });
+    if (!data) return;
+    if (GT.results && GT.results.setHeatOptions) GT.results.setHeatOptions({ resultView: "heatmap" });
+    if (GT.results) GT.results.render();
+    if (view.animate && GT.results && GT.results.startAnim) GT.results.startAnim();
   }
 
   GT.presets = { load, apply, all: () => PRESETS };

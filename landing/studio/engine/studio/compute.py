@@ -572,6 +572,19 @@ def _cylinder_inf(body, scene, rad, gt, *, do_pattern, do_sweep):
 # --------------------------------------------------------------------------- #
 # Ближнепольная тепловая карта (любая геометрия) через Cluster.scattered_field
 # --------------------------------------------------------------------------- #
+# Плоскости разреза: h — горизонтальная ось кадра, v — вертикальная, n — нормаль.
+# Для xz/yz горизонталь — ось z (направление падения по умолчанию): волна бежит
+# слева направо, как на слайде диссертации (Example 13).
+_PLANES = {
+    "xz": {"h": 2, "v": 0, "n": 1, "hl": "z", "vl": "x", "title": "xz (φ = 0°, y = 0)"},
+    "yz": {"h": 2, "v": 1, "n": 0, "hl": "z", "vl": "y", "title": "yz (φ = 90°, x = 0)"},
+    "xy": {"h": 0, "v": 1, "n": 2, "hl": "x", "vl": "y", "title": "xy (z = 0)"},
+}
+HEATMAP_EXTENT_DEFAULT = 2.5     # полу-экстент кадра одиночной сферы, в радиусах
+HEATMAP_EXTENT_MIN, HEATMAP_EXTENT_MAX = 1.2, 5.0
+FIELD_DECIMALS = 6               # округление полей в JSON (размер ответа при 192²)
+
+
 def _heatmap_n(want):
     """Размер сетки near-field карты (точек на сторону) из запроса, с защитой пределами."""
     try:
@@ -581,49 +594,145 @@ def _heatmap_n(want):
     return max(HEATMAP_RES_MIN, min(HEATMAP_RES_MAX, n))
 
 
-def _heatmap_sphere(body, rad, extent, n=MAX_HEATMAP):
-    """Полное ближнее поле сферы (однородной И слоистой) методом ТФГ/Ми
-    (см. nearfield_sphere): падающее+рассеянное снаружи, внутреннее поле по слоям
-    (трансфер-матрица — Z/Y пересчитываются по слоям), сверено с каноном 01_sphere
-    по q_sca. Металлические слои (включая закрытое ядро) МАСКИРУЮТСЯ (поле не проникает).
-    Возвращает |E| и доминирующую комплексную компоненту (re/im) для анимации напряжённости."""
-    from .nearfield_sphere import field_sphere_layered, _wiscombe
-    k = rad["k"]
-    radius = float(body.get("radius", 1.0))
-    a_norm, eps, mu = _layers(body)
-    # Ряд ВСВФ обрезан на nmax≈Wiscombe(k·R) (по размеру сферы); вне r≈nmax/k он недостоверен
-    # (на дальних точках нужен nmax≈k·r). При высоком k0 (напр. Люнеберг k0=6π) экстент 2.5·R
-    # выходит за зону сходимости → артефакты в углах вместо |E|→1. Обрезаем кадр до зоны
-    # сходимости (показываем сферу + ближнюю зону/фокус), маска r>r_valid — подстраховка.
-    nmax_fld = max(_wiscombe(k * radius), 4)
-    r_valid = nmax_fld / k
-    extent = float(min(extent, 1.05 * r_valid))
-    xs = np.linspace(-extent, extent, n)
-    zs = np.linspace(-extent, extent, n)
-    X, Z = np.meshgrid(xs, zs)
-    pts = np.stack([X.ravel(), np.zeros(X.size), Z.ravel()], axis=-1)
-    E, mask = field_sphere_layered(a_norm, eps, mu, k, radius, pts,
-                                   khat=tuple(rad["khat"]), pol=tuple(rad["pol"]))
-    absE = np.linalg.norm(E, axis=1)
-    dom = int(np.argmax(np.abs(rad["pol"])))
-    fld = E[:, dom]
-    invalid = np.linalg.norm(pts, axis=1) > r_valid
-    mask = mask | invalid
-    absE[mask] = np.nan; fld[mask] = np.nan          # металл + вне зоны сходимости — не показываем
-    absE = absE.reshape(n, n); fld = fld.reshape(n, n)
+def _heatmap_plane(want):
+    """Плоскость разреза карты: xz (по умолчанию) | yz | xy."""
+    pl = str(want.get("heatmap_plane") or "xz").lower()
+    return pl if pl in _PLANES else "xz"
+
+
+def _heatmap_extent_factor(want):
+    """Полу-экстент кадра одиночной сферы в радиусах (по умолчанию 2.5; эталон Example 13 — 3)."""
+    try:
+        f = float(want.get("heatmap_extent") or HEATMAP_EXTENT_DEFAULT)
+    except (TypeError, ValueError):
+        f = HEATMAP_EXTENT_DEFAULT
+    return max(HEATMAP_EXTENT_MIN, min(HEATMAP_EXTENT_MAX, f))
+
+
+def _plane_grid(plane, extent, n):
+    """Квадратная сетка n×n в плоскости разреза, центр — начало координат.
+    Возвращает (hs, vs, pts): строки массива поля — по vs, столбцы — по hs."""
+    P = _PLANES[plane]
+    hs = np.linspace(-extent, extent, n)
+    vs = np.linspace(-extent, extent, n)
+    H, V = np.meshgrid(hs, vs)
+    pts = np.zeros((n * n, 3))
+    pts[:, P["h"]] = H.ravel()
+    pts[:, P["v"]] = V.ravel()
+    return hs, vs, pts
+
+
+def _rows(arr2d):
+    arr2d = np.round(np.asarray(arr2d, float), FIELD_DECIMALS)
+    return [_finite(row) for row in arr2d]
+
+
+def _plane_geometry(bodies, rad, plane, *, at_origin=False):
+    """Геометрия для оверлея карты: сечения сфер (и границ слоёв) плоскостью разреза,
+    проекции k̂ и ê на плоскость. at_origin — тело считается в начале координат
+    (одиночная сфера: поле считается относительно её центра)."""
+    P = _PLANES[plane]
+    h, v, nn = P["h"], P["v"], P["n"]
+    out = []
+    for b in bodies:
+        if b.get("type", "sphere") != "sphere":
+            continue
+        pos = [0.0, 0.0, 0.0] if at_origin else [float(x) for x in (b.get("position") or [0, 0, 0])]
+        R = float(b.get("radius", 1.0))
+        dn = pos[nn]
+        if abs(dn) >= R:
+            continue
+        try:
+            a_norm, eps, mu = _layers(b)
+        except ComputeError:
+            a_norm, eps, mu = [1.0], [1.0 + 0j], [1.0 + 0j]
+        cuts = []
+        for a in a_norm:
+            rr = (a * R) ** 2 - dn ** 2
+            cuts.append(math.sqrt(rr) if rr > 0 else None)
+        out.append({
+            "cu": pos[h], "cv": pos[v], "R": R, "r": math.sqrt(R * R - dn * dn),
+            "layers_rel": [float(a) for a in a_norm], "layers_r": cuts,
+            "eps_re": [float(e.real) for e in eps], "eps_im": [float(e.imag) for e in eps],
+            "mu_re": [float(m.real) for m in mu],
+        })
+    khat = np.asarray(rad["khat"], float)
+    pol = np.asarray(rad["pol"], float)
+    k_dir = [float(khat[h]), float(khat[v])]
+    pol_dir = [float(pol[h]), float(pol[v])]
     return {
-        "x": _finite(xs), "y": _finite(zs),
-        "absE": [_finite(row) for row in absE],
-        "reField": [_finite(row) for row in fld.real],
-        "imField": [_finite(row) for row in fld.imag],
-        "plane": "xz", "extent": extent, "internal": True, "res": n,
-        "metal_masked": bool(mask.any()), "quantity": "total",
-        "core": "01_sphere (ТФГ, внутр. поле по слоям)",
+        "plane": plane, "plane_title": P["title"], "hl": P["hl"], "vl": P["vl"],
+        "bodies": out,
+        "k_dir": k_dir, "k_inplane": bool(math.hypot(*k_dir) > 1e-6),
+        "pol_dir": pol_dir, "pol_inplane": bool(math.hypot(*pol_dir) > 1e-6),
     }
 
 
-def _heatmap(scatterers, rad, gt, nmax, extent, masks, n=MAX_HEATMAP, cf=None):
-    """РАССЕЯННОЕ поле |E_расс| в плоскости xz (y=0) для кластеров/несфер. Точки ВНУТРИ
+def _pack_field(E, mask, n, hs, vs, plane, rad, extra):
+    """Общий формат ответа карты: |E| + доминирующая компонента (reField/imField —
+    старый формат, сохранён) + все три компоненты comp.{x,y,z}.{re,im}."""
+    P = _PLANES[plane]
+    E = np.array(E, complex)
+    absE = np.linalg.norm(E, axis=1)
+    absE[mask] = np.nan
+    E[mask] = np.nan
+    dom = int(np.argmax(np.abs(np.asarray(rad["pol"], float))))
+    fld = E[:, dom].reshape(n, n)
+    comp = {}
+    for i, name in enumerate("xyz"):
+        c = E[:, i].reshape(n, n)
+        comp[name] = {"re": _rows(c.real), "im": _rows(c.imag)}
+    out = {
+        "x": _finite(hs), "y": _finite(vs), "xlabel": P["hl"], "ylabel": P["vl"],
+        "plane": plane, "plane_title": P["title"], "res": n,
+        "absE": _rows(absE.reshape(n, n)),
+        "reField": _rows(fld.real), "imField": _rows(fld.imag),
+        "dominant": "xyz"[dom], "comp": comp,
+        # физическое поле E(t)=Re[E·e^{-iωt}] (движок) ≡ Re[E*·e^{+jωt}] (конвенция
+        # диссертации): кадр = re·cos(ωt) + im·sin(ωt) в обеих конвенциях
+        "time_convention": "engine e^{-iωt}; frame = re*cos(wt) + im*sin(wt)",
+    }
+    out.update(extra)
+    return out
+
+
+def _heatmap_sphere(body, rad, gt, extent, n=MAX_HEATMAP, plane="xz"):
+    """Полное ближнее поле сферы (однородной И слоистой) методом ТФГ/Ми
+    (см. nearfield_sphere): падающее (аналитически) + рассеянное снаружи, внутреннее
+    поле по слоям (трансфер-матрица — Z/Y пересчитываются по слоям), сверено с каноном
+    01_sphere по Q_sca (check.q_sca_rel_err). Металлические слои (включая закрытое ядро)
+    МАСКИРУЮТСЯ (поле не проникает). Возвращает |E| и все компоненты (re/im) для
+    анимации бегущей волны; check — сверка a_n,b_n с ядром + непрерывность касательной
+    компоненты на границах слоёв вдоль оси k̂."""
+    from .nearfield_sphere import field_sphere_layered, validate_layered, continuity_check
+    k = rad["k"]
+    radius = float(body.get("radius", 1.0))
+    a_norm, eps, mu = _layers(body)
+    khat, pol = tuple(rad["khat"]), tuple(rad["pol"])
+    hs, vs, pts = _plane_grid(plane, float(extent), n)
+    E, mask = field_sphere_layered(a_norm, eps, mu, k, radius, pts, khat=khat, pol=pol)
+    check = {}
+    try:
+        val = validate_layered(a_norm, eps, mu, k, radius, gt)
+        check["q_sca"] = val["q_sca"]; check["q_sca_core"] = val.get("q_sca_core")
+        check["q_sca_rel_err"] = val.get("rel_err"); check["nmax"] = val["nmax"]
+        cc = continuity_check(a_norm, eps, mu, k, radius, khat, pol)
+        check["continuity_component"] = cc["component"]
+        check["continuity_max_rel_jump"] = cc["max_rel_jump"]
+        check["continuity"] = cc["boundaries"]
+    except Exception as exc:                       # проверка не должна ронять расчёт
+        check["error"] = str(exc)
+    geom = _plane_geometry([body], rad, plane, at_origin=True)
+    return _pack_field(E, mask, n, hs, vs, plane, rad, {
+        "extent": float(extent), "internal": True,
+        "metal_masked": bool(mask.any()), "quantity": "total",
+        "core": "01_sphere (ТФГ, внутр. поле по слоям)",
+        "geometry": geom, "check": check, "k": float(k), "radius": radius,
+    })
+
+
+def _heatmap(scatterers, rad, gt, nmax, extent, bodies, n=MAX_HEATMAP, cf=None, plane="xz"):
+    """РАССЕЯННОЕ поле |E_расс| в плоскости разреза для кластеров/несфер. Точки ВНУТРИ
     описывающих сфер маскируются (NaN): разложение по исходящим h_n^(1) там не сходится.
 
     Показывается именно РАССЕЯННОЕ поле, а не полное: внутреннее поле для кластеров не
@@ -631,47 +740,28 @@ def _heatmap(scatterers, rad, gt, nmax, extent, masks, n=MAX_HEATMAP, cf=None):
     плоская волна) и структура рассеяния не видна. Рассеянное поле выявляет лепестки/зону.
 
     cf — предрешённые рассеянные коэффициенты (если переданы — кластер не пересолвится).
-    Для анимации напряжённости возвращается доминирующая комплексная компонента
-    рассеянного поля — re/imField; |E_расс| — полная норма вектора.
+    Для анимации напряжённости возвращаются все компоненты рассеянного поля (re/im).
     """
     k = rad["k"]
-    xs = np.linspace(-extent, extent, n)
-    zs = np.linspace(-extent, extent, n)
-    X, Z = np.meshgrid(xs, zs)
-    pts = np.stack([X.ravel(), np.zeros(X.size), Z.ravel()], axis=-1)   # плоскость y=0 (xz)
-    inside = np.zeros(X.size, dtype=bool)
+    P = _PLANES[plane]
+    hs, vs, pts = _plane_grid(plane, extent, n)
+    inside = np.zeros(pts.shape[0], dtype=bool)
     # маскируем не только тело, но и БЛИЖНЮЮ зону у описывающей сферы: там исходящее
     # мультипольное разложение велико и на границе применимости (точечные «всплески» у
     # рёбер давили нормировку, карта казалась однородной). 1.25·R — надёжное пром. поле.
-    for cx, cz, r in masks:
-        inside |= (X.ravel() - cx) ** 2 + (Z.ravel() - cz) ** 2 < (r * 1.25) ** 2
+    for b in bodies:
+        pos = [float(x) for x in (b.get("position") or [0, 0, 0])]
+        R = float(b.get("radius", 1.0)) or 1.0
+        inside |= np.sum((pts - np.asarray(pos)) ** 2, axis=1) < (R * 1.25) ** 2
     cl = gt.Cluster(scatterers)
     if cf is None:
         _, cf, _ = cl.solve(k, tuple(rad["khat"]), tuple(rad["pol"]), nmax)
     Esc = cl.scattered_field(cf, k, pts)                                # рассеянное (валидно вне тел)
-    absE = np.linalg.norm(Esc, axis=1)
-    dom = int(np.argmax(np.abs(rad["pol"])))                            # доминирующая компонента
-    fld = Esc[:, dom]
-    absE[inside] = np.nan; fld[inside] = np.nan                         # маска внутренней области
-    absE = absE.reshape(n, n); fld = fld.reshape(n, n)
-    return {
-        "x": _finite(xs), "y": _finite(zs),
-        "absE": [_finite(row) for row in absE],
-        "reField": [_finite(row) for row in fld.real],
-        "imField": [_finite(row) for row in fld.imag],
-        "plane": "xz", "extent": extent, "internal": False, "res": n,
-        "quantity": "scattered",
-    }
-
-
-def _mask_disk(body):
-    """Пересечение описывающей сферы тела с плоскостью y=0 -> (cx, cz, r) или None."""
-    pos = body.get("position", [0.0, 0.0, 0.0])
-    cy = float(pos[1])
-    R = float(body.get("radius", 1.0)) or 1.0
-    if abs(cy) >= R:
-        return None
-    return (float(pos[0]), float(pos[2]), math.sqrt(R * R - cy * cy))
+    geom = _plane_geometry(bodies, rad, plane)
+    return _pack_field(Esc, inside, n, hs, vs, plane, rad, {
+        "extent": float(extent), "internal": False, "quantity": "scattered",
+        "geometry": geom, "k": float(k),
+    })
 
 
 def _body_half_extent(b):
@@ -686,10 +776,62 @@ def _heatmap_extent(bodies, margin=1.35):
     структура поля «терялась» в кадре с почти однородной падающей волной.)"""
     reach = 0.0
     for b in bodies:
-        z = abs(float((b.get("position") or [0.0, 0.0, 0.0])[2]))
+        pos = [abs(float(x)) for x in (b.get("position") or [0.0, 0.0, 0.0])]
         lat, axz = _body_half_extent(b)
-        reach = max(reach, z + axz, lat)
+        reach = max(reach, max(pos) + axz, lat)
     return margin * (reach or 1.0)
+
+
+# --------------------------------------------------------------------------- #
+# Раскрыв облучателя — перехват мощности (spill-over η₁)
+# --------------------------------------------------------------------------- #
+def _feed_spillover(cfg):
+    """Перехват мощности облучателя раскрывом: eta_1(theta0) =
+    int_0^theta0 |F|^2 sin d(theta) / int_0^pi |F|^2 sin d(theta), theta0 = arcsin(a/d).
+
+    Та же математика, что в модуле библиотеки green_tensor/feed.py (Example 9);
+    здесь — кумулятивные трапеции на плотной сетке (без scipy.quad, точность ~1e-7).
+    Арбитры: канон диссертации eta_1_EG(90°) = 7/8 = 0.875; предел узкого конуса
+    eta_1 -> D·(1 − cos theta0)/2 (D_EG = 3)."""
+    th = np.linspace(0.0, math.pi, 3601)
+    feeds = [
+        ("Элемент Гюйгенса (апертурный)", ((1.0 + np.cos(th)) / 2.0) ** 2),
+        ("Элементарный вибратор", np.sin(th) ** 2),
+    ]
+    # Полярная ДН облучателей (осевая симметрия — зеркалим на 0..360°)
+    th360 = np.concatenate([th, 2.0 * math.pi - th[::-1]])
+    series = []
+    for name, f2 in feeds:
+        E = np.sqrt(f2)
+        E360 = np.concatenate([E, E[::-1]])
+        ref = float(np.max(E360)) or 1.0
+        series.append({"name": name, "E": _finite(E360), "dB": _finite(_db(E360, ref))})
+    pattern = {"theta_deg": _finite(np.degrees(th360)), "series": series,
+               "polar": True, "plane": "ДН облучателя (свободное пространство)"}
+
+    # Кумулятивный интеграл (трапеции) → eta_1(theta0)
+    sweep_series = []
+    etas = {}
+    for name, f2 in feeds:
+        g = f2 * np.sin(th)
+        cum = np.concatenate([[0.0], np.cumsum((g[1:] + g[:-1]) * 0.5 * np.diff(th))])
+        eta = cum / cum[-1]
+        etas[name] = eta
+        sweep_series.append({"name": name, "y": _finite(eta)})
+    eg = etas["Элемент Гюйгенса (апертурный)"]
+    i90 = int(np.searchsorted(th, math.pi / 2))
+    i5 = int(np.searchsorted(th, math.radians(5.0)))
+    theta0_deg = float(cfg.get("theta0_deg", 90.0)) if isinstance(cfg, dict) else 90.0
+    marks = [
+        {"name": "канон: η₁ᴱᴳ(90°) = 7/8 = 0.875", "x": [90.0], "y": [float(eg[i90])]},
+        {"name": f"конус 5° (d/a ≈ 11.5): η₁ᴱᴳ = {eg[i5]:.4f}", "x": [5.0], "y": [float(eg[i5])]},
+    ]
+    sweep = {"generic": True, "tab_title": "η₁(θ₀)",
+             "x": _finite(np.degrees(th)),
+             "xlabel": "θ₀ — полуугол конуса раскрыва, град (θ₀ = arcsin(a/d))",
+             "ylabel": "η₁ — доля мощности облучателя в конусе",
+             "series": sweep_series, "marks": marks, "theta0_deg": theta0_deg}
+    return pattern, sweep
 
 
 # --------------------------------------------------------------------------- #
@@ -707,6 +849,8 @@ def compute(scene: dict) -> dict:
     do_sweep = want.get("sweep", False)   # свип медленный (канон 01_sphere ×N) — по запросу
     do_monostatic = want.get("monostatic", False)   # моностатич. ЭПР кластера — по запросу
     hm_n = _heatmap_n(want)               # разрешение тепловой карты (точек на сторону)
+    hm_plane = _heatmap_plane(want)       # плоскость разреза карты: xz | yz | xy
+    hm_ext = _heatmap_extent_factor(want) # полу-экстент кадра одиночной сферы (в радиусах)
     warnings = []
 
     single_sphere = len(bodies) == 1 and bodies[0].get("type", "sphere") == "sphere"
@@ -716,6 +860,25 @@ def compute(scene: dict) -> dict:
 
     out = {"ok": True, "meta": {"k": rad["k"], "n_bodies": len(bodies),
                                 "single_sphere": single_sphere, "warnings": warnings}}
+
+    fs = scene.get("feed_spillover")
+    if fs:
+        # Режим «раскрыв облучателя»: тело сцены (линза) — визуальный контекст;
+        # значимы ДН облучателя и кривая перехвата η₁(θ₀), задача рассеяния не решается.
+        note = ("Режим «раскрыв облучателя»: сечения, ЭПР и тепловая карта не выводятся — "
+                "значимы ДН облучателя (вкладка «Диаграмма») и кривая η₁(θ₀) "
+                "(вкладка «η₁(θ₀)»).")
+        pat, sw = _feed_spillover(fs)
+        if do_pattern:
+            out["pattern"] = pat
+        out["sweep"] = sw
+        out["cross_sections"] = None
+        out["bistatic"] = {"available": False, "note": note}
+        out["monostatic"] = {"available": False, "note": note}
+        out["heatmap"] = None
+        out["meta"]["core"] = "green_tensor/feed.py — spill-over η₁ (Example 9)"
+        out["meta"]["warnings"].append(note)
+        return out
 
     if single_cyl_inf:
         body = bodies[0]
@@ -787,7 +950,8 @@ def compute(scene: dict) -> dict:
         if do_heatmap:
             # любая сфера (однородная/слоистая): полное поле вкл. внутри (ТФГ/Ми по слоям),
             # металл-слои маскируются
-            out["heatmap"] = _heatmap_sphere(body, rad, 2.5 * radius, n=hm_n)
+            out["heatmap"] = _heatmap_sphere(body, rad, gt, hm_ext * radius, n=hm_n,
+                                             plane=hm_plane)
         out["meta"]["core"] = "01_sphere (canonical)"
         return out
 
@@ -816,9 +980,8 @@ def compute(scene: dict) -> dict:
                 out["bistatic"] = _bistatic_cluster(out["pattern"], rad["k"])
             if do_heatmap:
                 ext = _heatmap_extent(bodies)
-                masks = [m for m in (_mask_disk(b) for b in bodies) if m]
-                out["heatmap"] = _heatmap(scatterers, rad, gt, nmax, extent=ext, masks=masks,
-                                          n=hm_n, cf=cf)
+                out["heatmap"] = _heatmap(scatterers, rad, gt, nmax, extent=ext, bodies=bodies,
+                                          n=hm_n, cf=cf, plane=hm_plane)
         out["sweep"] = None
         out["monostatic"] = _monostatic_cluster(scatterers, rad, gt, nmax) if do_monostatic else None
     except ValueError as exc:
