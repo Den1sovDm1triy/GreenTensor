@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-<link rel="stylesheet" href="studio/css/style.css?v=20260908a" />
+<link rel="stylesheet" href="studio/css/style.css?v=20260908g" />
 
 <!-- Тяжёлые библиотеки — с CDN (те же версии, что и в остальном лендинге) -->
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
@@ -27,13 +27,13 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
 
 <!-- Модули Studio + браузерный мост к движку (?v= — сброс кэша при обновлениях) -->
-<script src="studio/js/presets.js?v=20260908a" defer></script>
-<script src="studio/js/editor3d.js?v=20260908a" defer></script>
-<script src="studio/js/input.js?v=20260908a" defer></script>
-<script src="studio/js/gifenc.js?v=20260908a" defer></script>
-<script src="studio/js/results.js?v=20260908a" defer></script>
-<script src="studio/js/pybridge.js?v=20260908a" defer></script>
-<script src="studio/js/app.js?v=20260908a" defer></script>
+<script src="studio/js/presets.js?v=20260908g" defer></script>
+<script src="studio/js/editor3d.js?v=20260908g" defer></script>
+<script src="studio/js/input.js?v=20260908g" defer></script>
+<script src="studio/js/gifenc.js?v=20260908g" defer></script>
+<script src="studio/js/results.js?v=20260908g" defer></script>
+<script src="studio/js/pybridge.js?v=20260908g" defer></script>
+<script src="studio/js/app.js?v=20260908g" defer></script>
 </head>
 <body>
   <header class="app-header">
@@ -129,6 +129,7 @@
             <button data-rv="pattern" class="active" type="button">Диаграмма (ДН)</button>
             <button data-rv="bistatic" type="button" title="Бистатическая ЭПР σ(θ) при фикс. падении">Бистат. ЭПР</button>
             <button data-rv="monostatic" type="button" title="Моностатическая ЭПР σ(ракурс), обратное рассеяние">Монос. ЭПР</button>
+            <button data-rv="pattern3d" type="button" title="Полная 3D-диаграмма рассеяния |E(θ,φ)| (дБ), вращение, GIF">3D-ДН</button>
             <button data-rv="heatmap" type="button">Тепловая карта</button>
             <button data-rv="cross" type="button">Сечения</button>
             <button data-rv="sweep" type="button">Спектр Q(k)</button>
@@ -178,6 +179,17 @@
             </label>
             <button class="btn" id="btn-import" type="button" title="Импорт CSV для сравнения">⭱ Импорт CSV</button>
             <button class="btn" id="btn-export" type="button" title="Экспорт активного графика в CSV">⭳ Экспорт CSV</button>
+            <label class="field inline" id="ksweep-wrap" title="Диапазон k₀a и число кадров для анимации ДН «▶ Свип k₀a» и GIF">
+              <span>k₀a</span>
+              <input type="number" id="ks-min" min="0.05" step="0.25" value="0.5" style="width:4.5em" aria-label="k₀a от" />
+              <span>…</span>
+              <input type="number" id="ks-max" min="0.1" step="0.25" value="8" style="width:4.5em" aria-label="k₀a до" />
+              <select id="ks-frames" aria-label="Число кадров">
+                <option value="16">16 кадров</option>
+                <option value="31" selected>31 кадр</option>
+                <option value="61">61 кадр</option>
+              </select>
+            </label>
             <button class="btn" id="btn-gif" type="button" title="Собрать GIF бегущей волны: 30 кадров Re[E·e^{jωt}] по ωt = 0…2π, 800×600, бесконечный цикл">⬇ GIF</button>
             <button class="btn" id="btn-png" type="button" title="Сохранить PNG">⤓ PNG</button>
             <input type="file" id="csv-file" accept=".csv,text/csv" hidden />

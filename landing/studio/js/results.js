@@ -213,7 +213,12 @@
     return null;
   }
   function compHtml(comp) { return comp === "abs" ? "|E|" : "E<sub>" + comp + "</sub>"; }
-  function fmtRu(v, d) { return Number(v).toFixed(d == null ? 2 : d).replace(/\.?0+$/, "").replace(".", ","); }
+  // число с запятой; хвостовые нули срезаются только в дробной части («10» остаётся «10»)
+  function fmtRu(v, d) {
+    let t = Number(v).toFixed(d == null ? 2 : d);
+    if (t.indexOf(".") >= 0) t = t.replace(/0+$/, "").replace(/\.$/, "");
+    return t.replace(".", ",");
+  }
   function fmtDeg(phase) {
     const deg = Math.round(((phase % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) * 180 / Math.PI);
     return "ωt = " + String(deg).padStart(3, " ") + "°";
@@ -301,9 +306,13 @@
 
   function heatLayout(hm, opts) {
     const P = PAL();
+    const host = GT.$("#plot");
+    const narrow = host && host.clientWidth > 0 && host.clientWidth < 640;   // телефон
+    if (host && host.parentNode) host.parentNode.style.minHeight = narrow ? Math.round(host.clientWidth * 1.25) + "px" : "";
     return baseLayout({
       showlegend: false,
-      margin: { l: 56, r: 24, t: 34, b: 48 },
+      margin: narrow ? { l: 44, r: 12, t: 40, b: 92 } : { l: 56, r: 24, t: 34, b: 48 },
+      height: narrow ? Math.round(host.clientWidth * 1.25) : undefined,
       xaxis: { title: hm.xlabel || "x", scaleanchor: "y", constrain: "domain", zeroline: false, gridcolor: P.grid },
       yaxis: { title: hm.ylabel || "z", zeroline: false, gridcolor: P.grid },
       shapes: overlayShapes(hm),
@@ -355,7 +364,8 @@
     const mode = GT.state.heatMode || "abs";
     const comp = effComp(hm);
     const arr = comp === "abs" ? null : compArrays(hm, comp);
-    const planeTxt = "плоскость " + (hm.plane_title || hm.plane || "xz");
+    const planeTxt = host.clientWidth > 0 && host.clientWidth < 640
+      ? (hm.plane || "xz") : "плоскость " + (hm.plane_title || hm.plane || "xz");
     const resTxt = hm.res ? " · " + hm.res + "×" + hm.res : "";
     const maskTxt = hm.metal_masked ? " · металл-области скрыты" : "";
     const qty = hm.quantity === "scattered" ? "рассеянное поле" : "ближнее поле";
@@ -385,6 +395,10 @@
         zmin, zmax, colorbar: { title: { text: cbTitle }, outlinewidth: 0 }, zsmooth: "best" };
       title = (comp === "abs" ? "|E|" : "|E<sub>" + comp + "</sub>|") + " · " + qty + " · " +
         (log ? "лог (дБ отн. макс)" : "линейная, норм.") + " · " + planeTxt + resTxt + maskTxt;
+    }
+    if (host.clientWidth > 0 && host.clientWidth < 640) {          // телефон: шкала горизонтально под картой
+      Object.assign(trace.colorbar, { orientation: "h", y: -0.22, yanchor: "top", thickness: 12, len: 0.92,
+        title: Object.assign({}, trace.colorbar.title, { side: "bottom" }) });
     }
     Plotly.react(host, [trace], heatLayout(hm, { title, showPhase: mode === "re" && !!arr, phase: animPhase }),
       config(mode === "re" ? "greentensor_field" : "greentensor_heatmap"));
@@ -711,6 +725,406 @@
     const anim = GT.$("#anim-btn"); if (anim) anim.disabled = !hasComplex;
   }
 
+
+  // ===================== ДН при свипе k₀a: анимация + GIF (слайд диссертации) ===================== //
+  // Кадры pattern_anim (compute.py): нормированная |E_θ| (E-плоскость, ВВ), дБ, θ_std (0 = вперёд).
+  // Отрисовка — в конвенции диссертации: 0° «назад» сверху, 180° «вперёд» снизу, по часовой.
+  const KS_DT = 120;                       // мс/кадр (live и GIF)
+  let ksIdx = 0;
+  let ksAnnIdx = -1;
+
+  function ksThetaPlot(thetaStd) { return thetaStd.map((t) => ((180 - t) % 360 + 360) % 360); }
+  function ksTitle(k0a) { return "k₀a = " + fmtRu(k0a, 2); }
+  function ksFooter(pa) {
+    const eps = (pa.eps_re || []).map((e) => fmtRu(e, 2));
+    return "GreenTensor, ТФГ, слоистая сфера · " + pa.layers + (pa.layers >= 2 && pa.layers <= 4 ? " слоя" : " слоёв") +
+      " · ε = " + eps.join(" / ");
+  }
+  function ksColors() {
+    const P = PAL();
+    return isBW()
+      ? { line: P.bwLine, fill: themeDark() ? "rgba(216,239,229,0.22)" : "rgba(26,33,40,0.16)" }
+      : { line: themeDark() ? "#6fa8ff" : "#2c4f8e", fill: themeDark() ? "rgba(111,168,255,0.22)" : "rgba(44,79,142,0.14)" };
+  }
+
+  function renderPatternSweepFrame(pa, idx) {
+    const host = GT.$("#plot");
+    const P = PAL(), C = ksColors();
+    const floor = pa.db_floor != null ? pa.db_floor : -40;
+    const trace = { type: "scatterpolar", mode: "lines", fill: "toself", name: "|E_θ|, норм.",
+      theta: ksThetaPlot(pa.theta_deg), r: pa.frames[idx],
+      line: { color: C.line, width: 2 }, fillcolor: C.fill, hoverinfo: "theta+r" };
+    const ticks = [0, 45, 90, 135, 180, 225, 270, 315];
+    const ticktext = ticks.map((t) => t === 0 ? "0°<br>(назад)" : t === 180 ? "180°<br>(вперёд)" : t + "°");
+    const layout = baseLayout({
+      showlegend: false, margin: { l: 40, r: 40, t: 84, b: 56 },
+      polar: {
+        bgcolor: P.polar, domain: { x: [0.08, 0.92], y: [0.08, 0.9] },
+        angularaxis: { rotation: 90, direction: "clockwise", tickvals: ticks, ticktext,
+          gridcolor: P.grid, linecolor: P.axis },
+        radialaxis: { range: [floor, 0], tickvals: [-30, -20, -10, 0], ticksuffix: " дБ",
+          angle: 90, tickangle: 90, gridcolor: P.grid, linecolor: P.axis },   // 90 = горизонтальные подписи (особенность polar)
+      },
+      annotations: [
+        { x: 0.5, y: 1.13, xref: "paper", yref: "paper", showarrow: false,
+          text: "<b>" + ksTitle(pa.k0a[idx]) + "</b>", font: { color: P.font, size: 20 } },
+        { x: 0.5, y: 1.2, xref: "paper", yref: "paper", showarrow: false,
+          // на узком экране (телефон) подзаголовок в две строки
+          text: (host.clientWidth < 640
+            ? (pa.quantity || "").replace(" рассеяния ", " рассеяния<br>")
+            : (pa.quantity || "Нормированная бистатическая диаграмма рассеяния")),
+          font: { color: P.muted, size: 12 } },
+        { x: 0.5, y: -0.09, xref: "paper", yref: "paper", showarrow: false,
+          text: ksFooter(pa), font: { color: P.muted, size: 12 } },
+      ],
+    });
+    ksAnnIdx = 0;
+    Plotly.react(host, [trace], layout, config("greentensor_pattern_k0a_" + fmtRu(pa.k0a[idx], 2).replace(",", "p")));
+  }
+
+  async function ensurePatternAnim() {
+    const res = GT.state.results;
+    if (!res) { GT.toast("Сначала выполните расчёт", "error"); return null; }
+    const ks = GT.state.kSweep || { min: 0.5, max: 8, frames: 31 };
+    const pa = res.pattern_anim;
+    const same = pa && pa.available && pa.k0a && pa.k0a.length === ks.frames &&
+      Math.abs(pa.k0a[0] - ks.min) < 1e-9 && Math.abs(pa.k0a[pa.k0a.length - 1] - ks.max) < 1e-9;
+    if (same) return pa;
+    const data = await GT.compute({ pattern: false, heatmap: false, sweep: false, cross: true,
+      pattern_sweep: { k0a_min: ks.min, k0a_max: ks.max, frames: ks.frames }, merge: true });
+    const out = data && data.pattern_anim;
+    if (!out) return null;
+    if (out.available === false) { GT.toast(out.note || "Свип k₀a недоступен", "error"); return null; }
+    return out;
+  }
+
+  function setKsBtn(on) {
+    const b = GT.$("#ksweep-btn"); if (b) b.textContent = on ? "⏸ Стоп" : "▶ Свип k₀a";
+  }
+  async function startPatternSweep() {
+    const pa = await ensurePatternAnim();
+    if (!pa) return false;
+    stopAnim();
+    showEmpty(false);
+    ksIdx = 0;
+    renderPatternSweepFrame(pa, ksIdx);
+    setKsBtn(true);
+    const host = GT.$("#plot");
+    animTimer = setInterval(() => {
+      if (!host._fullLayout) { stopAnim(); setKsBtn(false); return; }
+      ksIdx = (ksIdx + 1) % pa.frames.length;
+      Plotly.update(host, { r: [pa.frames[ksIdx]] },
+        { ["annotations[" + ksAnnIdx + "].text"]: "<b>" + ksTitle(pa.k0a[ksIdx]) + "</b>" }, [0]).catch(() => {});
+    }, KS_DT);
+    return true;
+  }
+  function togglePatternSweep() {
+    if (animTimer) { stopAnim(); setKsBtn(false); return; }
+    startPatternSweep();
+  }
+
+  // Кадр GIF 800×600: полярная ДН в стиле слайда (заголовок, k₀a, сетка дБ, подписи углов, подвал).
+  function drawPolarFrame(ctx, pa, idx, colors) {
+    const Wc = GIF_W, Hc = GIF_H;
+    ctx.fillStyle = colors.paper; ctx.fillRect(0, 0, Wc, Hc);
+    const cx = 400, cy = 328, R = 200;
+    const floor = pa.db_floor != null ? pa.db_floor : -40;
+    const rad = (dB) => R * (Math.max(dB, floor) - floor) / (0 - floor);
+    const FONT = "Inter, -apple-system, Segoe UI, Roboto, sans-serif";
+    // заголовки
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const q = [{ t: "Нормированная бистатическая диаграмма рассеяния |E" }, { t: "θ", sub: 1, italic: 1 }, { t: "|, ВВ-поляризация" }];
+    drawRich(ctx, q, 400 - richWidth(ctx, q, 15) / 2, 34, 15, colors.font);
+    const tt = [{ t: "k", bold: 1, italic: 1 }, { t: "0", sub: 1, bold: 1 }, { t: "a", bold: 1, italic: 1 }, { t: " = " + fmtRu(pa.k0a[idx], 2), bold: 1 }];
+    drawRich(ctx, tt, 400 - richWidth(ctx, tt, 26, true) / 2, 74, 26, colors.font);
+    // сетка: окружности дБ и лучи
+    ctx.save();
+    ctx.strokeStyle = colors.grid; ctx.lineWidth = 1;
+    [-30, -20, -10].forEach((d) => { ctx.beginPath(); ctx.arc(cx, cy, rad(d), 0, 2 * Math.PI); ctx.stroke(); });
+    for (let a = 0; a < 360; a += 45) {
+      const s = Math.sin(a * Math.PI / 180), c = Math.cos(a * Math.PI / 180);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * s, cy - R * c); ctx.stroke();
+    }
+    ctx.strokeStyle = colors.axis; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+    // ДН: α = 180° − θ_std, по часовой от верха
+    const th = pa.theta_deg, fr = pa.frames[idx];
+    ctx.beginPath();
+    for (let i = 0; i < th.length; i++) {
+      const al = (180 - th[i]) * Math.PI / 180, r = rad(fr[i]);
+      const x = cx + r * Math.sin(al), y = cy - r * Math.cos(al);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = colors.fill; ctx.fill();
+    ctx.strokeStyle = colors.line; ctx.lineWidth = 2.2; ctx.lineJoin = "round"; ctx.stroke();
+    // подписи дБ (вдоль вертикали вверх) и «0 дБ» у внешнего кольца
+    ctx.fillStyle = colors.font; ctx.font = "13px " + FONT; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    [-30, -20, -10].forEach((d) => ctx.fillText(fmtRu(d, 0).replace("-", "−"), cx + 5, cy - rad(d) - 8));
+    ctx.fillText("0 дБ", cx + R * Math.sin(Math.PI / 6) + 6, cy - R * Math.cos(Math.PI / 6) - 8);
+    // подписи углов снаружи
+    ctx.font = "14px " + FONT; ctx.textAlign = "center";
+    for (let a = 0; a < 360; a += 45) {
+      const s = Math.sin(a * Math.PI / 180), c = Math.cos(a * Math.PI / 180);
+      const x = cx + (R + 26) * s, y = cy - (R + 26) * c;
+      if (a === 0) { ctx.fillText("0°", x, y - 8); ctx.fillText("(назад)", x, y + 8); }
+      else if (a === 180) { ctx.fillText("180°", x, y - 8); ctx.fillText("(вперёд)", x, y + 8); }
+      else ctx.fillText(a + "°", x, y);
+    }
+    // подвал
+    ctx.font = "14px " + FONT; ctx.fillStyle = colors.muted;
+    ctx.fillText(ksFooter(pa), 400, 578);
+    ctx.restore();
+  }
+
+  async function exportPatternGIF() {
+    const pa = await ensurePatternAnim();
+    if (!pa) return;
+    if (!GT.GIFEncoder) { GT.toast("GIF-энкодер не загружен", "error"); return; }
+    const wasAnim = !!animTimer;
+    stopAnim(); setKsBtn(false);
+    const P = PAL(), C = ksColors();
+    const colors = { paper: P.paper, font: P.font, muted: P.muted, axis: P.axis, grid: P.grid,
+      line: C.line, fill: C.fill };
+    // палитра: цвета темы + линия/заливка + смеси (сглаживание)
+    const rgb = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (m) { const v = m[1].split(",").map(Number); return v.slice(0, 3); } return hex2rgb(c); };
+    const alpha = (c) => { const m = c.match(/rgba\(([^)]+)\)/); return m ? Number(m[1].split(",")[3]) : 1; };
+    const blend = (a, b, t) => [0, 1, 2].map((k) => Math.round(a[k] + (b[k] - a[k]) * t));
+    const bg = hex2rgb(P.paper), fg = hex2rgb(P.font), ln = rgb(C.line), mu = hex2rgb(P.muted);
+    const fillOnBg = blend(bg, rgb(C.fill), alpha(C.fill));
+    const pal = [bg, fg, ln, mu, fillOnBg, rgb(P.grid).length === 3 ? blend(bg, rgb(P.grid), alpha(P.grid)) : bg,
+      blend(bg, rgb(P.axis), alpha(P.axis))];
+    const pairs = [[bg, fg], [bg, ln], [fillOnBg, ln], [bg, fillOnBg], [bg, mu], [fillOnBg, fg], [fillOnBg, mu]];
+    pairs.forEach(([a, b]) => { for (let i = 1; i < 24; i++) pal.push(blend(a, b, i / 24)); });
+    while (pal.length > 256) pal.pop();
+    const canvas = document.createElement("canvas");
+    canvas.width = GIF_W; canvas.height = GIF_H;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const enc = new GT.GIFEncoder(GIF_W, GIF_H, pal, { loop: 0, delay: KS_DT });
+    const N = pa.frames.length;
+    GT.busy(true, "Сборка GIF… 0/" + N);
+    const t0 = performance.now();
+    try {
+      for (let f = 0; f < N; f++) {
+        drawPolarFrame(ctx, pa, f, colors);
+        enc.addFrame(ctx.getImageData(0, 0, GIF_W, GIF_H), KS_DT);
+        GT.busy(true, "Сборка GIF… " + (f + 1) + "/" + N);
+        await yieldToUI();
+      }
+      const blob = enc.finish();
+      const name = "greentensor_pattern_k0a_sweep_" + fmtRu(pa.k0a[0], 2).replace(",", "p") + "-" +
+        fmtRu(pa.k0a[N - 1], 2).replace(",", "p") + ".gif";
+      GT.download(name, blob, "image/gif");
+      GT.toast("GIF: " + N + " кадров, " + (blob.size / 1048576).toFixed(2) + " МБ", "ok");
+      GT.lastGif = { name, size: blob.size, frames: N, blob, timing: { total: performance.now() - t0 } };
+      console.info("[GreenTensor] GIF " + name + ": " + N + " кадров, " + (blob.size / 1024).toFixed(0) +
+        " кБ, " + (performance.now() - t0).toFixed(0) + " мс");
+    } catch (e) {
+      console.error(e);
+      GT.toast("Не удалось собрать GIF: " + e.message, "error");
+    } finally {
+      GT.busy(false);
+      if (wasAnim) startPatternSweep();
+    }
+  }
+  function exportActiveGIF() {
+    if (GT.state.resultView === "pattern") return exportPatternGIF();
+    if (GT.state.resultView === "pattern3d") return exportPattern3DGIF();
+    return exportGIF();
+  }
+
+
+  // ===================== 3D-ДН |E(θ,φ)|: поверхность, вращение, GIF ===================== //
+  // Данные pattern3d (compute.py): dB[θ][φ], пол −30 дБ; θ от k̂ (0 = вперёд), φ от ê.
+  // Радиус поверхности r = (dB − floor)/(0 − floor) ∈ [0,1]; k̂ ∥ z. Камера: up = −z, чтобы
+  // передний лепесток (θ = 0) был внизу кадра, как на слайде «3D-диаграммы рассеяния».
+  const P3_DT = 60;                  // мс/кадр вращения (live)
+  const P3_GIF_FRAMES = 36;          // кадров GIF (оборот 360°)
+  const P3_GIF_DT = 90;              // мс/кадр GIF
+  let p3Az = 35;                     // текущий азимут камеры, °
+  const P3_EYE_R = 1.35, P3_EYE_Z = 0.5;
+
+  function p3Colorscale() {
+    return isBW()
+      ? [[0, "#2a2f36"], [0.5, "#8a8f94"], [1, "#eef1f4"]]
+      : [[0, "#440154"], [0.13, "#482475"], [0.25, "#414487"], [0.38, "#355f8d"], [0.5, "#2a788e"],
+         [0.63, "#21918c"], [0.75, "#22a884"], [0.88, "#7ad151"], [1, "#fde725"]];   // viridis
+  }
+  function p3Camera(azDeg) {
+    const a = azDeg * Math.PI / 180;
+    return { eye: { x: P3_EYE_R * Math.cos(a), y: P3_EYE_R * Math.sin(a), z: P3_EYE_Z },
+      up: { x: 0, y: 0, z: -1 }, center: { x: 0, y: 0, z: 0 } };
+  }
+  function p3Title(p3) {
+    const v = GT.state.view3dTitle;
+    if (v) return v;
+    const eps = (p3.eps_re || []).map((e) => fmtRu(e, 2)).join(" / ");
+    const n = p3.layers;
+    return (n === 1 ? "однородная сфера" : n + (n >= 2 && n <= 4 ? " слоя" : " слоёв")) +
+      ", ε = " + eps + ", k₀a = " + fmtRu(p3.k0a, 2);
+  }
+  function p3Surface(p3) {
+    const floor = p3.db_floor != null ? p3.db_floor : -30;
+    const th = p3.theta_deg.map((d) => d * Math.PI / 180), ph = p3.phi_deg.map((d) => d * Math.PI / 180);
+    const x = [], y = [], z = [];
+    for (let i = 0; i < th.length; i++) {
+      const xr = [], yr = [], zr = [];
+      for (let j = 0; j < ph.length; j++) {
+        const r = Math.max(0, (p3.dB[i][j] - floor) / (0 - floor));
+        xr.push(r * Math.sin(th[i]) * Math.cos(ph[j]));
+        yr.push(r * Math.sin(th[i]) * Math.sin(ph[j]));
+        zr.push(r * Math.cos(th[i]));
+      }
+      x.push(xr); y.push(yr); z.push(zr);
+    }
+    return { type: "surface", x, y, z, surfacecolor: z, colorscale: p3Colorscale(), cmin: -1, cmax: 1,
+      showscale: false, hoverinfo: "skip",
+      lighting: { ambient: 0.95, diffuse: 0.25, specular: 0.0, roughness: 1, fresnel: 0 },
+      contours: { z: { show: false } } };
+  }
+  function p3Layout(p3) {
+    const P = PAL();
+    const ax = { visible: false, showgrid: false, zeroline: false, showbackground: false, range: [-1.05, 1.05] };
+    return baseLayout({
+      showlegend: false, margin: { l: 0, r: 0, t: 40, b: 30 },
+      scene: { xaxis: ax, yaxis: ax, zaxis: ax, aspectmode: "cube", bgcolor: P.paper,
+        camera: p3Camera(p3Az), dragmode: "orbit" },
+      annotations: [
+        { x: 0.5, y: 1.0, xref: "paper", yref: "paper", showarrow: false, yanchor: "top",
+          text: "<b>" + p3Title(p3) + "</b>", font: { color: P.font, size: 15 } },
+        { x: 0.5, y: 0.0, xref: "paper", yref: "paper", showarrow: false, yanchor: "bottom",
+          text: (GT.$("#plot").clientWidth < 640 ? "GreenTensor · " : "GreenTensor · 3D-ДН |E(θ,φ)| · шкала ") +
+            fmtRu(p3.db_floor != null ? p3.db_floor : -30, 0).replace("-", "−") +
+            "…0 дБ · волна вдоль z (вперёд — вниз)", font: { color: P.muted, size: 12 } },
+      ],
+    });
+  }
+
+  function renderPattern3D() {
+    const res = GT.state.results, host = GT.$("#plot");
+    if (!res) return showEmpty(true);
+    const p3 = res.pattern3d;
+    if (!("pattern3d" in res)) {
+      noteEmpty("Полная 3D-диаграмма |E(θ,φ)| считается по запросу. " +
+        '<button class="btn" id="p3-go" type="button">Рассчитать 3D-ДН</button>');
+      const b = GT.$("#p3-go");
+      if (b) b.onclick = () => GT.compute({ pattern: false, heatmap: false, sweep: false, cross: true,
+        pattern3d: true, merge: true });
+      return;
+    }
+    if (!p3 || p3.available === false) return noteEmpty((p3 && p3.note) || "3D-ДН недоступна для этой задачи.");
+    showEmpty(false);
+    const narrow = host.clientWidth > 0 && host.clientWidth < 640;
+    if (host.parentNode) host.parentNode.style.minHeight = narrow ? Math.round(host.clientWidth * 1.1) + "px" : "";
+    const layout = p3Layout(p3);
+    if (narrow) layout.height = Math.round(host.clientWidth * 1.1);
+    Plotly.react(host, [p3Surface(p3)], layout, config("greentensor_pattern3d"));
+  }
+
+  function setP3Btn(on) { const b = GT.$("#p3-rotate-btn"); if (b) b.textContent = on ? "⏸ Стоп" : "▶ Вращение"; }
+  async function ensurePattern3D() {
+    const res = GT.state.results;
+    if (!res) { GT.toast("Сначала выполните расчёт", "error"); return null; }
+    if (res.pattern3d && res.pattern3d.available) return res.pattern3d;
+    if (res.pattern3d && res.pattern3d.available === false) { GT.toast(res.pattern3d.note || "3D-ДН недоступна", "error"); return null; }
+    const data = await GT.compute({ pattern: false, heatmap: false, sweep: false, cross: true, pattern3d: true, merge: true });
+    const p3 = data && data.pattern3d;
+    if (!p3 || p3.available === false) { GT.toast((p3 && p3.note) || "3D-ДН недоступна", "error"); return null; }
+    return p3;
+  }
+  async function startRotate() {
+    const p3 = await ensurePattern3D();
+    if (!p3) return false;
+    stopAnim();
+    if (GT.state.resultView !== "pattern3d") setHeatOptions({ resultView: "pattern3d" });
+    renderPattern3D();
+    setP3Btn(true);
+    const host = GT.$("#plot");
+    animTimer = setInterval(() => {
+      if (!host._fullLayout) { stopAnim(); setP3Btn(false); return; }
+      p3Az = (p3Az + 2) % 360;
+      Plotly.relayout(host, { "scene.camera": p3Camera(p3Az) }).catch(() => {});
+    }, P3_DT);
+    return true;
+  }
+  function toggleRotate() {
+    if (animTimer) { stopAnim(); setP3Btn(false); return; }
+    startRotate();
+  }
+
+  // GIF вращения: сцену рендерит WebGL Plotly (scene.toImage — readPixels текущего холста,
+  // без перевёрстки под 800×600, как делает Plotly.toImage — это в ~20 раз быстрее);
+  // заголовок и подвал дорисовываются на canvas, затем квантование в палитру viridis.
+  function p3SceneImage(host) {
+    const sc = host._fullLayout && host._fullLayout.scene && host._fullLayout.scene._scene;
+    if (sc && typeof sc.toImage === "function") return sc.toImage("png");
+    return Plotly.toImage(host, { format: "png", width: GIF_W, height: GIF_H, scale: 1 });
+  }
+  function p3ComposeFrame(ctx, img, p3, colors) {
+    ctx.fillStyle = colors.paper; ctx.fillRect(0, 0, GIF_W, GIF_H);
+    // сцена — вписать в область под заголовком с сохранением пропорций
+    const areaY = 56, areaH = GIF_H - 56 - 40, areaW = GIF_W;
+    const k = Math.min(areaW / img.width, areaH / img.height);
+    const w = Math.round(img.width * k), h = Math.round(img.height * k);
+    ctx.drawImage(img, Math.round((areaW - w) / 2), areaY + Math.round((areaH - h) / 2), w, h);
+    ctx.fillStyle = colors.font; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "bold 20px Inter, -apple-system, Segoe UI, Roboto, sans-serif";
+    ctx.fillText(p3Title(p3).replace("k₀a", "k₀a"), GIF_W / 2, 30);
+    ctx.fillStyle = colors.muted; ctx.font = "14px Inter, -apple-system, Segoe UI, Roboto, sans-serif";
+    ctx.fillText("GreenTensor · 3D-ДН |E(θ,φ)| · шкала " + fmtRu(p3.db_floor != null ? p3.db_floor : -30, 0).replace("-", "−") +
+      "…0 дБ · волна вдоль z (вперёд — вниз)", GIF_W / 2, GIF_H - 20);
+  }
+  async function exportPattern3DGIF() {
+    const p3 = await ensurePattern3D();
+    if (!p3) return;
+    if (!GT.GIFEncoder) { GT.toast("GIF-энкодер не загружен", "error"); return; }
+    const wasAnim = !!animTimer;
+    stopAnim(); setP3Btn(false);
+    const host = GT.$("#plot");
+    if (!host._fullLayout || GT.state.resultView !== "pattern3d") renderPattern3D();
+    const P = PAL();
+    const lut = scaleLUT(p3Colorscale(), 160);
+    const bg = hex2rgb(P.paper), fg = hex2rgb(P.font), mu = hex2rgb(P.muted);
+    const blend = (a, b, t) => [0, 1, 2].map((k) => Math.round(a[k] + (b[k] - a[k]) * t));
+    const pal = lut.slice(); pal.push(bg, fg, mu);
+    for (let i = 1; i < 20; i++) pal.push(blend(bg, fg, i / 20));
+    [0, 40, 80, 120, 159].forEach((i) => { for (let t = 1; t < 8; t++) pal.push(blend(lut[i], bg, t / 8)); });   // края
+    [0, 53, 106, 159].forEach((i) => { for (let t = 1; t < 8; t++) pal.push(blend(lut[i], [0, 0, 0], t / 12)); }); // тени
+    while (pal.length > 256) pal.pop();
+    const canvas = document.createElement("canvas"); canvas.width = GIF_W; canvas.height = GIF_H;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const enc = new GT.GIFEncoder(GIF_W, GIF_H, pal, { loop: 0, delay: P3_GIF_DT });
+    const az0 = p3Az, N = P3_GIF_FRAMES;
+    GT.busy(true, "Сборка GIF… 0/" + N);
+    const t0 = performance.now();
+    try {
+      for (let f = 0; f < N; f++) {
+        p3Az = (az0 + 360 * f / N) % 360;
+        await Plotly.relayout(host, { "scene.camera": p3Camera(p3Az) });
+        const url = await p3SceneImage(host);
+        const img = new Image(); img.src = url; await new Promise((r) => { img.onload = r; });
+        p3ComposeFrame(ctx, img, p3, { paper: P.paper, font: P.font, muted: P.muted });
+        enc.addFrame(ctx.getImageData(0, 0, GIF_W, GIF_H), P3_GIF_DT);
+        GT.busy(true, "Сборка GIF… " + (f + 1) + "/" + N);
+        await yieldToUI();
+      }
+      const blob = enc.finish();
+      const name = "greentensor_pattern3d_k0a" + fmtRu(p3.k0a, 2).replace(",", "p") + ".gif";
+      GT.download(name, blob, "image/gif");
+      GT.toast("GIF: " + N + " кадров, " + (blob.size / 1048576).toFixed(2) + " МБ", "ok");
+      GT.lastGif = { name, size: blob.size, frames: N, blob, timing: { total: performance.now() - t0 } };
+      console.info("[GreenTensor] GIF " + name + ": " + N + " кадров, " + (blob.size / 1024).toFixed(0) + " кБ, " +
+        (performance.now() - t0).toFixed(0) + " мс");
+    } catch (e) {
+      console.error(e);
+      GT.toast("Не удалось собрать GIF: " + e.message, "error");
+    } finally {
+      p3Az = az0;
+      GT.busy(false);
+      if (wasAnim) startRotate(); else renderPattern3D();
+    }
+  }
+
   // ===================== Сечения ===================== //
   function renderCross() {
     const res = GT.state.results;
@@ -884,14 +1298,51 @@
     const v = GT.state.resultView;
     const polarV = v === "pattern" || v === "bistatic" || v === "monostatic";
     GT.$("#polar-rot-wrap").style.display = polarV ? "" : "none";
+    // высота области графика на телефоне выставляется картой/3D; для остальных — сброс
+    if (v !== "heatmap" && v !== "pattern3d") { const st = GT.$(".plot-stage"); if (st) st.style.minHeight = ""; }
     GT.$("#db-toggle-wrap").style.display = v === "pattern" ? "" : "none";
     GT.$("#pattern-layout").style.display = v === "pattern" ? "" : "none";
-    const hmV = v === "heatmap";
+    const hmV = v === "heatmap", patV = v === "pattern", p3V = v === "pattern3d";
     GT.$("#hm-scale").style.display = hmV && (GT.state.heatMode || "abs") !== "re" ? "" : "none";
     GT.$("#hm-res-wrap").style.display = hmV ? "" : "none";
-    ["#hm-mode", "#hm-comp", "#hm-plane", "#btn-gif"].forEach((id) => {
+    ["#hm-mode", "#hm-comp", "#hm-plane"].forEach((id) => {
       const el = GT.$(id); if (el) el.style.display = hmV ? "" : "none";
     });
+    const gifB = GT.$("#btn-gif");
+    if (gifB) {
+      gifB.style.display = hmV || patV || p3V ? "" : "none";
+      gifB.title = patV ? "Собрать GIF: нормированная бистатическая ДН при свипе k₀a (кадры по k₀a, 800×600, цикл)"
+        : p3V ? "Собрать GIF: вращение 3D-ДН (36 кадров, оборот 360°, 800×600, цикл)"
+        : "Собрать GIF бегущей волны: 30 кадров Re[E·e^{jωt}] по ωt = 0…2π, 800×600, бесконечный цикл";
+      if (patV || p3V) gifB.disabled = false;
+    }
+    let p3b = GT.$("#p3-rotate-btn");
+    if (p3V) {
+      if (!p3b) {
+        p3b = document.createElement("button");
+        p3b.id = "p3-rotate-btn"; p3b.className = "btn"; p3b.type = "button";
+        p3b.title = "Анимация: вращение сцены вокруг оси z (направления падения)";
+        p3b.textContent = "▶ Вращение";
+        p3b.addEventListener("click", toggleRotate);
+        const gif = GT.$("#btn-gif");
+        gif.parentNode.insertBefore(p3b, gif);
+      }
+      p3b.style.display = "";
+    } else if (p3b) { p3b.style.display = "none"; }
+    const ksw = GT.$("#ksweep-wrap"); if (ksw) ksw.style.display = patV ? "" : "none";
+    let ksb = GT.$("#ksweep-btn");
+    if (patV) {
+      if (!ksb) {
+        ksb = document.createElement("button");
+        ksb.id = "ksweep-btn"; ksb.className = "btn"; ksb.type = "button";
+        ksb.title = "Анимация нормированной бистатической ДН |E_θ| при свипе k₀a (конвенция диссертации: 0° назад сверху)";
+        ksb.textContent = "▶ Свип k₀a";
+        ksb.addEventListener("click", togglePatternSweep);
+        const gif = GT.$("#btn-gif");
+        gif.parentNode.insertBefore(ksb, gif);
+      }
+      ksb.style.display = "";
+    } else if (ksb) { ksb.style.display = "none"; }
     // кнопка анимации бегущей волны только в тепловой карте
     let anim = GT.$("#anim-btn");
     if (hmV) {
@@ -912,6 +1363,8 @@
   function render() {
     stopAnim();
     setAnimBtn(false);
+    setKsBtn(false);
+    setP3Btn(false);
     syncToolbar();
     // Вкладка спектра меняет подпись, если результат несёт генерик-кривую (η₁(θ₀) и т. п.)
     const res0 = GT.state.results;
@@ -924,6 +1377,7 @@
     else if (v === "bistatic") renderBistatic();
     else if (v === "monostatic") renderMonostatic();
     else if (v === "heatmap") renderHeatmap();
+    else if (v === "pattern3d") renderPattern3D();
     else if (v === "cross") renderCross();
     else if (v === "sweep") renderSweep();
     renderImportsList();
@@ -1036,6 +1490,11 @@
       const mo = res.monostatic;
       csv = "aspect_deg,sigma_over_lambda2\n";
       mo.aspect_deg.forEach((a, r) => { csv += a + "," + mo.sigma[r] + "\n"; });
+    } else if (v === "pattern3d" && res && res.pattern3d && res.pattern3d.dB) {
+      const p3 = res.pattern3d;
+      csv = "# 3D pattern |E(theta,phi)|, dB rel. max (floor " + p3.db_floor + "); rows = theta_deg, cols = phi_deg\ntheta\\phi," +
+        p3.phi_deg.join(",") + "\n";
+      p3.dB.forEach((row, i) => { csv += p3.theta_deg[i] + "," + row.join(",") + "\n"; });
     } else if (v === "cross" && res && res.cross_sections) {
       csv = "quantity,value\n";
       Object.entries(res.cross_sections).forEach(([k, val]) => { csv += k + "," + val + "\n"; });
@@ -1110,7 +1569,18 @@
         await GT.compute({ pattern: false, heatmap: true, sweep: false, merge: true });
       }));
     const gifBtn = GT.$("#btn-gif");
-    if (gifBtn) gifBtn.addEventListener("click", exportGIF);
+    if (gifBtn) gifBtn.addEventListener("click", exportActiveGIF);
+    // диапазон свипа k₀a для анимации ДН
+    if (!GT.state.kSweep) GT.state.kSweep = { min: 0.5, max: 8, frames: 31 };
+    const ksMin = GT.$("#ks-min"), ksMax = GT.$("#ks-max"), ksN = GT.$("#ks-frames");
+    const readKs = () => {
+      const mn = parseFloat(ksMin.value), mx = parseFloat(ksMax.value), n = parseInt(ksN.value, 10);
+      if (isFinite(mn) && isFinite(mx) && mn > 0 && mx > mn) GT.state.kSweep = { min: mn, max: mx, frames: n || 31 };
+    };
+    if (ksMin && ksMax && ksN) {
+      ksMin.value = GT.state.kSweep.min; ksMax.value = GT.state.kSweep.max; ksN.value = String(GT.state.kSweep.frames);
+      [ksMin, ksMax, ksN].forEach((el) => el.addEventListener("change", () => { readKs(); stopAnim(); setKsBtn(false); }));
+    }
     GT.$$("#hm-scale button").forEach((b) =>
       b.addEventListener("click", () => {
         GT.state.heatScale = b.dataset.hs;
@@ -1168,5 +1638,13 @@
     syncHeatControls(GT.state.results && GT.state.results.heatmap);
   }
 
-  GT.results = { init, render, onShow, setHeatOptions, startAnim, stopAnim, exportGIF };
+  function setKSweep(ks) {
+    if (!ks) return;
+    GT.state.kSweep = { min: ks.min, max: ks.max, frames: ks.frames || 31 };
+    const a = GT.$("#ks-min"), b = GT.$("#ks-max"), c = GT.$("#ks-frames");
+    if (a) a.value = ks.min; if (b) b.value = ks.max; if (c) c.value = String(ks.frames || 31);
+  }
+
+  GT.results = { init, render, onShow, setHeatOptions, startAnim, stopAnim, exportGIF,
+    setKSweep, startPatternSweep, exportPatternGIF, startRotate, exportPattern3DGIF };
 })();

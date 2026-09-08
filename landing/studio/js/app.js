@@ -82,6 +82,8 @@
         heatmap_plane: GT.state.heatPlane || "xz", heatmap_extent: GT.state.heatExtent || 2.5 }, o);
     const payload = Object.assign({}, GT.state.scene, { compute: want });
     const busyText = o.monostatic ? "Моностатическая ЭПР (развёртка ракурса)…"
+      : (o.pattern_sweep && !want.pattern) ? "Кадры ДН при свипе k₀a…"
+      : (o.pattern3d && !want.pattern) ? "3D-диаграмма |E(θ,φ)|…"
       : (want.heatmap && !want.pattern) ? "Тепловая карта ближнего поля…"
       : o.merge ? "Пересчёт…" : (want.sweep ? "Свип спектра…" : "Расчёт…");
     // Движок считается в браузере (Pyodide). Пока он грузится — покажем это в статусе.
@@ -104,6 +106,8 @@
         if (data.bistatic) GT.state.results.bistatic = data.bistatic;
         if (data.monostatic) GT.state.results.monostatic = data.monostatic;
         if (data.sweep) GT.state.results.sweep = data.sweep;
+        if (data.pattern_anim) GT.state.results.pattern_anim = data.pattern_anim;
+        if (data.pattern3d) GT.state.results.pattern3d = data.pattern3d;
         GT.state.results.meta = data.meta || GT.state.results.meta;
       } else if (want.sweep && GT.state.results) {
         GT.state.results.sweep = data.sweep;

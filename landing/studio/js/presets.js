@@ -8,7 +8,7 @@
   async function load() {
     const sel = GT.$("#preset-select");
     try {
-      const resp = await fetch("studio/engine/presets.json?v=20260908a");
+      const resp = await fetch("studio/engine/presets.json?v=20260908d");
       const data = await resp.json();
       PRESETS = data.presets || [];
     } catch (e) {
@@ -84,7 +84,36 @@
       applyNearFieldView(view);
       return;
     }
+    if (view && view.kSweep) {
+      applyPatternSweepView(view);
+      return;
+    }
+    GT.state.view3dTitle = (view && view.title3d) || null;
+    if (view && view.resultView === "pattern3d") {
+      applyPattern3DView(view);
+      return;
+    }
     GT.compute();   // сразу считаем + (если есть) накладываем эталон Ansys
+  }
+
+  // Пресет 3D-ДН: обычный расчёт + поверхность |E(θ,φ)| одним запросом, вкладка «3D-ДН», вращение.
+  async function applyPattern3DView(view) {
+    if (GT.results && GT.results.setHeatOptions) GT.results.setHeatOptions({ resultView: "pattern3d" });
+    const data = await GT.compute({ pattern: true, heatmap: false, sweep: false, pattern3d: true });
+    if (!data) return;
+    if (view.animate && GT.results && GT.results.startRotate) GT.results.startRotate();
+  }
+
+  // Пресет анимации ДН при свипе k₀a: обычный расчёт + кадры свипа одним запросом,
+  // затем вкладка «Диаграмма» и автозапуск анимации.
+  async function applyPatternSweepView(view) {
+    if (GT.results && GT.results.setKSweep) GT.results.setKSweep(view.kSweep);
+    if (GT.results && GT.results.setHeatOptions) GT.results.setHeatOptions({ resultView: "pattern" });
+    const ks = view.kSweep;
+    const data = await GT.compute({ pattern: true, heatmap: false, sweep: false,
+      pattern_sweep: { k0a_min: ks.min, k0a_max: ks.max, frames: ks.frames || 31 } });
+    if (!data) return;
+    if (view.animate && GT.results && GT.results.startPatternSweep) GT.results.startPatternSweep();
   }
 
   // Пресет ближнего поля: сразу считаем карту, открываем «Тепловая карта» в заданном режиме

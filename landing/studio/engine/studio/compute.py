@@ -308,6 +308,103 @@ def _sphere_pattern(body, rad, gt):
             "polar": True, "plane": "E/H"}
 
 
+PATTERN_SWEEP_MAX_FRAMES = 121
+PATTERN_SWEEP_DB_FLOOR = -40.0
+
+
+def _pattern_sweep_cfg(want):
+    """Параметры свипа k₀a для анимации бистатической ДН: {k0a_min, k0a_max, frames}."""
+    cfg = want.get("pattern_sweep") or {}
+    if not isinstance(cfg, dict):
+        cfg = {}
+    try:
+        lo = float(cfg.get("k0a_min", 0.5)); hi = float(cfg.get("k0a_max", 8.0))
+        n = int(cfg.get("frames", 31))
+    except (TypeError, ValueError):
+        raise ComputeError("pattern_sweep: некорректные параметры.")
+    if not (0 < lo < hi and math.isfinite(hi)):
+        raise ComputeError("pattern_sweep: нужно 0 < k0a_min < k0a_max.")
+    if hi > 60:
+        raise ComputeError("pattern_sweep: k0a_max ≤ 60.")
+    return lo, hi, max(2, min(PATTERN_SWEEP_MAX_FRAMES, n))
+
+
+def _sphere_pattern_sweep(body, rad, gt, want):
+    """Кадры нормированной бистатической ДН |E_θ| (E-плоскость φ=0, ВВ-поляризация)
+    при свипе k₀a — для анимации/GIF (слайд диссертации). Каждый кадр нормирован на СВОЙ
+    максимум (0 дБ), пол −40 дБ. Угол — стандартный θ (0 = вперёд, 180 = обратное);
+    отрисовка в конвенции диссертации (0° «назад» сверху) — на стороне UI."""
+    radius = float(body.get("radius", 1.0))
+    a_norm, eps, mu = _layers(body)
+    solver = gt.SphereSolver(radius, eps, a_norm=a_norm, miy=mu)
+    lo, hi, n = _pattern_sweep_cfg(want)
+    theta_std = np.linspace(0.0, 2.0 * math.pi, 360, endpoint=False) + 1e-4   # шаг 1°
+    theta = (math.pi - theta_std) % (2.0 * math.pi)
+    k0a = np.linspace(lo, hi, n)
+    frames = []
+    for x in k0a:
+        pe = solver.pattern(float(x) / radius, theta, polarization="linear", phi=0.0,
+                            problem="diffraction")["E_theta"]
+        pe = np.abs(np.asarray(pe, float))
+        ref = float(np.nanmax(pe[np.isfinite(pe)])) if np.isfinite(pe).any() else 1.0
+        with np.errstate(divide="ignore", invalid="ignore"):
+            d = 20.0 * np.log10(pe / (ref or 1.0))
+        d = np.where(np.isfinite(d), np.maximum(d, PATTERN_SWEEP_DB_FLOOR), PATTERN_SWEEP_DB_FLOOR)
+        frames.append([round(float(v), 3) for v in d])
+    return {
+        "available": True,
+        "k0a": [round(float(x), 6) for x in k0a],
+        "theta_deg": _finite(np.degrees(theta_std)),
+        "frames": frames, "db_floor": PATTERN_SWEEP_DB_FLOOR,
+        "quantity": "Нормированная бистатическая диаграмма рассеяния |E<sub>θ</sub>|, ВВ-поляризация",
+        "layers": len(a_norm), "eps_re": [float(e.real) for e in eps],
+        "core": "01_sphere (ТФГ)",
+    }
+
+
+PATTERN3D_DB_FLOOR = -30.0
+
+
+def _sphere_pattern3d(body, rad, gt, want):
+    """Полная 3D-диаграмма рассеяния |E(θ,φ)| одиночной (слоистой) сферы в дальней зоне,
+    нормированная к максимуму, дБ, пол −30 дБ (слайд «3D-диаграммы рассеяния»).
+
+    Амплитуды рассеяния Bohren–Huffman: S1 = Σ w_n (a_n π_n + b_n τ_n), S2 = Σ w_n (a_n τ_n + b_n π_n),
+    w_n = (2n+1)/(n(n+1)); для ê∥x: E_θ ∝ cosφ·S2, E_φ ∝ −sinφ·S1 → |E|² = cos²φ|S2|² + sin²φ|S1|².
+    a_n, b_n — трансфер-матрица слоистой сферы (nearfield_sphere.layered_coeffs, сверена с
+    ядром 01_sphere по Q_sca). θ — от направления падения k̂ (0 = вперёд), φ — от ê."""
+    from .nearfield_sphere import layered_coeffs, _pi_tau
+    radius = float(body.get("radius", 1.0))
+    a_norm, eps, mu = _layers(body)
+    k = rad["k"]
+    cfg = want.get("pattern3d") if isinstance(want.get("pattern3d"), dict) else {}
+    n_th = int(cfg.get("n_theta", 91)); n_ph = int(cfg.get("n_phi", 121))
+    n_th = max(19, min(181, n_th)); n_ph = max(25, min(241, n_ph))
+    C = layered_coeffs(a_norm, eps, mu, k, radius, rad.get("toch"))
+    n = C["n"]; a = C["a_n"]; b = C["b_n"]
+    w = ((2 * n + 1) / (n * (n + 1)))[:, None]
+    theta = np.linspace(0.0, math.pi, n_th)
+    phi = np.linspace(0.0, 2.0 * math.pi, n_ph)
+    pin, taun = _pi_tau(len(n), theta)                       # (nmax, n_th)
+    S1 = np.sum(w * (a[:, None] * pin + b[:, None] * taun), axis=0)
+    S2 = np.sum(w * (a[:, None] * taun + b[:, None] * pin), axis=0)
+    cph2 = np.cos(phi)[None, :] ** 2; sph2 = np.sin(phi)[None, :] ** 2
+    E2 = cph2 * (np.abs(S2) ** 2)[:, None] + sph2 * (np.abs(S1) ** 2)[:, None]   # (n_th, n_ph)
+    ref = float(E2.max()) or 1.0
+    with np.errstate(divide="ignore"):
+        dB = 10.0 * np.log10(E2 / ref)
+    dB = np.maximum(np.where(np.isfinite(dB), dB, PATTERN3D_DB_FLOOR), PATTERN3D_DB_FLOOR)
+    return {
+        "available": True,
+        "theta_deg": _finite(np.degrees(theta)), "phi_deg": _finite(np.degrees(phi)),
+        "dB": [[round(float(v), 3) for v in row] for row in dB],
+        "db_floor": PATTERN3D_DB_FLOOR, "k0a": float(k * radius),
+        "layers": len(a_norm), "eps_re": [float(e.real) for e in eps],
+        "core": "01_sphere (ТФГ) — a_n, b_n слоистой сферы",
+        "convention": "θ от k̂ (0 = вперёд), φ от ê; ê∥x, k̂∥z",
+    }
+
+
 def _cluster_pattern(scatterers, rad, gt, nmax, cf=None):
     """ДН произвольного кластера: |E| дальнего поля в E- и H-плоскостях. Угол θ отсчитывается
     от НАПРАВЛЕНИЯ ПАДЕНИЯ (θ=0 — рассеяние ВПЕРЁД, θ=180 — обратное), как у сферы — иначе для
@@ -891,6 +988,11 @@ def compute(scene: dict) -> dict:
         out["bistatic"] = {"available": False, "note": _RCS_2D_NOTE}
         out["monostatic"] = {"available": False, "note": _RCS_2D_NOTE}
         out["meta"]["core"] = "цилиндр (ТФГ, слоистый бесконечный)"
+        if want.get("pattern_sweep"):
+            out["pattern_anim"] = {"available": False,
+                                   "note": "Свип k₀a для анимации ДН — только для одиночной сферы."}
+        if want.get("pattern3d"):
+            out["pattern3d"] = {"available": False, "note": "3D-ДН — только для одиночной сферы."}
         out["meta"]["nmax"] = nmax
         out["meta"]["cylinder_infinite"] = True
         return out
@@ -937,6 +1039,10 @@ def compute(scene: dict) -> dict:
         cs = _sphere_cross_sections(body, rad["k"], gt)
         out["cross_sections"] = cs
         q_back = cs.get("q_back") or 0.0
+        if want.get("pattern_sweep"):                 # анимация ДН при свипе k₀a (по запросу)
+            out["pattern_anim"] = _sphere_pattern_sweep(body, rad, gt, want)
+        if want.get("pattern3d"):                     # полная 3D-ДН |E(θ,φ)| (по запросу)
+            out["pattern3d"] = _sphere_pattern3d(body, rad, gt, want)
         if do_pattern:
             out["pattern"] = _sphere_pattern(body, rad, gt)
             if rad["polarization"] == "linear":
@@ -960,6 +1066,11 @@ def compute(scene: dict) -> dict:
     scatterers = [_build_scatterer(b, gt) for b in bodies]
     nmax = _nmax_for(bodies, rad["k"])
     out["meta"]["core"] = "GMM (кластер сфер)"
+    if want.get("pattern_sweep"):
+        out["pattern_anim"] = {"available": False,
+                               "note": "Свип k₀a для анимации ДН — только для одиночной сферы."}
+    if want.get("pattern3d"):
+        out["pattern3d"] = {"available": False, "note": "3D-ДН — только для одиночной сферы."}
     out["meta"]["nmax"] = nmax
     do_cross = want.get("cross", True)
 

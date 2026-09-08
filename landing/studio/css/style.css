@@ -427,3 +427,43 @@ html[data-theme="light"] .brand-mark { box-shadow: 0 0 10px rgba(13,107,138,0.35
 label.hud-dn { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 label.hud-dn input { margin: 0; accent-color: var(--accent); }
 label.hud-dn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ============ Мобильная раскладка (телефон, ≤ 820px) ============ */
+/* Рабочая область складывается в колонку: сначала вкладки/график, ниже — панель сцены.
+   Страница прокручивается вертикально; горизонтальной прокрутки нет — сегменты
+   тулбара переносятся на новые строки, шапка растягивается на всю ширину. */
+@media (max-width: 820px) {
+  html, body { height: auto; min-height: 100%; }
+  body { overflow: auto; }
+  .app-header {
+    height: auto; flex-wrap: wrap; align-items: flex-start;
+    padding: var(--sp-2) var(--sp-3); gap: var(--sp-2);
+  }
+  .brand-group { width: 100%; }
+  .header-controls { width: 100%; gap: var(--sp-2); }
+  .header-controls > label.field.inline { flex: 1 1 100%; }
+  .header-controls > label.field.inline select { flex: 1 1 auto; min-width: 0; }
+  #btn-compute { flex: 1 1 auto; }
+  .app-nav { margin-left: 0; }
+  .workspace { flex-direction: column; min-height: 0; }
+  .main { order: 1; min-height: 80vh; }
+  .sidebar {
+    order: 2; width: auto; flex: 0 0 auto; max-height: none;
+    border-right: none; border-top: 1px solid var(--border);
+    padding: var(--sp-3);
+  }
+  .tab-panel { min-height: 72vh; }
+  .viewport-wrap, .plot-stage { min-height: 64vh; }
+  .results-toolbar { padding: var(--sp-2) var(--sp-3); gap: var(--sp-2); }
+  .toolbar-spacer { display: none; }
+  .result-actions { width: 100%; }
+  .seg { flex-wrap: wrap; max-width: 100%; }
+  .seg button { flex: 1 1 auto; }
+  #polar-rot-wrap input[type="range"] { width: 96px; }
+  .imports-bar { max-height: 160px; }
+}
+@media (max-width: 480px) {
+  .brand-sub { display: none; }
+  .tabs button { padding: var(--sp-2) var(--sp-3); }
+  .results-toolbar .field.inline > span { font-size: var(--fs-xs); }
+}
