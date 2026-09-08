@@ -24,6 +24,37 @@ All notable changes to this project are documented here. The format is based on
   ищутся по `GT_LL_DATASET` / `GT_RPM_DATASET`, в текущей папке и рядом с
   репозиторием; ничего не скачивает.
 
+- `sphere_core.MieSphere.far_field`, `bistatic_rcs`, `amplitudes` — ненормированное
+  поле дальней зоны (`rE` в В, `E` в В/м) и абсолютная бистатическая эффективная
+  площадь рассеяния (м²); фасады `far_field_sphere`, `bistatic_rcs_sphere`.
+- `sphere_core.MieSphere.dipole_e0`, `huygens_e0` — амплитуды элементарного
+  вибратора и элемента Гюйгенса; `circular_field`, `field` — абсолютные компоненты
+  круговой и линейной поляризации.
+- **`green_tensor/nearfield.py`** (новый модуль):
+  - `external_field_sphere` — точный радиальный ряд для внешней области `r > a`
+    (сферические функции Ханкеля вместо асимптотики); нормировка наследуется из
+    дальней зоны аналитически;
+  - `magnetic_field_sphere` — магнитное поле того же ряда (второй тензор Грина);
+  - `antenna_pattern_sphere` — диаграмма направленности линзовой антенны с
+    облучателем на поверхности, через соотношение взаимности;
+  - `near_field_sphere` — поле через ВСВФ/T-матрицу.
+- `green_tensor/_angular.py` — угловые функции π_n, τ_n (рекуррентность
+  Бора–Хаффмана), независимые от тестового арбитра.
+- Тесты: `test_bistatic_rcs.py`, `test_wiscombe_benchmark.py`,
+  `test_antenna_reciprocity.py`. Набор расширен до 82 проверок.
+- Пример 7 «Absolute fields and lens antenna» — верификация абсолютных величин
+  полноволновым методом (Ansys HFSS) на семи конфигурациях, 28 диаграмм задачи
+  дифракции и диаграмма направленности линзовой антенны.
+
+### Verified
+- Задача дифракции: медиана поточечного расхождения с полноволновым эталоном
+  0,40 дБ по 28 абсолютным диаграммам, медиана расхождения максимумов 0,23 дБ;
+  ближняя зона 0,24 дБ по семи конфигурациям.
+- Антенная задача (линза Люнеберга, `k0a = 15`): расхождение максимумов −0,37 дБ
+  при абсолютном уровне 4,531 против 4,342 В/м, медиана по лепесткам 0,47 дБ
+  (E-плоскость) и 0,64 дБ (H-плоскость).
+- `magnetic_field_sphere` сверено с `∇×E/(jk0Z0)` численного дифференцирования
+  аналитического поля (4·10⁻⁷) и с соотношением исходящей волны в дальней зоне.
 ## [0.6.2] — 2026-08-14
 
 ### Added
@@ -35,6 +66,28 @@ All notable changes to this project are documented here. The format is based on
   расхождения (x_a/x_L)²).
 - Английский алиас **`n_max`** для параметра `toch` в `RCSCalculator` и
   `ScatteringCalculator` (обе копии ядра; `toch` сохранён для совместимости).
+
+- `sphere_core.MieSphere.far_field`, `bistatic_rcs`, `amplitudes` — ненормированное
+  поле дальней зоны (`rE` в В, `E` в В/м) и абсолютная бистатическая эффективная
+  площадь рассеяния (м²); фасады `far_field_sphere`, `bistatic_rcs_sphere`.
+- `sphere_core.MieSphere.dipole_e0`, `huygens_e0` — амплитуды элементарного
+  вибратора и элемента Гюйгенса; `circular_field`, `field` — абсолютные компоненты
+  круговой и линейной поляризации.
+- **`green_tensor/nearfield.py`** (новый модуль):
+  - `external_field_sphere` — точный радиальный ряд для внешней области `r > a`
+    (сферические функции Ханкеля вместо асимптотики); нормировка наследуется из
+    дальней зоны аналитически;
+  - `magnetic_field_sphere` — магнитное поле того же ряда (второй тензор Грина);
+  - `antenna_pattern_sphere` — диаграмма направленности линзовой антенны с
+    облучателем на поверхности, через соотношение взаимности;
+  - `near_field_sphere` — поле через ВСВФ/T-матрицу.
+- `green_tensor/_angular.py` — угловые функции π_n, τ_n (рекуррентность
+  Бора–Хаффмана), независимые от тестового арбитра.
+- Тесты: `test_bistatic_rcs.py`, `test_wiscombe_benchmark.py`,
+  `test_antenna_reciprocity.py`. Набор расширен до 82 проверок.
+- Пример 7 «Absolute fields and lens antenna» — верификация абсолютных величин
+  полноволновым методом (Ansys HFSS) на семи конфигурациях, 28 диаграмм задачи
+  дифракции и диаграмма направленности линзовой антенны.
 
 ### Fixed
 - `pyproject.toml`/`requirements.txt`: минимум NumPy снижен до `>=1.25` —
@@ -57,6 +110,28 @@ All notable changes to this project are documented here. The format is based on
   конуса 5° (d/a ≈ 11.5). Тот же расчёт добавлен в GreenTensor Studio —
   эталонная задача «Раскрыв облучателя (spill-over η₁)» (greentensor.ru/studio.html,
   deeplink `#preset=feed_spillover`).
+
+- `sphere_core.MieSphere.far_field`, `bistatic_rcs`, `amplitudes` — ненормированное
+  поле дальней зоны (`rE` в В, `E` в В/м) и абсолютная бистатическая эффективная
+  площадь рассеяния (м²); фасады `far_field_sphere`, `bistatic_rcs_sphere`.
+- `sphere_core.MieSphere.dipole_e0`, `huygens_e0` — амплитуды элементарного
+  вибратора и элемента Гюйгенса; `circular_field`, `field` — абсолютные компоненты
+  круговой и линейной поляризации.
+- **`green_tensor/nearfield.py`** (новый модуль):
+  - `external_field_sphere` — точный радиальный ряд для внешней области `r > a`
+    (сферические функции Ханкеля вместо асимптотики); нормировка наследуется из
+    дальней зоны аналитически;
+  - `magnetic_field_sphere` — магнитное поле того же ряда (второй тензор Грина);
+  - `antenna_pattern_sphere` — диаграмма направленности линзовой антенны с
+    облучателем на поверхности, через соотношение взаимности;
+  - `near_field_sphere` — поле через ВСВФ/T-матрицу.
+- `green_tensor/_angular.py` — угловые функции π_n, τ_n (рекуррентность
+  Бора–Хаффмана), независимые от тестового арбитра.
+- Тесты: `test_bistatic_rcs.py`, `test_wiscombe_benchmark.py`,
+  `test_antenna_reciprocity.py`. Набор расширен до 82 проверок.
+- Пример 7 «Absolute fields and lens antenna» — верификация абсолютных величин
+  полноволновым методом (Ansys HFSS) на семи конфигурациях, 28 диаграмм задачи
+  дифракции и диаграмма направленности линзовой антенны.
 
 ### Fixed
 - `RCSCalculator` (обе копии ядра: `green_tensor/01_sphere.py`, `green_tensor/calc.py`):
@@ -92,6 +167,28 @@ for Electromagnetic Scattering by Multilayer Dielectric Structures»: в пак�
   (RMSE(ε) = 0.0320 при L = 8).
 - `examples/Example 8 - RPM Coated PEC Sphere` — РПМ-покрытия ZIK 51-2190/2191
   на проводящей сфере (упражняет mpmath-ветку).
+
+- `sphere_core.MieSphere.far_field`, `bistatic_rcs`, `amplitudes` — ненормированное
+  поле дальней зоны (`rE` в В, `E` в В/м) и абсолютная бистатическая эффективная
+  площадь рассеяния (м²); фасады `far_field_sphere`, `bistatic_rcs_sphere`.
+- `sphere_core.MieSphere.dipole_e0`, `huygens_e0` — амплитуды элементарного
+  вибратора и элемента Гюйгенса; `circular_field`, `field` — абсолютные компоненты
+  круговой и линейной поляризации.
+- **`green_tensor/nearfield.py`** (новый модуль):
+  - `external_field_sphere` — точный радиальный ряд для внешней области `r > a`
+    (сферические функции Ханкеля вместо асимптотики); нормировка наследуется из
+    дальней зоны аналитически;
+  - `magnetic_field_sphere` — магнитное поле того же ряда (второй тензор Грина);
+  - `antenna_pattern_sphere` — диаграмма направленности линзовой антенны с
+    облучателем на поверхности, через соотношение взаимности;
+  - `near_field_sphere` — поле через ВСВФ/T-матрицу.
+- `green_tensor/_angular.py` — угловые функции π_n, τ_n (рекуррентность
+  Бора–Хаффмана), независимые от тестового арбитра.
+- Тесты: `test_bistatic_rcs.py`, `test_wiscombe_benchmark.py`,
+  `test_antenna_reciprocity.py`. Набор расширен до 82 проверок.
+- Пример 7 «Absolute fields and lens antenna» — верификация абсолютных величин
+  полноволновым методом (Ansys HFSS) на семи конфигурациях, 28 диаграмм задачи
+  дифракции и диаграмма направленности линзовой антенны.
 
 ### Fixed
 - Версия обёртки `greentensor.py` синхронизирована с пакетом (была 0.2.0).

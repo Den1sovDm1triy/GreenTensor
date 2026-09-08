@@ -28,6 +28,9 @@ import test_cylinder_layered as cyl_l  # noqa: E402
 import test_hfss_reference as hfss  # noqa: E402
 import test_multilayer_regression as mreg  # noqa: E402
 import test_feed as feed_t  # noqa: E402
+import test_antenna_reciprocity as arc  # noqa: E402
+import test_bistatic_rcs as brc  # noqa: E402
+import test_wiscombe_benchmark as wsb  # noqa: E402
 
 
 def main() -> int:
@@ -118,6 +121,16 @@ def main() -> int:
         ("feed: small cone measures D", feed_t.test_small_cone_measures_directivity),
         ("feed: tabulated == callable", feed_t.test_tabulated_pattern_matches_callable),
         ("feed: cone geometry arcsin(a/d)", feed_t.test_cone_geometry),
+        ("antenna: H == curl E", arc.test_magnetic_field_matches_curl),
+        ("antenna: far-zone H = r x E / Z0", arc.test_far_zone_outgoing_relation),
+        ("antenna: Huygens free space = cardioid", arc.test_huygens_free_space_is_cardioid),
+        ("antenna: Luneburg pattern vs HFSS", arc.test_luneburg_antenna_vs_hfss),
+        ("absolute: sigma(pi) == pi R^2 Q_back", brc.test_backscatter_equals_pi_r2_qback),
+        ("absolute: far field vs RCS", brc.test_far_field_consistent_with_rcs),
+        ("absolute: field ~ 1/r", brc.test_field_scales_with_distance),
+        ("Wiscombe: amplitudes", wsb.test_amplitudes_match_wiscombe),
+        ("Wiscombe: efficiencies", wsb.test_efficiencies_match_wiscombe),
+        ("Wiscombe: absolute RCS", wsb.test_absolute_rcs_matches_wiscombe),
     ]
     failures = 0
     for name, fn in suite:

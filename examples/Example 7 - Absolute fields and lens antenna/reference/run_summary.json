@@ -1,0 +1,57 @@
+{
+  "platform": {
+    "fem": "AMD Ryzen 9 7950X3D (16C/32T), NVIDIA GeForce RTX 4080 Super, DDR5-8000",
+    "tgf": "Apple M2 Pro (12 ядер), 16 ГБ, один поток"
+  },
+  "solver": "Ansys HFSS 2024 R2, Driven Modal, базис 1-го порядка, dS=0.02, до 12 адаптивных проходов",
+  "cases": [
+    {
+      "tag": "pec_k0p5_diffraction",
+      "tetrahedra": 5564,
+      "peak_memory_MB": 393.0,
+      "wall_s": 140.5
+    },
+    {
+      "tag": "pec_k2_diffraction",
+      "tetrahedra": 5839,
+      "peak_memory_MB": 392.0,
+      "wall_s": 130.0
+    },
+    {
+      "tag": "pec_k15_diffraction",
+      "tetrahedra": 69638,
+      "peak_memory_MB": 4137.0,
+      "wall_s": 920.5
+    },
+    {
+      "tag": "radome_k0p5_diffraction",
+      "tetrahedra": 14359,
+      "peak_memory_MB": 614.0,
+      "wall_s": 139.4
+    },
+    {
+      "tag": "radome_k2_diffraction",
+      "tetrahedra": 10689,
+      "peak_memory_MB": 773.0,
+      "wall_s": 129.7
+    },
+    {
+      "tag": "radome_k15_diffraction",
+      "tetrahedra": 97017,
+      "peak_memory_MB": 6604.8,
+      "wall_s": 1024.9
+    },
+    {
+      "tag": "luneburg_k15_diffraction",
+      "tetrahedra": 41126,
+      "peak_memory_MB": 3962.9,
+      "wall_s": 1380.0
+    },
+    {
+      "tag": "luneburg_k15_antenna",
+      "tetrahedra": 728033,
+      "peak_memory_MB": 48128.0,
+      "wall_s": 3480.0
+    }
+  ]
+}

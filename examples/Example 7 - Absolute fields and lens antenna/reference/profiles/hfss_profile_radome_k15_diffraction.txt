@@ -1,0 +1,6 @@
+# HFSS FEM profile — radome_k15_diffraction
+tag: radome_k15_diffraction
+k0a: 15.0
+mode: diffraction
+peak_memory_MB: 6604.8
+tetrahedra: 97017
